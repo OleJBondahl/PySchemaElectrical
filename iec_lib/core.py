@@ -15,6 +15,8 @@ class Vector:
 
     def __add__(self, other: 'Vector') -> 'Vector':
         """Add two vectors."""
+        if not isinstance(other, Vector):
+             return NotImplemented
         return Vector(self.dx + other.dx, self.dy + other.dy)
 
     def __mul__(self, scalar: float) -> 'Vector':

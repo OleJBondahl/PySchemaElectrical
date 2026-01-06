@@ -27,3 +27,12 @@ PIN_LABEL_OFFSET_Y_ADJUST = 0.0 # mm, adjustment for up/down ports
 # Layout
 DEFAULT_POLE_SPACING = 10.0 # mm, 2 * GRID_SIZE
 DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 1.0 # mm
+
+# Colors
+COLOR_BLACK = "black"
+COLOR_WHITE = "white"
+
+# Document Defaults
+DEFAULT_DOC_WIDTH = "210mm"
+DEFAULT_DOC_HEIGHT = "297mm"
+

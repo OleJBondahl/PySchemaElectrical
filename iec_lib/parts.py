@@ -15,7 +15,8 @@ from .constants import (
     PIN_LABEL_OFFSET_X,
     PIN_LABEL_OFFSET_Y_ADJUST,
     TERMINAL_RADIUS,
-    DEFAULT_POLE_SPACING
+    DEFAULT_POLE_SPACING,
+    COLOR_BLACK
 )
 
 # Constants are now imported from .constants
@@ -31,9 +32,9 @@ def standard_style(filled: bool = False) -> Style:
         Style: The configured style object.
     """
     return Style(
-        stroke="black",
+        stroke=COLOR_BLACK,
         stroke_width=LINE_WIDTH_THIN,
-        fill="black" if filled else "none"
+        fill=COLOR_BLACK if filled else "none"
     )
 
 def standard_text(content: str, parent_origin: Point) -> Text:
@@ -55,7 +56,7 @@ def standard_text(content: str, parent_origin: Point) -> Text:
         position=pos,
         anchor="end", # Locked position at the end
         font_size=TEXT_SIZE_MAIN,
-        style=Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
+        style=Style(stroke="none", fill=COLOR_BLACK, font_family=TEXT_FONT_FAMILY)
     )
 
 def terminal_circle(center: Point = Point(0,0), filled: bool = False) -> Element:
@@ -143,7 +144,7 @@ def create_pin_labels(ports: Dict[str, Any], pins: Tuple[str, ...]) -> List[Text
             position=Point(pos_x, pos_y),
             anchor="end",
             font_size=TEXT_SIZE_PIN,
-            style=Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY_AUX)
+            style=Style(stroke="none", fill=COLOR_BLACK, font_family=TEXT_FONT_FAMILY_AUX)
         ))
         
     return labels

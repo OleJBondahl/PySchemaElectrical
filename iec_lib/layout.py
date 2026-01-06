@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 from .core import Symbol, Point, Vector, Element, Port
 from .primitives import Line
 from .transform import translate
@@ -15,7 +15,13 @@ def get_connection_ports(symbol: Symbol, direction: Vector) -> List[Port]:
     Returns:
         List[Port]: A list of matching ports.
     """
-    return [p for p in symbol.ports.values() if p.direction == direction]
+    matches = []
+    for p in symbol.ports.values():
+        dx = abs(p.direction.dx - direction.dx)
+        dy = abs(p.direction.dy - direction.dy)
+        if dx < 1e-6 and dy < 1e-6:
+            matches.append(p)
+    return matches
 
 def auto_connect(sym1: Symbol, sym2: Symbol) -> List[Line]:
     """
@@ -48,7 +54,7 @@ def auto_connect(sym1: Symbol, sym2: Symbol) -> List[Line]:
 def auto_connect_labeled(
     sym1: Symbol,
     sym2: Symbol,
-    wire_specs: Optional[Dict[str, tuple]] = None
+    wire_specs: Optional[Union[Dict[str, tuple], List[tuple]]] = None
 ) -> List[Element]:
     """
     Automatically connects two symbols with labeled wires.
@@ -63,41 +69,56 @@ def auto_connect_labeled(
     Args:
         sym1 (Symbol): The upper symbol (source).
         sym2 (Symbol): The lower symbol (target).
-        wire_specs (Dict[str, tuple]): Optional dictionary mapping port IDs to
-            (color, size) tuples. Example: {"1": ("RD", "2.5mm²"), "3": ("BK", "0.5mm²")}
-            If None or port not in dict, wire is created without label.
+        wire_specs: Specification for wire labels.
+            - If Dict[str, tuple]: Maps Port ID to (color, size).
+            - If List[tuple]: Maps (color, size) to ports by X-position (Left to Right).
+            If None or not found, wire is created without label.
         
     Returns:
         List[Element]: List of connection lines and label texts.
-        
-    Example:
-        >>> specs = {"1": ("RD", "2.5mm²"), "3": ("BK", "0.5mm²")}
-        >>> elements = auto_connect_labeled(top_symbol, bottom_symbol, specs)
     """
     from .wire_labels import create_labeled_wire
     
     elements = []
     wire_specs = wire_specs or {}
     
+    # Get ports
     down_ports = get_connection_ports(sym1, Vector(0, 1))
     up_ports = get_connection_ports(sym2, Vector(0, -1))
     
+    # Sort downward ports by X position for list-based matching
+    down_ports.sort(key=lambda p: p.position.x)
+    
+    match_count = 0
     for dp in down_ports:
+        # Find matching upward port
+        matched_up = None
         for up in up_ports:
-            # Check vertical alignment (same X)
             if abs(dp.position.x - up.position.x) < 0.1:
-                # Get wire specifications if available
+                matched_up = up
+                break
+        
+        if matched_up:
+            # Determine label spec
+            spec = ("", "")
+            
+            if isinstance(wire_specs, list):
+                if match_count < len(wire_specs):
+                    spec = wire_specs[match_count]
+                match_count += 1
+            elif isinstance(wire_specs, dict):
                 spec = wire_specs.get(dp.id, ("", ""))
-                color, size = spec if isinstance(spec, tuple) else ("", "")
                 
-                # Create labeled wire
-                wire_elements = create_labeled_wire(
-                    dp.position,
-                    up.position,
-                    color,
-                    size
-                )
-                elements.extend(wire_elements)
+            color, size = spec if isinstance(spec, tuple) else ("", "")
+            
+            # Create labeled wire
+            wire_elements = create_labeled_wire(
+                dp.position,
+                matched_up.position,
+                color,
+                size
+            )
+            elements.extend(wire_elements)
                 
     return elements
 

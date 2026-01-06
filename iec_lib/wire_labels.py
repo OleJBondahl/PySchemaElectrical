@@ -14,17 +14,17 @@ from .constants import TEXT_SIZE_PIN, TEXT_FONT_FAMILY_AUX
 def calculate_wire_label_position(
     start: Point,
     end: Point,
-    offset_x: float = -2.0
+    offset_x: float = -2.5 # Default to -2.5 to place left of wire
 ) -> Point:
     """
     Calculate the position for a wire label along a vertical wire.
     
-    Places the label at the midpoint of the wire, offset to the left side.
+    Places the label at the midpoint of the wire.
     
     Args:
         start (Point): Starting point of the wire.
         end (Point): Ending point of the wire.
-        offset_x (float): Horizontal offset from wire (negative = left side).
+        offset_x (float): Horizontal offset from wire (default -2.5).
         
     Returns:
         Point: The calculated label position.
@@ -43,6 +43,8 @@ def create_wire_label_text(
     """
     Create a text element for a wire label.
     
+    Rotated 90 degrees (text runs downwards) and centered on the wire.
+    
     Args:
         text_content (str): The label text (e.g., "RD 2.5mm²").
         position (Point): The position for the text.
@@ -56,11 +58,12 @@ def create_wire_label_text(
     return Text(
         content=text_content,
         position=position,
-        anchor="end",
+        anchor="middle", # Center horizontally (relative to rotated text)
+        dominant_baseline="middle", # Center vertically (relative to rotated text, i.e., on the wire)
         font_size=font_size,
+        rotation=90.0, # Text runs downwards
         style=Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY_AUX)
     )
-
 
 def format_wire_specification(
     color: str = "",
@@ -93,7 +96,7 @@ def create_labeled_wire(
     end: Point,
     wire_color: str = "",
     wire_size: str = "",
-    label_offset_x: float = -2.0
+    label_offset_x: float = -2.5
 ) -> List[Element]:
     """
     Create a wire connection with an optional label.
@@ -106,7 +109,7 @@ def create_labeled_wire(
         end (Point): Ending point of the wire.
         wire_color (str): Wire color code (e.g., "RD", "BK").
         wire_size (str): Wire size specification (e.g., "2.5mm²").
-        label_offset_x (float): Horizontal offset for label (negative = left).
+        label_offset_x (float): Horizontal offset for label (default -2.5).
         
     Returns:
         List[Element]: List containing the wire line and optionally the label text.

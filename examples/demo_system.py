@@ -4,14 +4,18 @@ import os
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from iec_lib.core import Point, Symbol
+from iec_lib.core import Point, Symbol, Element
 from iec_lib.library.breakers import three_pole_circuit_breaker
 from iec_lib.library.protection import three_pole_thermal_overload
-from iec_lib.library.terminals import three_pole_terminal
+from iec_lib.library.terminals import three_pole_terminal, terminal
+from iec_lib.library.contacts import normally_open, spdt_contact
+from iec_lib.library.coils import coil
 from iec_lib.library.assemblies import contactor
+from iec_lib.library.circuits import motor_circuit
 from iec_lib.renderer import render_to_svg
 from iec_lib.layout import auto_connect, auto_connect_labeled
-from iec_lib.transform import translate
+from iec_lib.transform import translate, rotate
+from iec_lib.constants import GRID_SIZE
 from iec_lib.autonumbering import (
     create_autonumberer,
     next_tag,
@@ -21,128 +25,100 @@ from iec_lib.autonumbering import (
     auto_coil_pins
 )
 from typing import List, Tuple, Dict
+from functools import partial
+from iec_lib.system import layout_horizontal
 
 
-def create_motor_circuit(
-    state: Dict[str, int],
+
+
+
+def create_control_circuit(
     x_position: float,
     y_start: float,
-    normal_spacing: float,
-    tight_spacing: float
-) -> Tuple[Dict[str, int], List[Symbol]]:
+    spacing: float
+) -> List[Symbol]:
     """
-    Create a complete motor protection circuit with autonumbered components.
-    
-    This function creates a vertical chain of:
-    - Top terminal (X1) - tag stays the same, pins auto-increment
-    - Circuit breaker (F) - tag auto-increments
-    - Thermal overload (F) - tag auto-increments
-    - Contactor (Q) - tag auto-increments
-    - Bottom terminal (X2) - tag stays the same, pins auto-increment
-    
-    Terminal tags remain constant (X1, X2) across all circuits, but their
-    pin numbers increment sequentially (1-6, 7-12, 13-18, etc.).
-    Other components get new tag numbers for each circuit.
-    
-    Args:
-        state: Current autonumbering state.
-        x_position: Horizontal position for the circuit.
-        y_start: Starting vertical position.
-        normal_spacing: Standard spacing between components.
-        tight_spacing: Tight spacing (e.g., between breaker and thermal).
-        
-    Returns:
-        Tuple containing updated state and list of placed symbols/lines.
+    Create a detailed motor control circuit (single pole).
+    Contains: Terminal X10 -> NO Contact -> SPDT Contact.
+    SPDT NC -> Coil -> Terminal X11.
+    SPDT NO -> Terminal X12.
     """
-    all_elements = []
+    elements = []
     current_y = y_start
     
-    # Generate auto-incrementing tags for F and Q components
-    state, f1_tag = next_tag(state, "F")
-    state, f2_tag = next_tag(state, "F")
-    state, q_tag = next_tag(state, "Q")
+    # 1. Terminal X10
+    t1 = translate(terminal("X10", pins=("1",)), x_position, current_y)
+    elements.append(t1)
+    current_y += spacing
     
-    # Generate auto-incrementing pins for terminals (ONCE per circuit, shared by X1 and X2)
-    state, terminal_pins = next_terminal_pins(state, poles=3)
+    # 2. NO Contact (Start Button)
+    # Using 'S1' as generic tag
+    no_sw = translate(normally_open("S1", pins=("13", "14")), x_position, current_y)
+    elements.append(no_sw)
+    current_y += spacing
     
-    # Create components
-    # Terminals: Fixed tags (X1, X2) with the SAME pins in both
-    top_terminals = three_pole_terminal(
-        label="X1",  # Always X1
-        pins=terminal_pins  # Same pins for top and bottom: (1,2,3), then (4,5,6), etc.
-    )
+    # 3. SPDT Contact
+    # Rotate 180 to have input (Common) at top.
+    # Unrotated: Common=Bottom Right (+2.5), NC=Top Left (-2.5), NO=Top Right (+2.5). -- Wait, looking at contacts.py
+    # contacts.py: Common=(x_right, h_half)=+2.5, +5. NO=(x_right, -h)=+2.5, -5. NC=(x_left, -h)=-2.5, -5.
+    # Rotated 180: Common=(-2.5, -5) [Top Left relative to center]. 
+    #              NO=(-2.5, +5)     [Bottom Left relative to center].
+    #              NC=(+2.5, +5)     [Bottom Right relative to center].
+    #
+    # To align Common (-2.5) with S1 (0), we shift S2 center right by +2.5.
+    shift_x = GRID_SIZE / 2
+    s2_sym = rotate(spdt_contact("S2", pins=("11", "12", "14")), 180)
     
-    circuit_breaker = three_pole_circuit_breaker(
-        label=f1_tag,  # Auto-increment: F1, F2, F3, etc.
-        pins=auto_contact_pins()
-    )
+    # S2 center is at x_position + shift_x
+    s2_y = current_y
+    s2 = translate(s2_sym, x_position + shift_x, s2_y)
+    elements.append(s2)
+    current_y += spacing
     
-    thermal_overload = three_pole_thermal_overload(
-        label=f2_tag,  # Auto-increment: F2, F3, F4, etc.
-        pins=auto_thermal_pins()
-    )
+    # Branch alignments relative to x_position:
+    # Common Input: (x_pos + 2.5) - 2.5 = x_pos. (Aligned!)
+    # NO Output:    (x_pos + 2.5) - 2.5 = x_pos. (Straight down)
+    # NC Output:    (x_pos + 2.5) + 2.5 = x_pos + 5.0 (Right branch)
     
-    contactor_asm = contactor(
-        label=q_tag,  # Auto-increment: Q1, Q2, Q3, etc.
-        coil_pins=auto_coil_pins(),
-        contact_pins=auto_contact_pins()
-    )
+    # 4. Coil (NC path - Right side)
+    # Connected to SPDT NC output (at x_pos + 5.0 = x_pos + GRID_SIZE)
+    # Using 'K1' as generic tag for Contactor Coil
+    k1 = translate(coil("K1", pins=("A1", "A2")), x_position + GRID_SIZE, current_y)
+    elements.append(k1)
     
-    bot_terminals = three_pole_terminal(
-        label="X2",  # Always X2
-        pins=terminal_pins  # Same pins as X1: (1,2,3), then (4,5,6), etc.
-    )
+    current_y += spacing
     
-    # Place components vertically
-    # 1. Top terminals
-    top_placed = translate(top_terminals, x_position, current_y)
-    all_elements.append(top_placed)
-    current_y += normal_spacing
+    # 5. Terminal X11 (NC path end - Right side)
+    # Connected after Coil (at x_pos + GRID_SIZE)
+    t_nc_end = translate(terminal("X11", pins=("1",)), x_position + GRID_SIZE, current_y)
+    elements.append(t_nc_end)
     
-    # 2. Circuit breaker
-    f1_placed = translate(circuit_breaker, x_position, current_y)
-    all_elements.append(f1_placed)
-    current_y += tight_spacing
+    # 6. Terminal X12 (NO path end - Center)
+    # Connected to SPDT NO output. (at x_pos)
+    # User requested small vertical gap underneath S2.
+    # S2 is at s2_y. NO pin is at s2_y + 2.5.
+    # Let's place X12 at s2_y + 4 * GRID_SIZE (10.0). Gap = 7.5mm.
+    t_no_end = translate(terminal("X12", pins=("1",)), x_position, s2_y + 4 * GRID_SIZE)
+    elements.append(t_no_end)
     
-    # 3. Thermal overload (tight spacing from breaker)
-    f2_placed = translate(thermal_overload, x_position, current_y)
-    all_elements.append(f2_placed)
-    current_y += normal_spacing
+    # Connections
+    elements.extend(auto_connect(t1, no_sw))
     
-    # 4. Contactor
-    q_placed = translate(contactor_asm, x_position, current_y)
-    all_elements.append(q_placed)
-    current_y += normal_spacing
+    # NO Switch to S2 Common
+    # S2 Common is now physically at x_position (due to shift).
+    elements.extend(auto_connect(no_sw, s2))
     
-    # 5. Bottom terminals
-    bot_placed = translate(bot_terminals, x_position, current_y)
-    all_elements.append(bot_placed)
+    # SPDT NC (Right) -> Coil
+    elements.extend(auto_connect(s2, k1))
     
-    # Define wire specifications for each connection
-    # Wire specs: port_id -> (color, size)
-    # Note: For three-pole symbols, downward-facing ports are IDs 2, 4, 6
-    wire_specs_input = {
-        "2": ("RD", "2.5mm²"),    # L1 - Red, 2.5mm²
-        "4": ("BK", "2.5mm²"),    # L2 - Black, 2.5mm²
-        "6": ("BN", "2.5mm²")     # L3 - Brown, 2.5mm²
-    }
+    # Coil -> X11
+    elements.extend(auto_connect(k1, t_nc_end))
     
-    wire_specs_output = {
-        "2": ("RD", "1.5mm²"),    # U1 - Red, 1.5mm²
-        "4": ("BK", "1.5mm²"),    # U2 - Black, 1.5mm²
-        "6": ("BN", "1.5mm²")     # U3 - Brown, 1.5mm²
-    }
+    # SPDT NO (Center) -> X12
+    # This connects S2 NO output (at x_pos) to X12.
+    elements.extend(auto_connect(s2, t_no_end))
     
-    # Auto-connect all components with labeled wires
-    # Input side (from terminals through breaker and thermal to contactor)
-    all_elements.extend(auto_connect_labeled(top_placed, f1_placed, wire_specs_input))
-    all_elements.extend(auto_connect_labeled(f1_placed, f2_placed, wire_specs_input))
-    all_elements.extend(auto_connect_labeled(f2_placed, q_placed, wire_specs_input))
-    
-    # Output side (from contactor to bottom terminals)
-    all_elements.extend(auto_connect_labeled(q_placed, bot_placed, wire_specs_output))
-    
-    return state, all_elements
+    return elements
 
 
 def main():
@@ -153,8 +129,6 @@ def main():
     multiple identical subcircuits with automatically incremented tags.
     """
     print("Generating System Drawing with Autonumbering...")
-    
-    from iec_lib.constants import GRID_SIZE
     
     # Define layout parameters
     start_x = 50
@@ -170,24 +144,65 @@ def main():
     state = create_autonumberer()
     all_elements = []
     
+    # Define wire Label configurations per component prefix
+    input_wires = [ ("RD", "2.5mm²"), ("BK", "2.5mm²"), ("BN", "2.5mm²") ]
+    internal_wires = [ ("RD", "2.5mm²"), ("BK", "2.5mm²"), ("BN", "2.5mm²") ]
+    output_wires = [ ("RD", "1.5mm²"), ("BK", "1.5mm²"), ("BN", "1.5mm²") ]
+    
+    config = {
+        "X1": input_wires,     # Wires FROM X1
+        "FT": internal_wires,  # Wires FROM Thermal Overload (FT...)
+        "Q": output_wires      # Wires FROM Contactor (Q...)
+    }
+    
     # Create multiple circuits side by side
-    for i in range(num_circuits):
-        x_pos = start_x + (i * circuit_spacing)
-        state, circuit_elements = create_motor_circuit(
-            state=state,
-            x_position=x_pos,
-            y_start=start_y,
+    # Create specific generator function for this layout
+    # We use partial to bind static arguments, but x_position comes from layout_horizontal
+    # We need to wrap it because layout_horizontal expects (state, x, y) -> (state, elems)
+    # but motor_circuit takes more args.
+    
+    def generator(st, x, y):
+        return motor_circuit(
+            state=st,
+            x_position=x,
+            y_start=y,
             normal_spacing=normal_spacing,
-            tight_spacing=tight_spacing
+            tight_spacing=tight_spacing,
+            wire_config=config
         )
-        all_elements.extend(circuit_elements)
-        print(f"Created circuit {i+1} at x={x_pos}")
+
+    # Use functional layout helper
+    state, circuit_elements = layout_horizontal(
+        start_state=state,
+        start_x=start_x,
+        start_y=start_y,
+        spacing=circuit_spacing,
+        count=num_circuits,
+        generate_func=generator
+    )
+    all_elements.extend(circuit_elements)
+    print(f"Created {num_circuits} circuits side by side.")
     
     # Render to SVG
     output_file = "demo_system.svg"
     render_to_svg(all_elements, output_file, width="297mm", height="297mm")  # Wide format for 3 circuits
     print(f"Saved to {os.path.abspath(output_file)}")
     print(f"Total circuits created: {num_circuits}")
+    
+    # Export system to CSV
+    from iec_lib.system_analysis import export_terminals_to_csv
+    csv_file = "demo_system.csv"
+    export_terminals_to_csv(all_elements, csv_file)
+    print(f"Exported terminals to {os.path.abspath(csv_file)}")
+
+    # Generate Motor Control Circuit
+    print("\nGenerating Motor Control Circuit...")
+    control_elements = create_control_circuit(start_x, start_y, normal_spacing)
+    
+    control_file = "motor_control.svg"
+    # Use a narrower width for the single circuit
+    render_to_svg(control_elements, control_file, width="100mm", height="297mm")
+    print(f"Saved to {os.path.abspath(control_file)}")
 
 
 if __name__ == "__main__":

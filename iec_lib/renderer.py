@@ -2,9 +2,18 @@ import xml.etree.ElementTree as ET
 from typing import List, Union
 from .core import Symbol, Point, Style
 from .primitives import Element, Line, Circle, Text, Path, Group, Polygon
+from .constants import COLOR_WHITE, DEFAULT_DOC_WIDTH, DEFAULT_DOC_HEIGHT
 
 def _style_to_str(style: Style) -> str:
-    """Evaluate style object to SVG style string."""
+    """
+    Evaluate style object to SVG style string.
+    
+    Args:
+        style (Style): The style object to convert.
+        
+    Returns:
+        str: The CSS style string.
+    """
     items = []
     if style.stroke: items.append(f"stroke:{style.stroke}")
     if style.stroke_width: items.append(f"stroke-width:{style.stroke_width}")
@@ -14,7 +23,13 @@ def _style_to_str(style: Style) -> str:
     return ";".join(items)
 
 def _render_element(elem: Element, parent: ET.Element):
-    """Recursively render elements to the XML tree."""
+    """
+    Recursively render elements to the XML tree.
+    
+    Args:
+        elem (Element): The element to render.
+        parent (ET.Element): The parent XML element to append to.
+    """
     if isinstance(elem, Line):
         e = ET.SubElement(parent, "line")
         e.set("x1", str(elem.start.x))
@@ -35,7 +50,10 @@ def _render_element(elem: Element, parent: ET.Element):
         e.set("x", str(elem.position.x))
         e.set("y", str(elem.position.y))
         e.set("text-anchor", elem.anchor)
+        e.set("dominant-baseline", elem.dominant_baseline)
         e.set("font-size", str(elem.font_size))
+        if elem.rotation != 0:
+            e.set("transform", f"rotate({elem.rotation}, {elem.position.x}, {elem.position.y})")
         e.text = elem.content
         e.set("style", _style_to_str(elem.style)) # Fill usually needed for text
         
@@ -60,7 +78,7 @@ def _render_element(elem: Element, parent: ET.Element):
             _render_element(child, g)
         # We don't render ports visibly usually, maybe for debug?
 
-def to_xml_element(elements: List[Element], width: Union[int, str] = "210mm", height: Union[int, str] = "297mm") -> ET.Element:
+def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC_WIDTH, height: Union[int, str] = DEFAULT_DOC_HEIGHT) -> ET.Element:
     """
     Convert a list of Elements into an SVG header/root ElementTree Element.
     
@@ -77,7 +95,6 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = "210mm", he
     root.set("width", str(width))
     root.set("height", str(height))
     
-    # Simple viewBox logic
     # Simple viewBox logic
     def _parse_dim(val, default):
         if isinstance(val, (int, float)):
@@ -99,7 +116,7 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = "210mm", he
     bg = ET.SubElement(root, "rect")
     bg.set("width", "100%")
     bg.set("height", "100%")
-    bg.set("fill", "white")
+    bg.set("fill", COLOR_WHITE)
     
     # Main group
     main_g = ET.SubElement(root, "g")
@@ -120,7 +137,7 @@ def save_svg(root: ET.Element, filename: str):
     tree = ET.ElementTree(root)
     tree.write(filename, encoding="utf-8", xml_declaration=True)
 
-def render_to_svg(elements: List[Element], filename: str, width: Union[int, str] = "210mm", height: Union[int, str] = "297mm"):
+def render_to_svg(elements: List[Element], filename: str, width: Union[int, str] = DEFAULT_DOC_WIDTH, height: Union[int, str] = DEFAULT_DOC_HEIGHT):
     """
     High-level function to render elements to an SVG file.
     

@@ -3,3 +3,4 @@
 **/*.quarto_ipynb
 *.pyc
 *.svg
+*.csv

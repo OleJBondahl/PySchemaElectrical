@@ -4,9 +4,31 @@ from ..primitives import Element, Text, Line
 from ..parts import box, standard_text, create_pin_labels, GRID_SIZE, standard_style
 from ..constants import GRID_SUBDIVISION
 
+"""
+IEC 60617 Coil Symbols.
+"""
+
 def coil(label: str = "", pins: tuple = ()) -> Symbol:
-    """IEC 60617 Coil symbol (Square)."""
-    # Size: Width 10mm (2 grid), Height 10mm (2 grid).
+    """
+    Create an IEC 60617 Coil symbol (Square).
+    
+    Symbol Layout:
+       |
+      [ ]
+       |
+       
+    Dimensions:
+        Width: 10mm (2 * GRID_SIZE)
+        Height: 10mm (2 * GRID_SIZE)
+        
+    Args:
+        label (str): The component tag (e.g. "-K1").
+        pins (tuple): Pin numbers (e.g. ("A1", "A2")).
+        
+    Returns:
+        Symbol: The coil symbol.
+    """
+    # Size: Width 10mm, Height 10mm.
     # Typically A1 (top) and A2 (bottom).
     width = 2 * GRID_SIZE
     height = GRID_SIZE

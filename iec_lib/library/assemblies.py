@@ -3,7 +3,7 @@ from dataclasses import replace
 from ..core import Symbol, Point, Style, Element
 from ..primitives import Line
 from ..transform import translate
-from ..constants import DEFAULT_POLE_SPACING, GRID_SIZE, LINE_WIDTH_THIN, LINKAGE_DASH_PATTERN
+from ..constants import DEFAULT_POLE_SPACING, GRID_SIZE, LINE_WIDTH_THIN, LINKAGE_DASH_PATTERN, COLOR_BLACK
 from .contacts import three_pole_normally_open
 from .coils import coil
 
@@ -41,7 +41,7 @@ def contactor(label: str = "",
     linkage_end = Point(DEFAULT_POLE_SPACING * 1.75, 0)
     
     linkage_style = Style(
-        stroke="black",
+        stroke=COLOR_BLACK,
         stroke_width=LINE_WIDTH_THIN,
         stroke_dasharray=LINKAGE_DASH_PATTERN
     )

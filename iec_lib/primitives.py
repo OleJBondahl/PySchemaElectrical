@@ -40,13 +40,17 @@ class Text(Element):
         position (Point): The position coordinates (anchor point).
         style (Style): Styling attributes.
         anchor (str): Text anchor alignment ('start', 'middle', 'end'). Default 'middle'.
+        dominant_baseline (str): Vertical alignment ('auto', 'middle', 'central'). Default 'auto'.
         font_size (float): Font size in user units. Default 12.0.
+        rotation (float): Rotation angle in degrees. Default 0.0.
     """
     content: str
     position: Point
     style: Style = Style()
     anchor: str = "middle"
+    dominant_baseline: str = "auto"
     font_size: float = 12.0
+    rotation: float = 0.0
 
 @dataclass(frozen=True)
 class Path(Element):

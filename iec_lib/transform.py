@@ -3,6 +3,7 @@ import math
 from .core import Point, Vector, Port, Symbol, Element
 from .primitives import Line, Circle, Text, Path, Group, Polygon
 from dataclasses import replace
+from .constants import TEXT_OFFSET_X
 
 T = TypeVar('T', bound=Union[Element, Point, Port, Vector])
 
@@ -126,7 +127,38 @@ def rotate(obj: T, angle: float, center: Point = Point(0, 0)) -> T:
         return replace(obj, points=[rotate_point(p, angle, center) for p in obj.points])
 
     elif isinstance(obj, Symbol):
-        new_elements = [rotate(e, angle, center) for e in obj.elements]
+        new_elements = []
+        for e in obj.elements:
+            rotated_e = rotate(e, angle, center)
+            
+            # Special case: If this is the main label, force it to stick to the Left
+            # We identify the main label if it matches the Symbol's label content
+            if isinstance(rotated_e, Text) and obj.label and rotated_e.content == obj.label:
+                # Force position to Left of center (-TEXT_OFFSET_X usually, but TEXT_OFFSET_X is -5.0)
+                # If TEXT_OFFSET_X is -5.0, that means "5mm left".
+                # We want it relative to the rotation center (which is usually (0,0) for the symbol).
+                # Wait, 'center' passed here is for the rotation. 
+                # If rotating a symbol in place, center=(0,0) usually.
+                # If rotating a placed symbol, center needs care.
+                # Generally we rotate symbols around their own origin (0,0) before translating.
+                
+                # So relative to the symbol's own origin (which is being rotated around 'center'?)
+                # If we assume 'rotate' is called on a symbol at (0,0), then 'center' is (0,0).
+                # We reconstruct the 'standard_text' position.
+                
+                # However, if 'center' is NOT (0,0), we must account for it?
+                # Usually we rotate symbol around (0,0) then translate. 
+                # Lets assume 'center' is the reference point for the symbol.
+                
+                # Position = center.x + TEXT_OFFSET_X
+                forced_pos = Point(center.x + TEXT_OFFSET_X, center.y)
+                
+                rotated_e = replace(rotated_e, 
+                                    position=forced_pos, 
+                                    anchor="end") # Always end-aligned (growing left)
+
+            new_elements.append(rotated_e)
+            
         new_ports = {k: rotate(p, angle, center) for k, p in obj.ports.items()}
         return replace(obj, elements=new_elements, ports=new_ports)
         
@@ -135,7 +167,20 @@ def rotate(obj: T, angle: float, center: Point = Point(0, 0)) -> T:
         return replace(obj, center=rotate_point(obj.center, angle, center))
         
     elif isinstance(obj, Text):
-         return replace(obj, position=rotate_point(obj.position, angle, center))
+         new_pos = rotate_point(obj.position, angle, center)
+         new_anchor = obj.anchor
+         
+         # Handle 180 degree rotation for text readability/positioning
+         # If we keep text upright (don't change rotation), we must flip anchor
+         # to prevent text from growing into the symbol.
+         norm_angle = angle % 360
+         if abs(norm_angle - 180) < 0.1:
+             if obj.anchor == "start":
+                 new_anchor = "end"
+             elif obj.anchor == "end":
+                 new_anchor = "start"
+                 
+         return replace(obj, position=new_pos, anchor=new_anchor)
 
     return obj
 
