@@ -1,9 +1,9 @@
 
 import pytest
 import math
-from iec_lib.core import Point, Vector, Port, Symbol, Element
-from iec_lib.primitives import Line, Circle, Text, Path, Group, Polygon
-from iec_lib.transform import translate, rotate, rotate_point, rotate_vector
+from src.core import Point, Vector, Port, Symbol, Element
+from src.primitives import Line, Circle, Text, Path, Group, Polygon
+from src.transform import translate, rotate, rotate_point, rotate_vector
 
 class TestTransform:
     def test_translate_point(self):

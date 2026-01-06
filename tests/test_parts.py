@@ -1,8 +1,8 @@
 
 import pytest
-from iec_lib.core import Point, Vector, Symbol, Port, Element
-from iec_lib.primitives import Text, Circle, Polygon, Line
-from iec_lib.parts import standard_text, terminal_circle, box, create_pin_labels, three_pole_factory
+from src.core import Point, Vector, Symbol, Port, Element
+from src.primitives import Text, Circle, Polygon, Line
+from src.parts import standard_text, terminal_circle, box, create_pin_labels, three_pole_factory
 
 class TestParts:
     def test_standard_text(self):

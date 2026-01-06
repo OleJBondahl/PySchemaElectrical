@@ -1,6 +1,6 @@
 
 import pytest
-from iec_lib.autonumbering import (
+from src.autonumbering import (
     create_autonumberer,
     get_tag_number,
     increment_tag,

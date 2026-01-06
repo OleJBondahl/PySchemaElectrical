@@ -1,7 +1,7 @@
 
 import pytest
-from iec_lib.core import Point, Style
-from iec_lib.primitives import Line, Circle, Text, Path, Group, Polygon
+from src.core import Point, Style
+from src.primitives import Line, Circle, Text, Path, Group, Polygon
 
 class TestPrimitives:
     def test_line(self):

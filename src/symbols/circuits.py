@@ -1,9 +1,9 @@
 from typing import Dict, List, Tuple, Optional
 from ..core import Symbol, Element
-from ..library.breakers import three_pole_circuit_breaker
-from ..library.protection import three_pole_thermal_overload
-from ..library.terminals import three_pole_terminal
-from ..library.assemblies import contactor
+from ..symbols.breakers import three_pole_circuit_breaker
+from ..symbols.protection import three_pole_thermal_overload
+from ..symbols.terminals import three_pole_terminal
+from ..symbols.assemblies import contactor
 from ..layout import auto_connect, auto_connect_labeled
 from ..transform import translate
 from ..autonumbering import next_tag, next_terminal_pins, auto_contact_pins, auto_thermal_pins, auto_coil_pins

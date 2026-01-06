@@ -1,13 +1,13 @@
 
 import pytest
-from iec_lib.core import Symbol
+from src.core import Symbol
 
-from iec_lib.library.terminals import terminal, three_pole_terminal
+from src.symbols.terminals import terminal, three_pole_terminal
 
-from iec_lib.library.contacts import normally_open, normally_closed, three_pole_normally_open
-from iec_lib.library.coils import coil
-from iec_lib.library.protection import three_pole_thermal_overload
-from iec_lib.library.assemblies import contactor
+from src.symbols.contacts import normally_open, normally_closed, three_pole_normally_open
+from src.symbols.coils import coil
+from src.symbols.protection import three_pole_thermal_overload
+from src.symbols.assemblies import contactor
 
 class TestLibrary:
     def test_terminals(self):

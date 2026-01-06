@@ -1,7 +1,7 @@
 
 import pytest
 from dataclasses import FrozenInstanceError
-from iec_lib.core import Vector, Point, Style, Element, Port, Symbol
+from src.core import Vector, Point, Style, Element, Port, Symbol
 
 class TestCore:
     def test_vector_creation(self):

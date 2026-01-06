@@ -4,8 +4,8 @@ import os
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from iec_lib.core import Point, Symbol
-from iec_lib.library import (
+from src.core import Point, Symbol
+from src.symbols import (
     terminal, 
     normally_open, 
     normally_closed,
@@ -15,11 +15,11 @@ from iec_lib.library import (
     fuse,
     coil
 )
-from iec_lib.renderer import render_to_svg
-from iec_lib.transform import translate
-# from iec_lib.parts import text_element, standard_style # Removed invalid import
+from src.renderer import render_to_svg
+from src.transform import translate
+# from src.parts import text_element, standard_style # Removed invalid import
 
-from iec_lib.layout import layout_vertical_chain 
+from src.layout import layout_vertical_chain 
 
 def main():
     print("Generating comprehensive symbol demo...")

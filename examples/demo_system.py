@@ -4,19 +4,19 @@ import os
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from iec_lib.core import Point, Symbol, Element
-from iec_lib.library.breakers import three_pole_circuit_breaker
-from iec_lib.library.protection import three_pole_thermal_overload
-from iec_lib.library.terminals import three_pole_terminal, terminal
-from iec_lib.library.contacts import normally_open, spdt_contact
-from iec_lib.library.coils import coil
-from iec_lib.library.assemblies import contactor
-from iec_lib.library.circuits import motor_circuit
-from iec_lib.renderer import render_to_svg
-from iec_lib.layout import auto_connect, auto_connect_labeled
-from iec_lib.transform import translate, rotate
-from iec_lib.constants import GRID_SIZE
-from iec_lib.autonumbering import (
+from src.core import Point, Symbol, Element
+from src.symbols.breakers import three_pole_circuit_breaker
+from src.symbols.protection import three_pole_thermal_overload
+from src.symbols.terminals import three_pole_terminal, terminal
+from src.symbols.contacts import normally_open, spdt_contact
+from src.symbols.coils import coil
+from src.symbols.assemblies import contactor
+from src.symbols.circuits import motor_circuit
+from src.renderer import render_to_svg
+from src.layout import auto_connect, auto_connect_labeled
+from src.transform import translate, rotate
+from src.constants import GRID_SIZE
+from src.autonumbering import (
     create_autonumberer,
     next_tag,
     next_terminal_pins,
@@ -26,7 +26,7 @@ from iec_lib.autonumbering import (
 )
 from typing import List, Tuple, Dict
 from functools import partial
-from iec_lib.system import layout_horizontal
+from src.system import layout_horizontal
 
 
 
@@ -190,7 +190,7 @@ def main():
     print(f"Total circuits created: {num_circuits}")
     
     # Export system to CSV
-    from iec_lib.system_analysis import export_terminals_to_csv
+    from src.system_analysis import export_terminals_to_csv
     csv_file = "demo_system.csv"
     export_terminals_to_csv(all_elements, csv_file)
     print(f"Exported terminals to {os.path.abspath(csv_file)}")

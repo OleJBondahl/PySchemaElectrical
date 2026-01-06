@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import csv
 from .core import Element, Symbol, Point
 from .primitives import Line
-from .library.terminals import Terminal, TerminalBlock
+from .symbols.terminals import Terminal, TerminalBlock
 
 # Tolerance for connection (should match layout.py)
 TOLERANCE = 0.1

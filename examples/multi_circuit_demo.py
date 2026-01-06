@@ -5,12 +5,12 @@ import os
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from iec_lib.core import Point
-from iec_lib.library.contacts import three_pole_normally_open, three_pole_normally_closed
-from iec_lib.library.protection import three_pole_thermal_overload
-from iec_lib.library.terminals import three_pole_terminal
-from iec_lib.renderer import render_to_svg
-from iec_lib.layout import layout_vertical_chain
+from src.core import Point
+from src.symbols.contacts import three_pole_normally_open, three_pole_normally_closed
+from src.symbols.protection import three_pole_thermal_overload
+from src.symbols.terminals import three_pole_terminal
+from src.renderer import render_to_svg
+from src.layout import layout_vertical_chain
 
 # --- High Level System Builder Functions ---
 

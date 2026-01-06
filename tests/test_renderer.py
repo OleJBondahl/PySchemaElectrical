@@ -1,9 +1,9 @@
 
 import pytest
 import xml.etree.ElementTree as ET
-from iec_lib.core import Point, Style, Symbol
-from iec_lib.primitives import Line, Circle, Text, Polygon, Group
-from iec_lib.renderer import to_xml_element, render_to_svg
+from src.core import Point, Style, Symbol
+from src.primitives import Line, Circle, Text, Polygon, Group
+from src.renderer import to_xml_element, render_to_svg
 import os
 
 class TestRenderer:

@@ -11,7 +11,7 @@ import os
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from iec_lib.autonumbering import (
+from src.autonumbering import (
     create_autonumberer,
     next_tag,
     next_terminal_pins,

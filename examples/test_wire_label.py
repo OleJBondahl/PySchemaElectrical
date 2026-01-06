@@ -4,9 +4,9 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from iec_lib.core import Point
-from iec_lib.wire_labels import create_labeled_wire
-from iec_lib.renderer import render_to_svg
+from src.core import Point
+from src.wire_labels import create_labeled_wire
+from src.renderer import render_to_svg
 
 # Test creating a labeled wire
 start = Point(50, 50)
