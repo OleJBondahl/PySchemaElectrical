@@ -1,13 +1,13 @@
-import sys
+﻿import sys
 import os
 
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.core import Point
-from src.symbols.assemblies import contactor
-from src.renderer import render_to_svg
-from src.layout import layout_vertical_chain
+from pyschemaelectrical.core import Point
+from pyschemaelectrical.symbols.assemblies import contactor
+from pyschemaelectrical.renderer import render_to_svg
+from pyschemaelectrical.layout import layout_vertical_chain
 
 def main():
     print("Generating Contactor Demo Circuit...")
@@ -26,7 +26,7 @@ def main():
     # Let's verify it renders correctly on its own.
     
     # Place it at (100, 100) to have space for the coil on the left
-    from src.transform import translate
+    from pyschemaelectrical.transform import translate
     k1_placed = translate(k1, 100, 100)
     
     circuit_elements = k1_placed.elements

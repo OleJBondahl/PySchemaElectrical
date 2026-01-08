@@ -1,22 +1,22 @@
-import sys
+﻿import sys
 import os
 
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.core import Point, Symbol, Element
-from src.symbols.breakers import three_pole_circuit_breaker
-from src.symbols.protection import three_pole_thermal_overload
-from src.symbols.terminals import three_pole_terminal, terminal
-from src.symbols.contacts import normally_open, spdt_contact
-from src.symbols.coils import coil
-from src.symbols.assemblies import contactor
-from src.symbols.circuits import motor_circuit
-from src.renderer import render_to_svg
-from src.layout import auto_connect, auto_connect_labeled
-from src.transform import translate, rotate
-from src.constants import GRID_SIZE
-from src.autonumbering import (
+from pyschemaelectrical.core import Point, Symbol, Element
+from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker
+from pyschemaelectrical.symbols.protection import three_pole_thermal_overload
+from pyschemaelectrical.symbols.terminals import three_pole_terminal, terminal
+from pyschemaelectrical.symbols.contacts import normally_open, spdt_contact
+from pyschemaelectrical.symbols.coils import coil
+from pyschemaelectrical.symbols.assemblies import contactor
+from pyschemaelectrical.symbols.circuits import motor_circuit
+from pyschemaelectrical.renderer import render_to_svg
+from pyschemaelectrical.layout import auto_connect, auto_connect_labeled
+from pyschemaelectrical.transform import translate, rotate
+from pyschemaelectrical.constants import GRID_SIZE
+from pyschemaelectrical.autonumbering import (
     create_autonumberer,
     next_tag,
     next_terminal_pins,
@@ -26,7 +26,7 @@ from src.autonumbering import (
 )
 from typing import List, Tuple, Dict
 from functools import partial
-from src.system import layout_horizontal
+from pyschemaelectrical.system import layout_horizontal
 
 
 
@@ -145,9 +145,9 @@ def main():
     all_elements = []
     
     # Define wire Label configurations per component prefix
-    input_wires = [ ("RD", "2.5mm²"), ("BK", "2.5mm²"), ("BN", "2.5mm²") ]
-    internal_wires = [ ("RD", "2.5mm²"), ("BK", "2.5mm²"), ("BN", "2.5mm²") ]
-    output_wires = [ ("RD", "1.5mm²"), ("BK", "1.5mm²"), ("BN", "1.5mm²") ]
+    input_wires = [ ("RD", "2.5mmÂ²"), ("BK", "2.5mmÂ²"), ("BN", "2.5mmÂ²") ]
+    internal_wires = [ ("RD", "2.5mmÂ²"), ("BK", "2.5mmÂ²"), ("BN", "2.5mmÂ²") ]
+    output_wires = [ ("RD", "1.5mmÂ²"), ("BK", "1.5mmÂ²"), ("BN", "1.5mmÂ²") ]
     
     config = {
         "X1": input_wires,     # Wires FROM X1
@@ -190,7 +190,7 @@ def main():
     print(f"Total circuits created: {num_circuits}")
     
     # Export system to CSV
-    from src.system_analysis import export_terminals_to_csv
+    from pyschemaelectrical.system_analysis import export_terminals_to_csv
     csv_file = "demo_system.csv"
     export_terminals_to_csv(all_elements, csv_file)
     print(f"Exported terminals to {os.path.abspath(csv_file)}")

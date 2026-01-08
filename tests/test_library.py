@@ -1,13 +1,13 @@
-
+﻿
 import pytest
-from src.core import Symbol
+from pyschemaelectrical.core import Symbol
 
-from src.symbols.terminals import terminal, three_pole_terminal
+from pyschemaelectrical.symbols.terminals import terminal, three_pole_terminal
 
-from src.symbols.contacts import normally_open, normally_closed, three_pole_normally_open
-from src.symbols.coils import coil
-from src.symbols.protection import three_pole_thermal_overload
-from src.symbols.assemblies import contactor
+from pyschemaelectrical.symbols.contacts import normally_open, normally_closed, three_pole_normally_open
+from pyschemaelectrical.symbols.coils import coil
+from pyschemaelectrical.symbols.protection import three_pole_thermal_overload
+from pyschemaelectrical.symbols.assemblies import contactor
 
 class TestLibrary:
     def test_terminals(self):

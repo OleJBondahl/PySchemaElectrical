@@ -1,4 +1,4 @@
-"""
+﻿"""
 Example demonstrating the updated autonumbering system with terminal pins.
 
 This script shows how terminals maintain constant tags (X1, X2) across
@@ -11,7 +11,7 @@ import os
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.autonumbering import (
+from pyschemaelectrical.autonumbering import (
     create_autonumberer,
     next_tag,
     next_terminal_pins,

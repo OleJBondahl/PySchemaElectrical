@@ -1,9 +1,9 @@
-
+﻿
 import pytest
 import xml.etree.ElementTree as ET
-from src.core import Point, Style, Symbol
-from src.primitives import Line, Circle, Text, Polygon, Group
-from src.renderer import to_xml_element, render_to_svg
+from pyschemaelectrical.core import Point, Style, Symbol
+from pyschemaelectrical.primitives import Line, Circle, Text, Polygon, Group
+from pyschemaelectrical.renderer import to_xml_element, render_to_svg
 import os
 
 class TestRenderer:

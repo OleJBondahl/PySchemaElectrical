@@ -1,15 +1,15 @@
-"""Debug script to test auto_connect_labeled"""
+﻿"""Debug script to test auto_connect_labeled"""
 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.symbols.terminals import three_pole_terminal
-from src.symbols.breakers import three_pole_circuit_breaker
-from src.autonumbering import next_terminal_pins, auto_contact_pins, create_autonumberer
-from src.transform import translate
-from src.layout import auto_connect_labeled
-from src.renderer import render_to_svg
+from pyschemaelectrical.symbols.terminals import three_pole_terminal
+from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker
+from pyschemaelectrical.autonumbering import next_terminal_pins, auto_contact_pins, create_autonumberer
+from pyschemaelectrical.transform import translate
+from pyschemaelectrical.layout import auto_connect_labeled
+from pyschemaelectrical.renderer import render_to_svg
 
 # Create a simple circuit
 state = create_autonumberer()
@@ -23,9 +23,9 @@ top_placed = translate(top_terminals, 50, 50)
 f1_placed = translate(circuit_breaker, 50, 100)
 
 wire_specs = {
-    "2": ("RD", "2.5mm²"),
-    "4": ("BK", "2.5mm²"),
-    "6": ("BN", "2.5mm²")
+    "2": ("RD", "2.5mmÂ²"),
+    "4": ("BK", "2.5mmÂ²"),
+    "6": ("BN", "2.5mmÂ²")
 }
 
 print("Calling auto_connect_labeled...")

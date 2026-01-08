@@ -1,13 +1,13 @@
-import sys
+﻿import sys
 import os
 
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.symbols.contacts import spdt_contact
-from src.renderer import render_to_svg
-from src.transform import translate, rotate
-from src.constants import GRID_SIZE
+from pyschemaelectrical.symbols.contacts import spdt_contact
+from pyschemaelectrical.renderer import render_to_svg
+from pyschemaelectrical.transform import translate, rotate
+from pyschemaelectrical.constants import GRID_SIZE
 
 def main():
     print("Generating SPDT Demo...")

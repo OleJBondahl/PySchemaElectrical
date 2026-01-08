@@ -1,9 +1,13 @@
-
 /.quarto/
 **/*.quarto_ipynb
 *.pyc
+__pycache__/
 *.svg
 *.csv
 /pyschemaelectrical.egg-info
 .coverage
-.coverage
+.coverage.*
+.venv/
+.pytest_cache/
+.complexipy_cache/
+uv.lock

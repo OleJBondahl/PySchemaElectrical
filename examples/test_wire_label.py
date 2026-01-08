@@ -1,18 +1,18 @@
-"""Test wire labeling functionality"""
+﻿"""Test wire labeling functionality"""
 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.core import Point
-from src.wire_labels import create_labeled_wire
-from src.renderer import render_to_svg
+from pyschemaelectrical.core import Point
+from pyschemaelectrical.wire_labels import create_labeled_wire
+from pyschemaelectrical.renderer import render_to_svg
 
 # Test creating a labeled wire
 start = Point(50, 50)
 end = Point(50, 100)
 
-elements = create_labeled_wire(start, end, "RD", "2.5mm²")
+elements = create_labeled_wire(start, end, "RD", "2.5mmÂ²")
 
 print(f"Number of elements created: {len(elements)}")
 for i, elem in enumerate(elements):

@@ -1,11 +1,11 @@
-import sys
+﻿import sys
 import os
 
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.core import Point, Symbol
-from src.symbols import (
+from pyschemaelectrical.core import Point, Symbol
+from pyschemaelectrical.symbols import (
     terminal, 
     normally_open, 
     normally_closed,
@@ -15,11 +15,11 @@ from src.symbols import (
     fuse,
     coil
 )
-from src.renderer import render_to_svg
-from src.transform import translate
-# from src.parts import text_element, standard_style # Removed invalid import
+from pyschemaelectrical.renderer import render_to_svg
+from pyschemaelectrical.transform import translate
+# from pyschemaelectrical.parts import text_element, standard_style # Removed invalid import
 
-from src.layout import layout_vertical_chain 
+from pyschemaelectrical.layout import layout_vertical_chain 
 
 def main():
     print("Generating comprehensive symbol demo...")

@@ -1,6 +1,6 @@
-from src.system import layout_horizontal
-from src.core import Element, Point
-from src.autonumbering import create_autonumberer
+﻿from pyschemaelectrical.system import layout_horizontal
+from pyschemaelectrical.core import Element, Point
+from pyschemaelectrical.autonumbering import create_autonumberer
 
 def mock_circuit_generator(state, x, y):
     # Mock generator that increments a counter in state and returns a dummy element

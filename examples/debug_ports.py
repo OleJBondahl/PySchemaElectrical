@@ -1,12 +1,12 @@
-"""Debug script to check port IDs"""
+﻿"""Debug script to check port IDs"""
 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.symbols.terminals import three_pole_terminal
-from src.symbols.breakers import three_pole_circuit_breaker
-from src.autonumbering import next_terminal_pins, auto_contact_pins, create_autonumberer
+from pyschemaelectrical.symbols.terminals import three_pole_terminal
+from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker
+from pyschemaelectrical.autonumbering import next_terminal_pins, auto_contact_pins, create_autonumberer
 
 # Create a simple circuit
 state = create_autonumberer()

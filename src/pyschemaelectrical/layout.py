@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict, Union, Tuple
 from .core import Symbol, Point, Vector, Element, Port
 from .primitives import Line
 from .transform import translate
@@ -51,6 +51,39 @@ def auto_connect(sym1: Symbol, sym2: Symbol) -> List[Line]:
     return lines
 
 
+
+def _find_matching_ports(down_ports: List[Port], up_ports: List[Port]) -> List[Tuple[Port, Port]]:
+    """Pair up downward ports with upward ports based on X position."""
+    pairs = []
+    # Sort downward ports by X position for consistent ordering
+    sorted_down = sorted(down_ports, key=lambda p: p.position.x)
+    
+    for dp in sorted_down:
+        # Find matching upward port
+        for up in up_ports:
+            if abs(dp.position.x - up.position.x) < 0.1:
+                pairs.append((dp, up))
+                break
+    return pairs
+
+def _get_wire_label_spec(
+    dp: Port, 
+    match_index: int, 
+    wire_specs: Optional[Union[Dict[str, tuple], List[tuple]]]
+) -> Tuple[str, str]:
+    """Determine the label (color, size) for a wire."""
+    if not wire_specs:
+        return ("", "")
+        
+    spec = ("", "")
+    if isinstance(wire_specs, list):
+        if match_index < len(wire_specs):
+            spec = wire_specs[match_index]
+    elif isinstance(wire_specs, dict):
+        spec = wire_specs.get(dp.id, ("", ""))
+        
+    return spec if isinstance(spec, tuple) else ("", "")
+
 def auto_connect_labeled(
     sym1: Symbol,
     sym2: Symbol,
@@ -86,39 +119,22 @@ def auto_connect_labeled(
     down_ports = get_connection_ports(sym1, Vector(0, 1))
     up_ports = get_connection_ports(sym2, Vector(0, -1))
     
-    # Sort downward ports by X position for list-based matching
-    down_ports.sort(key=lambda p: p.position.x)
+    # Match ports
+    # Note: Matching logic implies we iterate down_ports in sorted order and find 'up' match
+    port_pairs = _find_matching_ports(down_ports, up_ports)
     
-    match_count = 0
-    for dp in down_ports:
-        # Find matching upward port
-        matched_up = None
-        for up in up_ports:
-            if abs(dp.position.x - up.position.x) < 0.1:
-                matched_up = up
-                break
+    for i, (dp, matched_up) in enumerate(port_pairs):
+        # Determine label spec
+        color, size = _get_wire_label_spec(dp, i, wire_specs)
         
-        if matched_up:
-            # Determine label spec
-            spec = ("", "")
-            
-            if isinstance(wire_specs, list):
-                if match_count < len(wire_specs):
-                    spec = wire_specs[match_count]
-                match_count += 1
-            elif isinstance(wire_specs, dict):
-                spec = wire_specs.get(dp.id, ("", ""))
-                
-            color, size = spec if isinstance(spec, tuple) else ("", "")
-            
-            # Create labeled wire
-            wire_elements = create_labeled_wire(
-                dp.position,
-                matched_up.position,
-                color,
-                size
-            )
-            elements.extend(wire_elements)
+        # Create labeled wire
+        wire_elements = create_labeled_wire(
+            dp.position,
+            matched_up.position,
+            color,
+            size
+        )
+        elements.extend(wire_elements)
                 
     return elements
 

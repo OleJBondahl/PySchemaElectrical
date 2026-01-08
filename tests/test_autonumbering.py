@@ -1,6 +1,6 @@
-
+﻿
 import pytest
-from src.autonumbering import (
+from pyschemaelectrical.autonumbering import (
     create_autonumberer,
     get_tag_number,
     increment_tag,

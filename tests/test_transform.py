@@ -1,9 +1,9 @@
-
+﻿
 import pytest
 import math
-from src.core import Point, Vector, Port, Symbol, Element
-from src.primitives import Line, Circle, Text, Path, Group, Polygon
-from src.transform import translate, rotate, rotate_point, rotate_vector
+from pyschemaelectrical.core import Point, Vector, Port, Symbol, Element
+from pyschemaelectrical.primitives import Line, Circle, Text, Path, Group, Polygon
+from pyschemaelectrical.transform import translate, rotate, rotate_point, rotate_vector
 
 class TestTransform:
     def test_translate_point(self):

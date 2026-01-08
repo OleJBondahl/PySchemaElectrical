@@ -29,17 +29,16 @@ classifiers = [
 # Add any runtime dependencies here
 dependencies = []
 
+
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
-]
+# dev = [ ... ] handled by uv dependency-groups
+
+
 
 [tool.setuptools]
-packages = ["src", "src.symbols"]
+package-dir = {"" = "src"}
+packages = ["pyschemaelectrical"]
 
-[tool.setuptools.package-data]
-"*" = ["*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -47,3 +46,10 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "--verbose --cov=src --cov-report=term-missing"
+
+[dependency-groups]
+dev = [
+    "complexipy>=5.1.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=5.0.0",
+]

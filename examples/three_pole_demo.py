@@ -1,15 +1,15 @@
-import sys
+﻿import sys
 import os
 
 # Ensure we can import the library
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.core import Point
-from src.symbols.contacts import three_pole_normally_open, three_pole_normally_closed
-from src.symbols.protection import three_pole_thermal_overload
-from src.symbols.terminals import three_pole_terminal
-from src.renderer import render_to_svg
-from src.layout import layout_vertical_chain
+from pyschemaelectrical.core import Point
+from pyschemaelectrical.symbols.contacts import three_pole_normally_open, three_pole_normally_closed
+from pyschemaelectrical.symbols.protection import three_pole_thermal_overload
+from pyschemaelectrical.symbols.terminals import three_pole_terminal
+from pyschemaelectrical.renderer import render_to_svg
+from pyschemaelectrical.layout import layout_vertical_chain
 
 def main():
     print("Generating Three Pole Demo Circuit...")
