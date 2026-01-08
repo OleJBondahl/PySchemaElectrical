@@ -1,3 +1,14 @@
+"""
+Layout and automatic connection functions for electrical symbols.
+
+This module provides high-level layout functions for arranging and connecting
+electrical symbols automatically. Key features include:
+- Port matching based on direction vectors
+- Automatic wire routing between aligned components
+- Labeled wire connections with specifications (color, size)
+- Vertical chain layout with automatic connections
+"""
+
 from typing import List, Optional, Dict, Union, Tuple
 from .core import Symbol, Point, Vector, Element, Port
 from .primitives import Line

@@ -191,14 +191,14 @@ def main():
     print(f"Created {num_circuits} circuits side by side.")
     
     # Render to SVG
-    output_file = "demo_system.svg"
+    output_file = "examples/output/demo_system.svg"
     render_to_svg(all_elements, output_file, width="297mm", height="297mm")  # Wide format for 3 circuits
     print(f"Saved to {os.path.abspath(output_file)}")
     print(f"Total circuits created: {num_circuits}")
     
     # Export system to CSV
     from pyschemaelectrical.system_analysis import export_terminals_to_csv
-    csv_file = "demo_system.csv"
+    csv_file = "examples/output/demo_system.csv"
     export_terminals_to_csv(all_elements, csv_file)
     print(f"Exported terminals to {os.path.abspath(csv_file)}")
 
@@ -206,7 +206,7 @@ def main():
     print("\nGenerating Motor Control Circuit...")
     control_elements = create_control_circuit(start_x, start_y, normal_spacing)
     
-    control_file = "motor_control.svg"
+    control_file = "examples/output/motor_control.svg"
     # Use a narrower width for the single circuit
     render_to_svg(control_elements, control_file, width="100mm", height="297mm")
     print(f"Saved to {os.path.abspath(control_file)}")

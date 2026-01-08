@@ -29,6 +29,10 @@ classifiers = [
 # Add any runtime dependencies here
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/OleJBondahl/PySchemaElectrical"
+Repository = "https://github.com/OleJBondahl/PySchemaElectrical"
+Issues = "https://github.com/OleJBondahl/PySchemaElectrical/issues"
 
 [project.optional-dependencies]
 # dev = [ ... ] handled by uv dependency-groups
@@ -37,7 +41,10 @@ dependencies = []
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["pyschemaelectrical"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pyschemaelectrical*"]
 
 
 [tool.pytest.ini_options]

@@ -1,4 +1,5 @@
 LICENSE
+README.md
 pyproject.toml
 src/pyschemaelectrical/__init__.py
 src/pyschemaelectrical/autonumbering.py
@@ -8,6 +9,7 @@ src/pyschemaelectrical/layout.py
 src/pyschemaelectrical/parts.py
 src/pyschemaelectrical/primitives.py
 src/pyschemaelectrical/renderer.py
+src/pyschemaelectrical/simple_api.py
 src/pyschemaelectrical/system.py
 src/pyschemaelectrical/system_analysis.py
 src/pyschemaelectrical/transform.py
@@ -16,6 +18,17 @@ src/pyschemaelectrical.egg-info/PKG-INFO
 src/pyschemaelectrical.egg-info/SOURCES.txt
 src/pyschemaelectrical.egg-info/dependency_links.txt
 src/pyschemaelectrical.egg-info/top_level.txt
+src/pyschemaelectrical/symbols/__init__.py
+src/pyschemaelectrical/symbols/actuators.py
+src/pyschemaelectrical/symbols/assemblies.py
+src/pyschemaelectrical/symbols/blocks.py
+src/pyschemaelectrical/symbols/breakers.py
+src/pyschemaelectrical/symbols/circuits.py
+src/pyschemaelectrical/symbols/coils.py
+src/pyschemaelectrical/symbols/contacts.py
+src/pyschemaelectrical/symbols/protection.py
+src/pyschemaelectrical/symbols/terminals.py
+src/pyschemaelectrical/symbols/transducers.py
 tests/test_autonumbering.py
 tests/test_core.py
 tests/test_library.py

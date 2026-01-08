@@ -1,3 +1,11 @@
+"""
+Geometric primitives for electrical schematics.
+
+This module provides the basic geometric building blocks used to construct
+electrical symbols, including lines, circles, text, paths, polygons, and groups.
+All primitives are immutable dataclasses that inherit from Element.
+"""
+
 from dataclasses import dataclass
 from typing import List, Optional
 from .core import Element, Point, Style

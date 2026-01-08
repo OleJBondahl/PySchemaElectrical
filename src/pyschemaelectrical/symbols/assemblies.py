@@ -35,7 +35,7 @@ def contactor(label: str = "",
     
     # 2. Create the coil with label - it handles its own label placement
     coil_offset_x = -DEFAULT_POLE_SPACING*2
-    coil_sym = coil(label=label, pins=coil_pins, show_terminals=False)
+    coil_sym = coil(label=label, pins=coil_pins, show_terminals=True)
     coil_sym = translate(coil_sym, coil_offset_x, 0)
     
     # 3. Create the mechanical linkage (stippled line)

@@ -1,3 +1,16 @@
+"""
+Component parts and factory functions for electrical symbols.
+
+This module provides reusable parts and factory functions for building
+electrical symbols according to IEC 60617 standards. It includes:
+- Standard styling and text formatting functions
+- Terminal and box primitives  
+- Pin label creation
+- Three-pole symbol factory for creating multi-pole components
+
+All constants are imported from the constants module.
+"""
+
 from .primitives import Line, Circle, Path, Group, Element, Text, Polygon
 from .core import Point, Style, Vector, Symbol
 from typing import List, Optional, Callable, Dict, Tuple, Any
@@ -18,8 +31,6 @@ from .constants import (
     DEFAULT_POLE_SPACING,
     COLOR_BLACK
 )
-
-# Constants are now imported from .constants
 
 def standard_style(filled: bool = False) -> Style:
     """

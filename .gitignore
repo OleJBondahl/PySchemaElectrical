@@ -2,8 +2,11 @@
 **/*.quarto_ipynb
 *.pyc
 __pycache__/
+# Ignore generated SVG/CSV files except in examples/output
 *.svg
 *.csv
+!examples/output/*.svg
+!examples/output/*.csv
 /pyschemaelectrical.egg-info
 .coverage
 .coverage.*
@@ -11,3 +14,5 @@ __pycache__/
 .pytest_cache/
 .complexipy_cache/
 uv.lock
+dist/
+
