@@ -172,3 +172,44 @@ def export_terminals_to_csv(elements: List[Element], filename: str):
         writer = csv.writer(f)
         writer.writerow(["Component From", "Pin From", "Terminal Tag", "Terminal Pin", "Component To", "Pin To"])
         writer.writerows(rows)
+
+
+def export_components_to_csv(elements: List[Element], filename: str):
+    """
+    Export all components in the system to a CSV file.
+    
+    Format:
+    Component Tag, Component Description, MPN
+    
+    For now, only Component Tag is populated.
+    Description and MPN are empty placeholders for future enhancement 
+    (to be populated by merging with project-specific data).
+    
+    Args:
+        elements: List of all elements in the system
+        filename: Path to the output CSV file
+    """
+    # Collect all symbols with labels (components)
+    components = []
+    seen_tags = set()
+    
+    for el in elements:
+        if isinstance(el, Symbol) and el.label:
+            # Only add unique component tags
+            if el.label not in seen_tags:
+                components.append({
+                    "tag": el.label,
+                    "description": "",  # Placeholder for future population
+                    "mpn": ""  # Placeholder for future population
+                })
+                seen_tags.add(el.label)
+    
+    # Sort components by tag for consistent output
+    components.sort(key=lambda c: c["tag"])
+    
+    # Write CSV
+    with open(filename, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(["Component Tag", "Component Description", "MPN"])
+        for comp in components:
+            writer.writerow([comp["tag"], comp["description"], comp["mpn"]])

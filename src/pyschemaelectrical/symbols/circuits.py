@@ -49,6 +49,7 @@ def motor_circuit(
     state, f1_tag = next_tag(state, "F")
     state, ft_tag = next_tag(state, "FT")
     state, q_tag = next_tag(state, "Q")
+    state, t_tag = next_tag(state, "T")
 
     # Generate auto-incrementing pins for terminals (ONCE per circuit, shared by X1 and X2)
     state, terminal_pins = next_terminal_pins(state, poles=3)
@@ -103,7 +104,7 @@ def motor_circuit(
     
     transducer_y = current_y + normal_spacing / 2
     transducer = translate(
-        current_transducer_assembly(label="T1", pins=("1", "2", "3", "4")), 
+        current_transducer_assembly(label=t_tag, pins=("1", "2", "3", "4")), 
         x_position, 
         transducer_y
     )

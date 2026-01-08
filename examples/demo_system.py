@@ -197,10 +197,16 @@ def main():
     print(f"Total circuits created: {num_circuits}")
     
     # Export system to CSV
-    from pyschemaelectrical.system_analysis import export_terminals_to_csv
-    csv_file = "examples/output/demo_system.csv"
+    from pyschemaelectrical.system_analysis import export_terminals_to_csv, export_components_to_csv
+    csv_file = "examples/output/demo_system_terminals.csv"
     export_terminals_to_csv(all_elements, csv_file)
     print(f"Exported terminals to {os.path.abspath(csv_file)}")
+    
+    # Export component list to CSV
+    components_csv = "examples/output/demo_system_components.csv"
+    export_components_to_csv(all_elements, components_csv)
+    print(f"Exported components to {os.path.abspath(components_csv)}")
+
 
     # Generate Motor Control Circuit
     print("\nGenerating Motor Control Circuit...")
