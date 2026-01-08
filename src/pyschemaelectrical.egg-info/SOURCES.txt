@@ -9,7 +9,6 @@ src/pyschemaelectrical/layout.py
 src/pyschemaelectrical/parts.py
 src/pyschemaelectrical/primitives.py
 src/pyschemaelectrical/renderer.py
-src/pyschemaelectrical/simple_api.py
 src/pyschemaelectrical/system.py
 src/pyschemaelectrical/system_analysis.py
 src/pyschemaelectrical/transform.py

@@ -32,7 +32,7 @@ class TerminalBlock(Symbol):
     # Map of (up_port_id, down_port_id) -> terminal_number
     channel_map: Optional[Dict[Tuple[str, str], str]] = None
 
-def terminal(label: str = "", pins: tuple = ()) -> Terminal:
+def terminal(label: str = "", pins: tuple = (), label_pos: str = "left") -> Terminal:
     """
     Create an IEC 60617 Terminal symbol.
     
@@ -43,6 +43,7 @@ def terminal(label: str = "", pins: tuple = ()) -> Terminal:
         label (str): The tag of the terminal strip (e.g. "X1").
         pins (tuple): Tuple of pin numbers. Only the first one is used as the terminal number.
                       It is displayed at the bottom port.
+        label_pos (str): Position of label ('left' or 'right').
                       
     Returns:
         Terminal: The terminal symbol.
@@ -53,7 +54,7 @@ def terminal(label: str = "", pins: tuple = ()) -> Terminal:
     
     elements: List[Element] = [c]
     if label:
-        elements.append(standard_text(label, Point(0, 0)))
+        elements.append(standard_text(label, Point(0, 0), label_pos=label_pos))
     
     # Port 1: Up (Input/From)
     # Port 2: Down (Output/To)
@@ -77,41 +78,32 @@ def terminal(label: str = "", pins: tuple = ()) -> Terminal:
 
     return Terminal(elements=elements, ports=ports, label=label, terminal_number=term_num)
 
-def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")) -> TerminalBlock:
+def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3")) -> TerminalBlock:
     """
     Create a 3-pole terminal block.
     
     Args:
         label (str): The tag of the terminal strip.
-        pins (tuple): A tuple of 6 pin numbers. 
-                      Since terminals take 2 pins but use 1, this needs careful mapping.
-                      Current logic uses pairs: (pin[0], pin[1]) -> pin[0] is term num?
-                      Wait, logic in 'terminal' uses pin[0].
-                      'three_pole_terminal' calls 'terminal' with pairs.
-                      So for pins=("1","2", "3","4", "5","6"),
-                      Pole 1 gets ("1","2") -> Term num "1".
-                      Pole 2 gets ("3","4") -> Term num "3".
-                      Pole 3 gets ("5","6") -> Term num "5".
+        pins (tuple): A tuple of 3 terminal numbers (e.g. ("1", "2", "3")).
+                      Each pole gets one terminal number.
                       
     Returns:
         TerminalBlock: The 3-pole terminal block.
     """
     
-    # Logic similar to three_pole_factory but specific for TerminalBlock construction
-    
-    if len(pins) != 6:
-        # If pins tuple is incomplete, we could pad it or error. 
-        # Using slice/pad for safety if needed, but assuming 6 as per signature default
-        pass
-    
+    # Pad pins if necessary
+    p_safe = list(pins)
+    while len(p_safe) < 3:
+        p_safe.append("")
+        
     # Create poles
     # Pole 1
-    p1 = terminal(label=label, pins=(pins[0], pins[1]))
+    p1 = terminal(label=label, pins=(p_safe[0],))
     # Pole 2
-    p2 = terminal(label="", pins=(pins[2], pins[3]))
+    p2 = terminal(label="", pins=(p_safe[1],))
     p2 = translate(p2, DEFAULT_POLE_SPACING, 0)
     # Pole 3
-    p3 = terminal(label="", pins=(pins[4], pins[5]))
+    p3 = terminal(label="", pins=(p_safe[2],))
     p3 = translate(p3, DEFAULT_POLE_SPACING * 2, 0)
     
     all_elements = p1.elements + p2.elements + p3.elements

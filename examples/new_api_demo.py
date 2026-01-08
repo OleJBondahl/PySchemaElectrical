@@ -15,10 +15,10 @@ def main():
     
     # Add symbols
     # X1 at 50, 50
-    add_symbol(c, terminal("X1"), 50, 50)
+    add_symbol(c, terminal("X1", pins=("1", "2", "3", "4", "5", "6")), 50, 50)
     
     # S1 at 50, 100
-    add_symbol(c, normally_open("S1"), 50, 100)
+    add_symbol(c, normally_open("S1", pins=("1", "2", "3", "4", "5", "6")), 50, 100)
     
     # K1 at 50, 150
     add_symbol(c, coil("K1"), 50, 150)

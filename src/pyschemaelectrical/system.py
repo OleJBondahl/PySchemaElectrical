@@ -40,17 +40,20 @@ def add_symbol(circuit: Circuit, symbol: Symbol, x: float, y: float) -> Symbol:
 
 def auto_connect_circuit(circuit: Circuit):
     """
-    Automatically connect all adjacent symbols in the circuit.
+    Automatically connect all adjacent connectable symbols in the circuit.
     
-    Iterates through the symbols in the order they were added and connects
-    each symbol to the next one using auto_connect logic.
+    Iterates through the symbols in the order they were added.
+    Skips symbols marked with skip_auto_connect=True.
+    Connects each symbol to the next connectable one using auto_connect logic.
     
     Args:
         circuit (Circuit): The circuit to process.
     """
-    for i in range(len(circuit.symbols) - 1):
-        s1 = circuit.symbols[i]
-        s2 = circuit.symbols[i+1]
+    connectable_symbols = [s for s in circuit.symbols if not s.skip_auto_connect]
+
+    for i in range(len(connectable_symbols) - 1):
+        s1 = connectable_symbols[i]
+        s2 = connectable_symbols[i+1]
         lines = auto_connect(s1, s2)
         circuit.elements.extend(lines)
 

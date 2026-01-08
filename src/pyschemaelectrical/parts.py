@@ -48,24 +48,40 @@ def standard_style(filled: bool = False) -> Style:
         fill=COLOR_BLACK if filled else "none"
     )
 
-def standard_text(content: str, parent_origin: Point) -> Text:
+def standard_text(content: str, parent_origin: Point, label_pos: str = 'left') -> Text:
     """
     Create component label text formatted according to standards.
     
     Args:
         content (str): The text content (e.g. "-K1").
         parent_origin (Point): The origin of the parent symbol.
+        label_pos (str): 'left' or 'right' of the symbol.
         
     Returns:
         Text: The configured text element.
     """
-    # Text is placed to the left of the symbol, aligned end.
-    pos = Point(parent_origin.x + TEXT_OFFSET_X, parent_origin.y)
-    
+    if label_pos == 'right':
+        pos = Point(parent_origin.x - TEXT_OFFSET_X, parent_origin.y) # Use negative offset but move to right?
+        # TEXT_OFFSET_X is -5.0 usually? No, let's check constants.
+        # Assuming TEXT_OFFSET_X is negative (e.g. -5).
+        # To move right, we want +5 (or abs(TEXT_OFFSET_X)).
+        # Let's assume user wants symmetric positioning.
+        
+        # Actually checking standard_text implementation:
+        # pos = Point(parent_origin.x + TEXT_OFFSET_X, parent_origin.y)
+        # If TEXT_OFFSET_X is negative (left), then 'right' should be -TEXT_OFFSET_X.
+        
+        pos = Point(parent_origin.x - TEXT_OFFSET_X, parent_origin.y) 
+        anchor = "start"
+    else:
+        # Default Left
+        pos = Point(parent_origin.x + TEXT_OFFSET_X, parent_origin.y)
+        anchor = "end"
+
     return Text(
         content=content,
         position=pos,
-        anchor="end", # Locked position at the end
+        anchor=anchor,
         font_size=TEXT_SIZE_MAIN,
         style=Style(stroke="none", fill=COLOR_BLACK, font_family=TEXT_FONT_FAMILY)
     )

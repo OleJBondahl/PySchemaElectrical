@@ -119,4 +119,4 @@ def current_transducer_assembly(label: str = "", pins: Tuple[str, ...] = ("1", "
     # terminal_box puts label at (0,0) of box.
     # If we translate box, label moves with it.
     
-    return Symbol(combined_elements, combined_ports, label=label)
+    return Symbol(combined_elements, combined_ports, label=label, skip_auto_connect=True)

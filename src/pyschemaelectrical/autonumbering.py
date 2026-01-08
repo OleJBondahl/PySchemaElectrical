@@ -28,7 +28,8 @@ def create_autonumberer() -> Dict[str, Any]:
     """
     return {
         'tags': {},
-        'pin_counter': 0
+        'pin_counter': 0,
+        'terminal_counters': {}
     }
 
 
@@ -57,10 +58,8 @@ def increment_tag(state: Dict[str, Any], prefix: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: New state with incremented counter.
     """
-    new_state = {
-        'tags': state['tags'].copy(),
-        'pin_counter': state['pin_counter']
-    }
+    new_state = state.copy()
+    new_state['tags'] = state['tags'].copy()
     new_state['tags'][prefix] = get_tag_number(state, prefix) + 1
     return new_state
 
@@ -143,48 +142,39 @@ def get_pin_counter(state: Dict[str, Any]) -> int:
 
 def next_terminal_pins(
     state: Dict[str, Any], 
+    terminal_tag: str,
     poles: int = 3
 ) -> Tuple[Dict[str, Any], Tuple[str, ...]]:
     """
-    Generate sequential terminal pins and update pin counter.
-    
-    This function generates pin numbers that increment across multiple
-    circuit copies, allowing terminals with the same tag to have different
-    pin numbers in each circuit.
-    
-    NOTE: Terminals only display ONE pin number per pole (positions 0, 2, 4).
-    To show consecutive numbers (1,2,3 then 4,5,6), we need to place them
-    in the right positions with dummy values in between.
+    Generate sequential terminal pins for a specific terminal strip.
     
     Args:
         state: The current autonumbering state.
+        terminal_tag: The tag of the terminal strip (e.g. "X1", "X2").
         poles: Number of poles (default 3 for three-phase).
         
     Returns:
         Tuple containing updated state and pin number tuple.
-        
-    Example:
-        >>> state = create_autonumberer()
-        >>> state, pins1 = next_terminal_pins(state, 3)
-        >>> print(pins1)  # ('1', '', '2', '', '3', '') - visible: 1, 2, 3
-        >>> state, pins2 = next_terminal_pins(state, 3)
-        >>> print(pins2)  # ('4', '', '5', '', '6', '') - visible: 4, 5, 6
     """
-    current_pin = state['pin_counter'] + 1
+    # Get current counter for this specific terminal tag
+    # Default to 0 if not encountered yet
+    counters = state.get('terminal_counters', {})
+    current_pin = counters.get(terminal_tag, 0) + 1
     
-    # Generate pins with alternating pattern: visible, hidden, visible, hidden...
-    # Terminals show pins at positions 0, 2, 4 (every other position)
+    # Generate sequential pins: "1", "2", "3"...
     pins_list = []
     for i in range(poles):
-        pins_list.append(str(current_pin + i))  # Visible pin
-        pins_list.append("")  # Hidden/unused pin
+        pins_list.append(str(current_pin + i))
     
     pins = tuple(pins_list)
     
-    new_state = {
-        'tags': state['tags'].copy(),
-        'pin_counter': state['pin_counter'] + poles  # Increment by number of visible pins
-    }
+    # Update state
+    new_counters = counters.copy()
+    new_counters[terminal_tag] = current_pin + poles - 1
+    
+    # Create new state dictionary (shallow copy of parent, deep copy of mutable parts we touch)
+    new_state = state.copy()
+    new_state['terminal_counters'] = new_counters
     
     return new_state, pins
 

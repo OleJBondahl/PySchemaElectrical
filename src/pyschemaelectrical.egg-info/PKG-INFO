@@ -56,7 +56,6 @@ PySchemaElectrical provides a clean, functional API for generating professional 
 
 ## Features
 
-✨ **Simple API** - Create schematics with minimal code  
 🎨 **IEC 60617 Compliant** - Industry-standard symbols  
 🔒 **Type Safe** - Full type hints throughout  
 🧊 **Immutable** - Functional programming principles  
@@ -89,82 +88,31 @@ uv pip install -e .
 
 ## Quick Start
 
-### Simple API Example
+### Simple Helper API Example
 
-The simple API is perfect for standard vertical circuits:
-
-```python
-from pyschemaelectrical.simple_api import Circuit, Terminal, Contact, Coil
-
-# Create a circuit
-circuit = Circuit()
-
-# Add components - they're automatically positioned and connected!
-circuit.add(Terminal("X1"))
-circuit.add(Contact.NO("S1"))  # Normally Open contact
-circuit.add(Coil("K1"))
-circuit.add(Terminal("X2"))
-
-# Render to SVG
-circuit.render("my_circuit.svg")
-```
-
-**Output:**
-
-![Simple Circuit Example](examples/output/simple_demo.svg)
-
-That's it! Just **4 lines of code** created a complete schematic with proper spacing, connections, and labels.
-
-### Three-Pole Motor Circuit
+Create circuits easily using the helper functions:
 
 ```python
-from pyschemaelectrical.simple_api import Circuit, Terminal, Breaker, Protection
-
-circuit = Circuit(spacing=40)  # Tighter spacing for 3-pole components
-
-circuit.add(Terminal.three_pole("X1"))
-circuit.add(Breaker("Q1"))
-circuit.add(Protection("F1"))
-circuit.add(Terminal.three_pole("X2"))
-
-circuit.render("motor_circuit.svg", width="297mm", height="210mm")
-```
-
-### Traditional API Example
-
-For more complex layouts and custom configurations, use the traditional API:
-
-```python
-from pyschemaelectrical.core import Point
+from pyschemaelectrical.system import Circuit, add_symbol, auto_connect_circuit, render_system
 from pyschemaelectrical.symbols.terminals import three_pole_terminal
 from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker
 from pyschemaelectrical.symbols.assemblies import contactor
-from pyschemaelectrical.layout import auto_connect
-from pyschemaelectrical.transform import translate
-from pyschemaelectrical.renderer import render_to_svg
 
-# Create symbols
-x1 = three_pole_terminal("X1", pins=("1", "2", "3", "4", "5", "6"))
-q1 = three_pole_circuit_breaker("Q1", pins=("1", "2", "3", "4", "5", "6"))
-k1 = contactor("K1", poles=3)
-x2 = three_pole_terminal("X2", pins=("1", "2", "3", "4", "5", "6"))
+# Create a circuit container
+c = Circuit()
 
-# Position symbols
-elements = []
-x1_placed = translate(x1, 50, 50)
-q1_placed = translate(q1, 50, 100)
-k1_placed = translate(k1, 50, 150)
-x2_placed = translate(x2, 50, 200)
+# Add symbols at specific positions
+# Symbols are automatically added to the circuit and translated
+add_symbol(c, three_pole_terminal("X1", pins=("1", "2", "3", "4", "5", "6")), 50, 50)
+add_symbol(c, three_pole_circuit_breaker("Q1", pins=("1", "2", "3", "4", "5", "6")), 50, 100)
+add_symbol(c, contactor("K1", poles=3), 50, 150)
+add_symbol(c, three_pole_terminal("X2", pins=("1", "2", "3", "4", "5", "6")), 50, 200)
 
-elements.extend([x1_placed, q1_placed, k1_placed, x2_placed])
+# Automatically connect symbols in order
+auto_connect_circuit(c)
 
-# Connect symbols
-elements.extend(auto_connect(x1_placed, q1_placed))
-elements.extend(auto_connect(q1_placed, k1_placed))
-elements.extend(auto_connect(k1_placed, x2_placed))
-
-# Render
-render_to_svg(elements, "traditional_circuit.svg", width="297mm", height="210mm")
+# Render to SVG
+render_system(c, "my_circuit.svg", width="297mm", height="210mm")
 ```
 
 **Output:**
@@ -173,21 +121,7 @@ render_to_svg(elements, "traditional_circuit.svg", width="297mm", height="210mm"
 
 ## API Overview
 
-### Simple API Components
-
-The simple API provides convenient wrapper classes:
-
-- **`Circuit`** - Main circuit builder with automatic layout
-- **`Terminal`** - Single and three-pole terminals
-- **`Contact`** - NO (Normally Open), NC (Normally Closed), SPDT contacts
-- **`Coil`** - Relay/contactor coils
-- **`Breaker`** - Circuit breakers
-- **`Protection`** - Thermal overload relays
-- **`Assembly`** - Emergency stops, contactors
-
-All components have sensible defaults (pin numbers, spacing, etc.) that follow IEC standards.
-
-### Traditional API Modules
+### API Modules
 
 For advanced usage:
 
@@ -265,14 +199,14 @@ X1,2,,,Q1,2,
 
 Check out the `examples/` directory for more complex demonstrations:
 
-- **`simple_demo.py`** - Simple API basics
+- **`new_api_demo.py`** - Demonstration of the new helper API
 - **`demo_system.py`** - Multi-circuit system with autonumbering
 - **`multi_circuit_demo.py`** - Multiple motor circuits side-by-side
 
 Run any example:
 
 ```bash
-uv run examples/simple_demo.py
+uv run examples/new_api_demo.py
 ```
 
 Generated files are saved to `examples/output/`.
@@ -331,7 +265,7 @@ PySchemaElectrical/
 │   ├── symbols/              # Symbol library
 │   ├── layout.py             # Layout functions
 │   ├── renderer.py           # SVG rendering
-│   ├── simple_api.py         # Simple API layer
+
 │   └── ...
 ├── examples/                  # Example scripts
 │   └── output/               # Generated SVGs

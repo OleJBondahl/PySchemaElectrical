@@ -121,4 +121,5 @@ class Symbol(Element):
     elements: List[Element]
     ports: Dict[str, Port]
     label: Optional[str] = None
+    skip_auto_connect: bool = False
 

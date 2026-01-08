@@ -1,0 +1,24 @@
+
+
+class Spacing:
+    MOTOR_CIRCUIT_SPACING = 60
+    SINGLE_POLE_CIRCUIT_SPACING = 40
+    MOTOR_SYMBOLS_START_X = 50
+    MOTOR_SYMBOLS_SPACING = 60
+
+# Terminal Blocks
+class Terminals:
+    SWITCHED_230V = "X101"
+    FUSED_24V = "X102"
+    GND = "X103"
+    EARTH = "X104"
+    MAIN_400V = "X001"
+    EM_230V = "X002"
+    EXT_24V = "X003"
+    EXT_GND = "X004"
+    EXT_EARTH = "X005"
+    EXT_AC = "X006"
+    SENSORS = "X007"
+    IO_EXT = "X008"
+    EM_STOP = "X009"
+    LIGHTS_SWITCHES = "X010"

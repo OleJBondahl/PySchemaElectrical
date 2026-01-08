@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 from dataclasses import replace
 from ..core import Symbol, Point, Style, Element, Vector
 from ..primitives import Line
@@ -10,7 +10,7 @@ from .coils import coil
 from .actuators import emergency_stop_button
 
 def contactor(label: str = "", 
-              coil_pins: Tuple[str, str] = ("A1", "A2"), 
+              coil_pins: Optional[Tuple[str, str]] = None, 
               contact_pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6")) -> Symbol:
     """
     High-level contactor symbol.
@@ -21,7 +21,7 @@ def contactor(label: str = "",
     
     Args:
         label (str): The device label (e.g. "-K1").
-        coil_pins (Tuple[str, str]): Pins for the coil (A1, A2).
+        coil_pins (Optional[Tuple[str, str]]): Pins for the coil (A1, A2). If None, coil terminals are hidden.
         contact_pins (Tuple[str, ...]): Pins for the 3-pole contact (1..6).
         
     Returns:
@@ -35,7 +35,12 @@ def contactor(label: str = "",
     
     # 2. Create the coil with label - it handles its own label placement
     coil_offset_x = -DEFAULT_POLE_SPACING*2
-    coil_sym = coil(label=label, pins=coil_pins, show_terminals=True)
+    
+    # Only show coil terminals/ports if pins are provided
+    show_coil_terminals = coil_pins is not None
+    safe_coil_pins = coil_pins if coil_pins is not None else ()
+    
+    coil_sym = coil(label=label, pins=safe_coil_pins, show_terminals=show_coil_terminals)
     coil_sym = translate(coil_sym, coil_offset_x, 0)
     
     # 3. Create the mechanical linkage (stippled line)
