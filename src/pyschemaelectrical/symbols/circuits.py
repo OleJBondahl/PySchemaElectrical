@@ -95,6 +95,20 @@ def motor_circuit(
 
     q_placed = translate(contactor_asm, x_position, current_y)
     all_elements.append(q_placed)
+    
+    # Place Current Transducer on the Leftmost Wire (Pole 1)
+    # Between Contactor and Bottom Terminal
+    # Position: x_position (Left Wire), Y = current_y + normal_spacing / 2
+    from .transducers import current_transducer_assembly
+    
+    transducer_y = current_y + normal_spacing / 2
+    transducer = translate(
+        current_transducer_assembly(label="T1", pins=("1", "2", "3", "4")), 
+        x_position, 
+        transducer_y
+    )
+    all_elements.append(transducer)
+    
     current_y += normal_spacing
 
     bot_placed = translate(bot_terminals, x_position, current_y)

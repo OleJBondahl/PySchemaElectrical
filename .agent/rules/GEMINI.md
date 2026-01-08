@@ -34,4 +34,6 @@ This document summarizes the architectural principles and coding standards estab
 *   **End-to-End Tests**: Write end-to-end tests for all user flows.
     **Coverage**: Use *pytest* to measure test coverage.
 
-use py to run python files, not python command.
+always read the agents.md file, and update it to refelct changes and new learnings, make it a good source for communication and learning between agents and session.
+
+use libraries such as functools, pathlib, svg libraries.... to simplify the code where relevant.

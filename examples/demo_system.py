@@ -2,7 +2,7 @@
 import os
 
 # Ensure we can import the library
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 from pyschemaelectrical.core import Point, Symbol, Element
 from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker
@@ -10,7 +10,7 @@ from pyschemaelectrical.symbols.protection import three_pole_thermal_overload
 from pyschemaelectrical.symbols.terminals import three_pole_terminal, terminal
 from pyschemaelectrical.symbols.contacts import normally_open, spdt_contact
 from pyschemaelectrical.symbols.coils import coil
-from pyschemaelectrical.symbols.assemblies import contactor
+from pyschemaelectrical.symbols.assemblies import contactor, emergency_stop_assembly
 from pyschemaelectrical.symbols.circuits import motor_circuit
 from pyschemaelectrical.renderer import render_to_svg
 from pyschemaelectrical.layout import auto_connect, auto_connect_labeled
@@ -49,6 +49,11 @@ def create_control_circuit(
     # 1. Terminal X10
     t1 = translate(terminal("X10", pins=("1",)), x_position, current_y)
     elements.append(t1)
+    current_y += spacing
+
+    # 1.5 Emergency Stop
+    em_stop = translate(emergency_stop_assembly("S0"), x_position, current_y)
+    elements.append(em_stop)
     current_y += spacing
     
     # 2. NO Contact (Start Button)
@@ -102,7 +107,9 @@ def create_control_circuit(
     elements.append(t_no_end)
     
     # Connections
-    elements.extend(auto_connect(t1, no_sw))
+    # T1 -> E-Stop -> NO Switch
+    elements.extend(auto_connect(t1, em_stop))
+    elements.extend(auto_connect(em_stop, no_sw))
     
     # NO Switch to S2 Common
     # S2 Common is now physically at x_position (due to shift).
@@ -145,9 +152,9 @@ def main():
     all_elements = []
     
     # Define wire Label configurations per component prefix
-    input_wires = [ ("RD", "2.5mmÂ²"), ("BK", "2.5mmÂ²"), ("BN", "2.5mmÂ²") ]
-    internal_wires = [ ("RD", "2.5mmÂ²"), ("BK", "2.5mmÂ²"), ("BN", "2.5mmÂ²") ]
-    output_wires = [ ("RD", "1.5mmÂ²"), ("BK", "1.5mmÂ²"), ("BN", "1.5mmÂ²") ]
+    input_wires = [ ("RD", "2.5mm²"), ("BK", "2.5mm²"), ("BN", "2.5mm²") ]
+    internal_wires = [ ("RD", "2.5mm²"), ("BK", "2.5mm²"), ("BN", "2.5mm²") ]
+    output_wires = [ ("RD", "1.5mm²"), ("BK", "1.5mm²"), ("BN", "1.5mm²") ]
     
     config = {
         "X1": input_wires,     # Wires FROM X1

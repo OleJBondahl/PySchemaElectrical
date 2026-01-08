@@ -1,11 +1,13 @@
 from typing import Tuple, Dict, Any
 from dataclasses import replace
-from ..core import Symbol, Point, Style, Element
+from ..core import Symbol, Point, Style, Element, Vector
 from ..primitives import Line
 from ..transform import translate
 from ..constants import DEFAULT_POLE_SPACING, GRID_SIZE, LINE_WIDTH_THIN, LINKAGE_DASH_PATTERN, COLOR_BLACK
-from .contacts import three_pole_normally_open
+from ..parts import standard_text
+from .contacts import three_pole_normally_open, normally_closed
 from .coils import coil
+from .actuators import emergency_stop_button
 
 def contactor(label: str = "", 
               coil_pins: Tuple[str, str] = ("A1", "A2"), 
@@ -33,7 +35,7 @@ def contactor(label: str = "",
     
     # 2. Create the coil with label - it handles its own label placement
     coil_offset_x = -DEFAULT_POLE_SPACING*2
-    coil_sym = coil(label=label, pins=coil_pins)
+    coil_sym = coil(label=label, pins=coil_pins, show_terminals=False)
     coil_sym = translate(coil_sym, coil_offset_x, 0)
     
     # 3. Create the mechanical linkage (stippled line)
@@ -55,3 +57,34 @@ def contactor(label: str = "",
     all_ports = {**contacts_sym.ports, **coil_sym.ports}
     
     return Symbol(elements=all_elements, ports=all_ports, label=label)
+
+def emergency_stop_assembly(label: str = "", pins: Tuple[str, str] = ("1", "2")) -> Symbol:
+    """
+    Emergency Stop Assembly.
+    
+    Combines a Normally Closed contact with an Emergency Stop Mushroom Head.
+    The Button is placed to the LEFT of the contact.
+    Linkage: 1 Grid (5mm) to the Left.
+    Head: At end of linkage, pointing Left.
+    """
+    # 1. Contact (Vertical)
+    contact_sym = normally_closed(label=label, pins=pins)
+    
+    # 2. Linkage (Dashed line from contact center to Left)
+    linkage_len = GRID_SIZE / 2 # 2.5mm
+    linkage_vector = Vector(-linkage_len, 0) # Left
+    
+    linkage = Line(Point(0, 0), Point(linkage_vector.dx, linkage_vector.dy), 
+                   Style(stroke=COLOR_BLACK, stroke_width=LINE_WIDTH_THIN, stroke_dasharray=LINKAGE_DASH_PATTERN))
+    
+    # 3. Button (Mushroom Head)
+    # New Geometry: 0 deg points Right.
+    # We want it pointing Left (180 deg).
+    # Position: At (-5, 0).
+    
+    button_sym = emergency_stop_button(rotation=180)
+    button_sym = translate(button_sym, linkage_vector.dx, linkage_vector.dy)
+    
+    all_elements = contact_sym.elements + [linkage] + button_sym.elements
+    
+    return Symbol(elements=all_elements, ports=contact_sym.ports, label=label)

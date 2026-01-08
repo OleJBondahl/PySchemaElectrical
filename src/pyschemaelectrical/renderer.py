@@ -57,6 +57,11 @@ def _render_element(elem: Element, parent: ET.Element):
         e.text = elem.content
         e.set("style", _style_to_str(elem.style)) # Fill usually needed for text
         
+    elif isinstance(elem, Path):
+        e = ET.SubElement(parent, "path")
+        e.set("d", elem.d)
+        e.set("style", _style_to_str(elem.style))
+
     elif isinstance(elem, Group):
         g = ET.SubElement(parent, "g")
         if elem.style:
