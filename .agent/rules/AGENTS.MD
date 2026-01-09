@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # PySchemaElectrical - Agent Guide
 
 This document provides essential context and guidelines for AI agents working on the **PySchemaElectrical** repository.

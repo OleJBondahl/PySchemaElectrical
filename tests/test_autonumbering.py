@@ -76,20 +76,32 @@ class TestAutonumbering:
     def test_next_terminal_pins(self):
         state = create_autonumberer()
         
-        # First call (poles=3)
-        # Should start at 1.
-        # Pins: 1, "", 2, "", 3, ""
-        # Counter increments by 3
-        state, pins = next_terminal_pins(state, poles=3)
-        assert pins == ("1", "", "2", "", "3", "")
-        assert state['pin_counter'] == 3
+        # First call for terminal X1 (poles=3)
+        # Should start at 1 for X1
+        # Pins: ("1", "2", "3") - no empty strings
+        state, pins = next_terminal_pins(state, "X1", poles=3)
+        assert pins == ("1", "2", "3")
+        assert state['terminal_counters']['X1'] == 3
         
-        # Second call
-        # Start at 4
-        # Pins: 4, "", 5, "", 6, ""
-        state, pins = next_terminal_pins(state, poles=3)
-        assert pins == ("4", "", "5", "", "6", "")
-        assert state['pin_counter'] == 6
+        # Second call for same terminal X1 (poles=3)
+        # Start at 4 for X1
+        # Pins: ("4", "5", "6")
+        state, pins = next_terminal_pins(state, "X1", poles=3)
+        assert pins == ("4", "5", "6")
+        assert state['terminal_counters']['X1'] == 6
+        
+        # First call for different terminal X2 (poles=3)
+        # Should start at 1 for X2 (independent counter)
+        state, pins = next_terminal_pins(state, "X2", poles=3)
+        assert pins == ("1", "2", "3")
+        assert state['terminal_counters']['X2'] == 3
+        # X1 counter should remain unchanged
+        assert state['terminal_counters']['X1'] == 6
+        
+        # Test with poles=1 (single pole terminal)
+        state, pins = next_terminal_pins(state, "X10", poles=1)
+        assert pins == ("1",)
+        assert state['terminal_counters']['X10'] == 1
 
     def test_auto_functions(self):
         assert auto_coil_pins() == ("A1", "A2")

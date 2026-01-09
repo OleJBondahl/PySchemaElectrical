@@ -4,8 +4,6 @@ trigger: always_on
 
 # Gemini Agent Guidelines
 
-This document summarizes the architectural principles and coding standards established for the **WireViz Generator** project. Use these guidelines for future development to ensure consistency.
-
 ## 1. Architectural Patterns
 *   **Clean Architecture**: Enforce strict separation of concerns.
 *   **Dependency Injection**: Orchestrators (e.g., `WorkflowManager`) must receive their dependencies (DataSources) via `__init__`, not instantiate them internally.
@@ -17,9 +15,7 @@ This document summarizes the architectural principles and coding standards estab
 ## 3. Implementation Rules
 *   **Pure Core, Imperative Shell**:
     *   Core logic functions must be deterministic and side-effect free.
-    *   Push I/O (Database access, File existence checks) to the "Shell" (`main.py` / `workflow_manager.py`).
 *   **Error Handling**:
-    *   **Never** use `sys.exit()` in library code.
     *   Raise specific custom exceptions
     *   Handle exceptions only at the entry point
 
@@ -33,7 +29,5 @@ This document summarizes the architectural principles and coding standards estab
 *   **Integration Tests**: Write integration tests for all data flows.
 *   **End-to-End Tests**: Write end-to-end tests for all user flows.
     **Coverage**: Use *pytest* to measure test coverage.
-
-always read the agents.md file, and update it to refelct changes and new learnings, make it a good source for communication and learning between agents and session.
 
 use libraries such as functools, pathlib, svg libraries.... to simplify the code where relevant.

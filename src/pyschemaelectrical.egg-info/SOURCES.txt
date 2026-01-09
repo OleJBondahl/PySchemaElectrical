@@ -3,6 +3,8 @@ README.md
 pyproject.toml
 src/pyschemaelectrical/__init__.py
 src/pyschemaelectrical/autonumbering.py
+src/pyschemaelectrical/circuit_patterns.py
+src/pyschemaelectrical/connection_registry.py
 src/pyschemaelectrical/constants.py
 src/pyschemaelectrical/core.py
 src/pyschemaelectrical/layout.py
@@ -29,10 +31,12 @@ src/pyschemaelectrical/symbols/protection.py
 src/pyschemaelectrical/symbols/terminals.py
 src/pyschemaelectrical/symbols/transducers.py
 tests/test_autonumbering.py
+tests/test_autonumbering_advanced.py
 tests/test_core.py
 tests/test_library.py
 tests/test_parts.py
 tests/test_primitives.py
 tests/test_renderer.py
+tests/test_renderer_advanced.py
 tests/test_system.py
 tests/test_transform.py
