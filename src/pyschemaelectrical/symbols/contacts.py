@@ -330,7 +330,7 @@ def three_pole_spdt(label: str = "", pins: tuple = ("11", "12", "14", "21", "22"
     # Spacing needs to be wider for SPDT because each pole is wider (has 2 top pins)
     # Standard pole spacing is 10mm (2 grids). SPDT occupies +/- 0.5 grids.
     # To maintain ample clear gap between poles, we use 20mm (4 grids) center-to-center.
-    spacing = DEFAULT_POLE_SPACING * 2.0 
+    spacing = DEFAULT_POLE_SPACING * 4.0 
 
     # Pole 1
     p1 = spdt_contact(label=label, pins=pins[0:3])
