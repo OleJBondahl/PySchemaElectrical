@@ -1,9 +1,9 @@
 from dataclasses import dataclass, replace
 from typing import Dict, Optional, List, Tuple
-from ..core import Point, Vector, Port, Symbol, Element
-from ..parts import terminal_circle, standard_text, create_pin_labels
-from ..constants import DEFAULT_POLE_SPACING
-from ..transform import translate
+from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Element
+from pyschemaelectrical.model.parts import terminal_circle, standard_text, create_pin_labels
+from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
+from pyschemaelectrical.utils.transform import translate
 
 """
 IEC 60617 Terminal Symbols.
@@ -78,7 +78,7 @@ def terminal(label: str = "", pins: tuple = (), label_pos: str = "left") -> Term
 
     return Terminal(elements=elements, ports=ports, label=label, terminal_number=term_num)
 
-def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3")) -> TerminalBlock:
+def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3"), label_pos: str = "left") -> TerminalBlock:
     """
     Create a 3-pole terminal block.
     
@@ -86,6 +86,7 @@ def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3")) -> Termi
         label (str): The tag of the terminal strip.
         pins (tuple): A tuple of 3 terminal numbers (e.g. ("1", "2", "3")).
                       Each pole gets one terminal number.
+        label_pos (str): Position of label ('left' or 'right').
                       
     Returns:
         TerminalBlock: The 3-pole terminal block.
@@ -98,7 +99,7 @@ def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3")) -> Termi
         
     # Create poles
     # Pole 1
-    p1 = terminal(label=label, pins=(p_safe[0],))
+    p1 = terminal(label=label, pins=(p_safe[0],), label_pos=label_pos)
     # Pole 2
     p2 = terminal(label="", pins=(p_safe[1],))
     p2 = translate(p2, DEFAULT_POLE_SPACING, 0)

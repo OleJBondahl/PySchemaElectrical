@@ -1,10 +1,10 @@
 from typing import Tuple, Optional
 import math
-from ..core import Symbol, Point, Style, Element, Vector
-from ..primitives import Line, Polygon
-from ..constants import GRID_SIZE
-from ..parts import standard_style
-from ..transform import rotate
+from pyschemaelectrical.model.core import Symbol, Point, Style, Element, Vector
+from pyschemaelectrical.model.primitives import Line, Polygon
+from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.model.parts import standard_style
+from pyschemaelectrical.utils.transform import rotate
 
 def emergency_stop_button(label: str = "", rotation: float = 0.0) -> Symbol:
     """

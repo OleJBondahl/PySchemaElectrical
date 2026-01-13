@@ -1,8 +1,8 @@
 from typing import Dict, List
-from ..core import Point, Vector, Port, Symbol, Style
-from ..primitives import Line, Element, Text
-from ..parts import box, standard_text, standard_style, create_pin_labels, three_pole_factory
-from ..constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style
+from pyschemaelectrical.model.primitives import Line, Element, Text
+from pyschemaelectrical.model.parts import box, standard_text, standard_style, create_pin_labels, three_pole_factory
+from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
 
 def thermal_overload(label: str = "", pins: tuple = ()) -> Symbol:
     """IEC 60617 Thermal Overload Protection.

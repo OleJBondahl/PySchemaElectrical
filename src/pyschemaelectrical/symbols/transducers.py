@@ -1,10 +1,10 @@
 from dataclasses import replace
 from typing import Dict, List, Optional, Tuple
-from ..core import Point, Vector, Port, Symbol, Style
-from ..primitives import Line, Circle, Element, Text
-from ..parts import standard_style, standard_text
-from ..constants import GRID_SIZE, COLOR_BLACK
-from ..transform import translate
+from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style
+from pyschemaelectrical.model.primitives import Line, Circle, Element, Text
+from pyschemaelectrical.model.parts import standard_style, standard_text
+from pyschemaelectrical.model.constants import GRID_SIZE, COLOR_BLACK
+from pyschemaelectrical.utils.transform import translate
 from .blocks import terminal_box
 
 def current_transducer_symbol() -> Symbol:
@@ -93,7 +93,7 @@ def current_transducer_assembly(label: str = "", pins: Tuple[str, ...] = ("1", "
     # Box Right Edge X (local) = span + padding
     # span = (num_pins - 1) * DEFAULT_POLE_SPACING
     # padding = 2.5
-    from ..constants import DEFAULT_POLE_SPACING
+    from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
     span = (num_pins - 1) * DEFAULT_POLE_SPACING
     box_right_edge_x_local = span + (GRID_SIZE / 2)
     

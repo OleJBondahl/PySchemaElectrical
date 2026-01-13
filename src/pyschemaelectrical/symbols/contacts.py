@@ -1,10 +1,10 @@
 from dataclasses import replace
 from typing import Dict, List, Optional, Tuple
-from ..core import Point, Vector, Port, Symbol, Style
-from ..primitives import Line, Element, Text
-from ..transform import translate
-from ..parts import box, standard_text, standard_style, create_pin_labels, three_pole_factory
-from ..constants import GRID_SIZE, DEFAULT_POLE_SPACING, TEXT_SIZE_PIN, TEXT_FONT_FAMILY_AUX, COLOR_BLACK
+from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style
+from pyschemaelectrical.model.primitives import Line, Element, Text
+from pyschemaelectrical.utils.transform import translate
+from pyschemaelectrical.model.parts import box, standard_text, standard_style, create_pin_labels, three_pole_factory
+from pyschemaelectrical.model.constants import GRID_SIZE, DEFAULT_POLE_SPACING, TEXT_SIZE_PIN, TEXT_FONT_FAMILY_AUX, COLOR_BLACK
 
 """
 IEC 60617 Contact Symbols.

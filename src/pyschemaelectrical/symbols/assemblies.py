@@ -1,10 +1,10 @@
 from typing import Tuple, Dict, Any, Optional
 from dataclasses import replace
-from ..core import Symbol, Point, Style, Element, Vector
-from ..primitives import Line
-from ..transform import translate
-from ..constants import DEFAULT_POLE_SPACING, GRID_SIZE, LINE_WIDTH_THIN, LINKAGE_DASH_PATTERN, COLOR_BLACK
-from ..parts import standard_text
+from pyschemaelectrical.model.core import Symbol, Point, Style, Element, Vector
+from pyschemaelectrical.model.primitives import Line
+from pyschemaelectrical.utils.transform import translate
+from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING, GRID_SIZE, LINE_WIDTH_THIN, LINKAGE_DASH_PATTERN, COLOR_BLACK
+from pyschemaelectrical.model.parts import standard_text
 from .contacts import three_pole_normally_open, normally_closed
 from .coils import coil
 from .actuators import emergency_stop_button

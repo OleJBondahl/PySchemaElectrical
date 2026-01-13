@@ -1,8 +1,8 @@
 from typing import Dict, List
-from ..core import Point, Vector, Port, Symbol, Style
-from ..primitives import Element, Text, Line
-from ..parts import box, standard_text, create_pin_labels, GRID_SIZE, standard_style
-from ..constants import GRID_SUBDIVISION
+from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style
+from pyschemaelectrical.model.primitives import Element, Text, Line
+from pyschemaelectrical.model.parts import box, standard_text, create_pin_labels, GRID_SIZE, standard_style
+from pyschemaelectrical.model.constants import GRID_SUBDIVISION
 
 """
 IEC 60617 Coil Symbols.

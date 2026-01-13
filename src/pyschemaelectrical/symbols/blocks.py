@@ -1,8 +1,8 @@
 from typing import Tuple, List, Optional
-from ..core import Point, Vector, Port, Symbol, Style, Element
-from ..primitives import Text, Line
-from ..parts import box, standard_text, standard_style
-from ..constants import (
+from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style, Element
+from pyschemaelectrical.model.primitives import Text, Line
+from pyschemaelectrical.model.parts import box, standard_text, standard_style
+from pyschemaelectrical.model.constants import (
     GRID_SIZE, 
     DEFAULT_POLE_SPACING, 
     COLOR_BLACK, 
