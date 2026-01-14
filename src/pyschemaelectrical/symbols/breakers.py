@@ -4,7 +4,7 @@ from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.model.parts import standard_text, standard_style, create_pin_labels, three_pole_factory
 from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
 
-def circuit_breaker(label: str = "", pins: tuple = ()) -> Symbol:
+def circuit_breaker_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     """IEC 60617 Circuit Breaker (Single Pole).
     
     A circuit breaker is represented as a normally open contact with a cross (X)
@@ -73,7 +73,7 @@ def circuit_breaker(label: str = "", pins: tuple = ()) -> Symbol:
     return Symbol(elements, ports, label=label)
 
 
-def three_pole_circuit_breaker(label: str = "", pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6")) -> Symbol:
+def three_pole_circuit_breaker_symbol(label: str = "", pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6")) -> Symbol:
     """IEC 60617 Three Pole Circuit Breaker.
     
     Composed of 3 single-pole circuit breaker symbols.
@@ -85,4 +85,4 @@ def three_pole_circuit_breaker(label: str = "", pins: Tuple[str, str, str, str, 
     Returns:
         Symbol: Three pole circuit breaker symbol.
     """
-    return three_pole_factory(circuit_breaker, label, pins)
+    return three_pole_factory(circuit_breaker_symbol, label, pins)

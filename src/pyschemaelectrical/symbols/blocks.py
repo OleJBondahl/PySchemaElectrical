@@ -10,7 +10,7 @@ from pyschemaelectrical.model.constants import (
     TEXT_FONT_FAMILY_AUX
 )
 
-def terminal_box(label: str = "", num_pins: int = 1, start_pin_number: int = 1, pin_spacing: float = DEFAULT_POLE_SPACING) -> Symbol:
+def terminal_box_symbol(label: str = "", num_pins: int = 1, start_pin_number: int = 1, pin_spacing: float = DEFAULT_POLE_SPACING) -> Symbol:
     """
     Create a Rectangular Terminal Box Symbol.
     
@@ -100,7 +100,7 @@ def terminal_box(label: str = "", num_pins: int = 1, start_pin_number: int = 1, 
     return Symbol(elements, ports, label=label)
 
 
-def psu(label: str = "U1") -> Symbol:
+def psu_symbol(label: str = "U1", **kwargs) -> Symbol:
     """
     Create a Power Supply Unit (PSU) symbol.
     
@@ -120,7 +120,7 @@ def psu(label: str = "U1") -> Symbol:
     pin_spacing = DEFAULT_POLE_SPACING
     
     # Create the base block
-    sym = dynamic_block(
+    sym = dynamic_block_symbol(
         label=label,
         top_pins=top_pins,
         bottom_pins=bottom_pins,
@@ -192,7 +192,7 @@ def psu(label: str = "U1") -> Symbol:
     return sym
 
 
-def dynamic_block(
+def dynamic_block_symbol(
     label: str = "",
     top_pins: Optional[Tuple[str, ...]] = None,
     bottom_pins: Optional[Tuple[str, ...]] = None,

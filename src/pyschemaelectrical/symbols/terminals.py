@@ -32,7 +32,7 @@ class TerminalBlock(Symbol):
     # Map of (up_port_id, down_port_id) -> terminal_number
     channel_map: Optional[Dict[Tuple[str, str], str]] = None
 
-def terminal(label: str = "", pins: tuple = (), label_pos: str = "left") -> Terminal:
+def terminal_symbol(label: str = "", pins: tuple = (), label_pos: str = "left") -> Terminal:
     """
     Create an IEC 60617 Terminal symbol.
     
@@ -78,7 +78,7 @@ def terminal(label: str = "", pins: tuple = (), label_pos: str = "left") -> Term
 
     return Terminal(elements=elements, ports=ports, label=label, terminal_number=term_num)
 
-def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3"), label_pos: str = "left") -> TerminalBlock:
+def three_pole_terminal_symbol(label: str = "", pins: tuple = ("1", "2", "3"), label_pos: str = "left") -> TerminalBlock:
     """
     Create a 3-pole terminal block.
     
@@ -99,12 +99,12 @@ def three_pole_terminal(label: str = "", pins: tuple = ("1", "2", "3"), label_po
         
     # Create poles
     # Pole 1
-    p1 = terminal(label=label, pins=(p_safe[0],), label_pos=label_pos)
+    p1 = terminal_symbol(label=label, pins=(p_safe[0],), label_pos=label_pos)
     # Pole 2
-    p2 = terminal(label="", pins=(p_safe[1],))
+    p2 = terminal_symbol(label="", pins=(p_safe[1],))
     p2 = translate(p2, DEFAULT_POLE_SPACING, 0)
     # Pole 3
-    p3 = terminal(label="", pins=(p_safe[2],))
+    p3 = terminal_symbol(label="", pins=(p_safe[2],))
     p3 = translate(p3, DEFAULT_POLE_SPACING * 2, 0)
     
     all_elements = p1.elements + p2.elements + p3.elements

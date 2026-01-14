@@ -5,11 +5,11 @@ from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.utils.transform import translate
 from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING, GRID_SIZE, LINE_WIDTH_THIN, LINKAGE_DASH_PATTERN, COLOR_BLACK
 from pyschemaelectrical.model.parts import standard_text
-from .contacts import three_pole_normally_open, normally_closed
-from .coils import coil
-from .actuators import emergency_stop_button
+from .contacts import three_pole_normally_open_symbol, normally_closed_symbol
+from .coils import coil_symbol
+from .actuators import emergency_stop_button_symbol
 
-def contactor(label: str = "", 
+def contactor_symbol(label: str = "", 
               coil_pins: Optional[Tuple[str, str]] = None, 
               contact_pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6")) -> Symbol:
     """
@@ -31,7 +31,7 @@ def contactor(label: str = "",
     # 1. Create the contacts
     # The contacts are centered at (0,0), (10,0), (20,0) by default in three_pole_normally_open
     # (assuming DEFAULT_POLE_SPACING is 10mm)
-    contacts_sym = three_pole_normally_open(label="", pins=contact_pins)
+    contacts_sym = three_pole_normally_open_symbol(label="", pins=contact_pins)
     
     # 2. Create the coil with label - it handles its own label placement
     coil_offset_x = -DEFAULT_POLE_SPACING*2
@@ -40,7 +40,7 @@ def contactor(label: str = "",
     show_coil_terminals = coil_pins is not None
     safe_coil_pins = coil_pins if coil_pins is not None else ()
     
-    coil_sym = coil(label=label, pins=safe_coil_pins, show_terminals=show_coil_terminals)
+    coil_sym = coil_symbol(label=label, pins=safe_coil_pins, show_terminals=show_coil_terminals)
     coil_sym = translate(coil_sym, coil_offset_x, 0)
     
     # 3. Create the mechanical linkage (stippled line)
@@ -63,7 +63,7 @@ def contactor(label: str = "",
     
     return Symbol(elements=all_elements, ports=all_ports, label=label)
 
-def emergency_stop_assembly(label: str = "", pins: Tuple[str, str] = ("1", "2")) -> Symbol:
+def emergency_stop_assembly_symbol(label: str = "", pins: Tuple[str, str] = ("1", "2")) -> Symbol:
     """
     Emergency Stop Assembly.
     
@@ -73,7 +73,7 @@ def emergency_stop_assembly(label: str = "", pins: Tuple[str, str] = ("1", "2"))
     Head: At end of linkage, pointing Left.
     """
     # 1. Contact (Vertical)
-    contact_sym = normally_closed(label=label, pins=pins)
+    contact_sym = normally_closed_symbol(label=label, pins=pins)
     
     # 2. Linkage (Dashed line from contact center to Left)
     linkage_len = GRID_SIZE / 2 # 2.5mm
@@ -87,7 +87,7 @@ def emergency_stop_assembly(label: str = "", pins: Tuple[str, str] = ("1", "2"))
     # We want it pointing Left (180 deg).
     # Position: At (-5, 0).
     
-    button_sym = emergency_stop_button(rotation=180)
+    button_sym = emergency_stop_button_symbol(rotation=180)
     button_sym = translate(button_sym, linkage_vector.dx, linkage_vector.dy)
     
     all_elements = contact_sym.elements + [linkage] + button_sym.elements

@@ -1,4 +1,5 @@
 LICENSE
+README.md
 pyproject.toml
 src/pyschemaelectrical/__init__.py
 src/pyschemaelectrical/builder.py
@@ -24,7 +25,6 @@ src/pyschemaelectrical/symbols/actuators.py
 src/pyschemaelectrical/symbols/assemblies.py
 src/pyschemaelectrical/symbols/blocks.py
 src/pyschemaelectrical/symbols/breakers.py
-src/pyschemaelectrical/symbols/circuits.py
 src/pyschemaelectrical/symbols/coils.py
 src/pyschemaelectrical/symbols/contacts.py
 src/pyschemaelectrical/symbols/protection.py

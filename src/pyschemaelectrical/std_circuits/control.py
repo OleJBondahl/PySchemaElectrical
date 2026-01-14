@@ -1,149 +1,225 @@
 """
 Standard Control Circuits.
 
-Note: This module requires terminal IDs and spacing values to be passed from the calling project.
-No terminal or spacing constants are hard-coded in the library.
+This module provides standard control circuit configurations.
+All terminal IDs, tags, and pins are parameters with sensible defaults.
+Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, Tuple, List
+from typing import Any, Tuple, List, Optional
+
 from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.symbols.coils import coil
-from pyschemaelectrical.symbols.contacts import spdt_contact, normally_open
-from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from pyschemaelectrical.layout.layout import create_horizontal_layout
+from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
+from pyschemaelectrical.utils.transform import translate
+from pyschemaelectrical.symbols.coils import coil_symbol
+from pyschemaelectrical.symbols.contacts import spdt_contact_symbol, normally_open_symbol
+from pyschemaelectrical.symbols.terminals import terminal_symbol
+from pyschemaelectrical.model.core import Symbol
+from pyschemaelectrical.model.constants import (
+    LayoutDefaults,
+    StandardTags,
+    GRID_SIZE
+)
 
 
-
-def create_motor_control(
+def spdt(
     state: Any,
     x: float,
     y: float,
-    terminal_em_stop: str = None,
-    terminal_lights_switches: str = None,
-    spacing: float = 100,
+    # Required terminal parameters
+    tm_top: str,
+    tm_bot_left: str,
+    tm_bot_right: str,
+    # Layout parameters (with defaults from constants)
+    spacing: float = LayoutDefaults.CIRCUIT_SPACING_CONTROL,
+    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    column_offset: float = LayoutDefaults.CONTROL_COLUMN_OFFSET,
+    # Component parameters (with defaults)
+    coil_tag_prefix: str = StandardTags.CONTACTOR,
+    contact_tag_prefix: str = StandardTags.RELAY,
+    # Pin parameters
+    coil_pins: Tuple[str, ...] = ("A1", "A2"),
+    contact_pins: Tuple[str, ...] = ("1", "2", "4"),
+    tm_top_pins: Optional[Tuple[str, ...]] = None,
+    tm_bot_left_pins: Optional[Tuple[str, ...]] = None,
+    tm_bot_right_pins: Optional[Tuple[str, ...]] = None,
     **kwargs
 ) -> Tuple[Any, Any, List[Any]]:
     """
-    Creates a standard motor control circuit (Start/Stop with latch or PLC control).
+    Creates a standard SPDT control circuit (Coil + Inverted SPDT).
     
+    Layout (Single Column Vertical Stack):
+    - Top Terminal (Input)
+    - Coil
+    - SPDT Contact (Inverted)
+    - Output Terminals (Double)
+    
+    This creates a visual flow where the SPDT is underneath the Coil,
+    and connected in sequence.
+
     Args:
-        terminal_em_stop: Emergency stop terminal ID
-        terminal_lights_switches: Lights/switches terminal ID
-        spacing: Circuit spacing
+        state: Autonumbering state
+        x: X position
+        y: Y position
+        tm_top: Top terminal ID (typically EM Stop or Input)
+        tm_bot_left: Bottom Left Terminal ID (typically NC output)
+        tm_bot_right: Bottom Right Terminal ID (typically NO output)
+        spacing: Horizontal spacing between circuit instances
+        symbol_spacing: Vertical spacing between components
+        column_offset: Unused in single-column layout (kept for API compatibility)
+        coil_tag_prefix: Tag prefix for coil (default: "Q")
+        contact_tag_prefix: Tag prefix for feedback contact (default: "K")
+        coil_pins: Pins for coil (Input, Output)
+        contact_pins: Pins for SPDT (Common, NC, NO)
+        tm_top_pins: Pins for Top terminal
+        tm_bot_left_pins: Pins for Bottom Left terminal
+        tm_bot_right_pins: Pins for Bottom Right terminal
+
+    Returns:
+        Tuple of (state, circuit, used_terminals)
     """
-    if not all([terminal_em_stop, terminal_lights_switches]):
-        raise ValueError("terminal_em_stop and terminal_lights_switches are required")
-    
-    builder = CircuitBuilder(state)
-    builder.set_layout(x, y, spacing=spacing)
-    
-    # Components:
-    # 1. EM Stop Input (Stop)
-    # 2. Coil (Q)
-    # 3. Contact (K) (Readback/Latch) - Optional?
-    
-    # 0. EM Stop Terminal
-    builder.add_terminal(
-        terminal_em_stop,
-        logical_name='EM_STOP',
-        auto_connect_next=True
-    )
-    
-    # 1. Coil (Q)
-    # Usually connected after EM Stop.
-    builder.add_component(
-        coil,
-        tag_prefix="Q",
-        auto_connect_next=False # Manual wiring for coil A1 connected to EM Stop
-    )
+    terminal_maps = kwargs.get('terminal_maps') or {}
 
-    # 2. Feedback Contact (K)
-    # In parallel or separate?
-    # Based on existing 'motor_controll_circuit.py', there is an SPDT contact K
-    # and a Terminal Light/Switch.
-    
-    # Existing logic:
-    # EM_Stop -> Q(A1). Q(A2) -> PLC:AI (or GND).
-    # K(Contact) -> Lights_Switches.
-    
-    # This implies TWO columns?
-    # Column 1: Control (EM -> Coil)
-    # Column 2: Feedback (Switch -> Contact)
-    
-    # Using our new x_offset we can do this!
-    
-    # -- Column 1 --
-    # Already added Terminal EM_STOP (x=0, y=0)
-    # Already added Coil Q (x=0, y=50)
-    
-    # -- Column 2 --
-    # Feedback Contact K (x=50, y=100?)
-    # Switch Terminal (x=50, y=150?)
-    
-    builder.add_component(
-        spdt_contact,
-        tag_prefix="K",
-        x_offset=GRID_SIZE * 6, # Shift right 30mm
-        y_increment=0, # Reset Y relative to... previous was Q.
-        # Check builder loop: y increments by spec value.
-        # If Q increment was default (50), current_y is now 50.
-        # We want K aligned?
-        # Let's handle Y manually if we can, or just let it stack.
-        auto_connect_next=False
-    )
-    
-    builder.add_terminal(
-        terminal_lights_switches,
-        logical_name='LIGHTS_SWITCHES',
-        x_offset=GRID_SIZE * 6,
-        y_increment=50,
-        label_pos="right",
-        auto_connect_next=False # Connect K to Lights manually
-    )
+    def create_single_control(s, start_x, start_y, tag_gens, t_maps):
+        """Create a single Motor Control instance."""
+        c = Circuit()
+        
+        # --- Tags ---
+        s, coil_tag = next_tag(s, coil_tag_prefix)
+        s, contact_tag = next_tag(s, contact_tag_prefix)
+        
+        # --- Pins (Terminals) ---
+        if tm_top_pins is None:
+            s, p_top = next_terminal_pins(s, tm_top, 1)
+        else:
+            p_top = tm_top_pins
+            
+        if tm_bot_left_pins is None:
+            s, p_left = next_terminal_pins(s, tm_bot_left, 1)
+        else:
+            p_left = tm_bot_left_pins
+            
+        if tm_bot_right_pins is None:
+            s, p_right = next_terminal_pins(s, tm_bot_right, 1)
+        else:
+            p_right = tm_bot_right_pins
+            
+        # --- Coordinates ---
+        # Vertical Stack
+        y_r1 = start_y
+        y_r2 = start_y + symbol_spacing
+        y_r3 = start_y + (symbol_spacing * 2)
+        y_r4 = start_y + (symbol_spacing * 3)
+        
+        # --- Components ---
+        
+        # 1. Top Terminal
+        top_sym = terminal_symbol(tm_top, pins=p_top)
+        add_symbol(c, top_sym, start_x, y_r1)
+        
+        # 2. Coil
+        coil_sym = coil_symbol(coil_tag, pins=coil_pins)
+        add_symbol(c, coil_sym, start_x, y_r2)
+        
+        # 3. SPDT Inverted (Underneath Coil)
+        spdt_sym = spdt_contact_symbol(contact_tag, pins=contact_pins, inverted=True)
+        
+        # Alignment Correction:
+        # SPDT Inverted: Common pin is at local x=+2.5 (GRID_SIZE/2).
+        # Coil: Bottom pin is at local x=0.
+        # To align Common with Coil, we must shift the SPDT symbol LEFT by 2.5.
+        spdt_offset = GRID_SIZE / 2
+        add_symbol(c, spdt_sym, start_x - spdt_offset, y_r3)
+        
+        # 4. Double Terminal (Underneath SPDT)
+        # We create a composite symbol for the 2 output terminals to allow auto-connect branching
+        t_left = terminal_symbol(tm_bot_left, pins=p_left, label_pos="left")
+        t_right = terminal_symbol(tm_bot_right, pins=p_right, label_pos="right")
+        
+        # Alignment Correction for Terminals:
+        # SPDT Center is now at (start_x - 2.5).
+        # SPDT Pins relative to its center:
+        #   NC Pin: -2.5 (Local). Global Alignment X = (start_x - 2.5) - 2.5 = start_x - 5.0.
+        #   NO Pin: +2.5 (Local). Global Alignment X = (start_x - 2.5) + 2.5 = start_x.
+        
+        # Terminal positioning:
+        # We place the composite symbol at start_x.
+        # So inside the composite, we need relative offsets of -5.0 and 0.0.
+        
+        t_left = translate(t_left, -GRID_SIZE, 0) # -5.0
+        t_right = translate(t_right, 0, 0)          # 0.0
+        
+        # Merge ports with unique keys
+        ports = {}
+        for k, p in t_left.ports.items():
+            ports[f"left_{k}"] = p
+        for k, p in t_right.ports.items():
+            ports[f"right_{k}"] = p
+            
+        term_sym = Symbol(t_left.elements + t_right.elements, ports, label="")
+        add_symbol(c, term_sym, start_x, y_r4)
+        
+        # --- Auto Connect ---
+        # Automatically connects sequence: Top -> Coil -> SPDT -> DoubleTerminal
+        # The geometric alignment ensures proper connections.
+        auto_connect_circuit(c)
+        
+        return s, c.elements
 
-    # Manual Connections
-    # 0(EM) -> 1(Q)(A1) (Auto connect works if vertical? But we said auto_connect_next=False for Q?)
-    # Actually Q is at y=50. EM at y=0. Vertical align.
-    # If auto_connect_next=True on EM, it connects to Q.
-    # But Q is 'symbol', EM is 'terminal'. auto_connect_next logic checks valid pairs.
-    # Let's set auto_connect_next=True for EM.
-    
-    # 2(K) -> 3(Lights)
-    # They are vertically aligned at x=30.
-    # builder.add_connection(2, 0, 3, 0)
-    
-    
-    result = builder.build(
-        count=kwargs.get("count", 1),
+    # Use horizontal layout for multiple instances
+    count = kwargs.get("count", 1)
+    final_state, all_elements = create_horizontal_layout(
+        state=state,
+        start_x=x,
+        start_y=y,
+        count=count,
+        spacing=spacing,
+        generator_func_single=create_single_control,
+        default_tag_generators={},
         tag_generators=kwargs.get("tag_generators"),
-        terminal_maps=kwargs.get("terminal_maps"),
-        start_indices=kwargs.get("start_indices")
+        terminal_maps=terminal_maps
     )
-    return result.state, result.circuit, result.used_terminals
+    
+    circuit = Circuit(elements=all_elements)
+    used_terminals = [tm_top, tm_bot_left, tm_bot_right]
+    
+    return final_state, circuit, used_terminals
 
 
-
-def create_switch(
+def no_contact(
     state: Any,
     x: float,
     y: float,
-    terminal_input: str = None,
-    terminal_output: str = None,
-    spacing: float = 100,
-    symbol_spacing: float = 60,
+    # Required terminal parameters
+    tm_top: str,
+    tm_bot: str,
+    # Layout parameters (with defaults from constants)
+    spacing: float = LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
+    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
+    # Component parameters (with defaults)
+    tag_prefix: str = StandardTags.SWITCH,
+    switch_pins: Tuple[str, ...] = ("3", "4"),
     **kwargs
 ) -> Tuple[Any, Any, List[Any]]:
     """
-    Creates a simple switch circuit.
-    
+    Creates a simple Normally Open (NO) contact circuit.
+
     Args:
-        terminal_input: Input terminal ID
-        terminal_output: Output terminal ID (typically GND)
-        spacing: Circuit spacing
-        symbol_spacing: Symbol spacing
+        state: Autonumbering state
+        x: X position
+        y: Y position
+        tm_top: Input terminal ID
+        tm_bot: Output terminal ID (typically GND)
+        spacing: Horizontal spacing between circuit instances
+        symbol_spacing: Vertical spacing between components
+        tag_prefix: Tag prefix for switch (default: "S")
+        switch_pins: Pin labels for the switch (default: ("3", "4"))
+
+    Returns:
+        Tuple of (state, circuit, used_terminals)
     """
-    if not all([terminal_input, terminal_output]):
-        raise ValueError("terminal_input and terminal_output are required")
-    
     builder = CircuitBuilder(state)
     builder.set_layout(
         x=x,
@@ -151,16 +227,16 @@ def create_switch(
         spacing=spacing,
         symbol_spacing=symbol_spacing
     )
-    
+
     # 1. Input Terminal
-    builder.add_terminal(terminal_input, poles=1)
-    
+    builder.add_terminal(tm_top, poles=1)
+
     # 2. Switch (Normally Open)
-    builder.add_component(normally_open, tag_prefix='S', poles=1)
-    
+    builder.add_component(normally_open_symbol, tag_prefix=tag_prefix, poles=1, pins=switch_pins)
+
     # 3. Output Terminal (GND)
-    builder.add_terminal(terminal_output, poles=1)
-    
+    builder.add_terminal(tm_bot, poles=1)
+
     result = builder.build(
         count=kwargs.get("count", 1),
         start_indices=kwargs.get("start_indices"),
@@ -171,3 +247,71 @@ def create_switch(
     return result.state, result.circuit, result.used_terminals
 
 
+def coil(
+    state: Any,
+    x: float,
+    y: float,
+    # Required terminal parameter
+    tm_top: str,
+    # Layout parameters (with defaults from constants)
+    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
+    # Component parameters (with defaults)
+    tag_prefix: str = StandardTags.RELAY,
+    coil_pins: Tuple[str, ...] = ("A1", "A2"),
+    tm_top_pins: Tuple[str, str] = ("1", "2"),
+    **kwargs
+) -> Tuple[Any, Any, List[Any]]:
+    """
+    Creates a simple coil circuit (e.g. Voltage Monitor, Relay Coil).
+    
+    The coil is connected between two pins of the specified terminal.
+
+    Args:
+        state: Autonumbering state
+        x: X position
+        y: Y position
+        tm_top: Input terminal ID (monitors between two pins of this terminal)
+        symbol_spacing: Vertical spacing between components
+        tag_prefix: Tag prefix for coil (default: "K")
+        coil_pins: Pins for the coil (default: ("A1", "A2"))
+        tm_top_pins: Use specific pins for the top terminal (default: ("1", "2"))
+
+    Returns:
+        Tuple of (state, circuit, used_terminals)
+    """
+    builder = CircuitBuilder(state)
+    builder.set_layout(x, y, symbol_spacing=symbol_spacing)
+
+    # 1. Top Terminal (Pin 1 of tm_top)
+    builder.add_terminal(
+        tm_top,
+        logical_name='INPUT',
+        poles=1,
+        pins=[tm_top_pins[0]], # Explicitly connect to Pin 1
+        x_offset=0,
+        y_increment=symbol_spacing,
+        auto_connect_next=True
+    )
+
+    # 2. Coil (Middle)
+    builder.add_component(
+        coil_symbol,
+        tag_prefix=tag_prefix,
+        y_increment=symbol_spacing,
+        pins=coil_pins,
+        auto_connect_next=True
+    )
+
+    # 3. Bottom Terminal (Pin 2 of tm_top)
+    builder.add_terminal(
+        tm_top,
+        logical_name='INPUT', # Reusing same terminal ID
+        poles=1,
+        pins=[tm_top_pins[1]], # Explicitly connect to Pin 2
+        x_offset=0,
+        y_increment=0,
+        auto_connect_next=True # Connects Coil output to this
+    )
+
+    result = builder.build(count=kwargs.get("count", 1))
+    return result.state, result.circuit, result.used_terminals

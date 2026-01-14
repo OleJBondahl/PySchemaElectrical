@@ -15,7 +15,7 @@ This module contains functions to generate contact symbols including:
 - Changeover (SPDT)
 """
 
-def three_pole_normally_open(label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")) -> Symbol:
+def three_pole_normally_open_symbol(label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")) -> Symbol:
     """
     Create an IEC 60617 Three Pole Normally Open Contact.
     
@@ -28,9 +28,9 @@ def three_pole_normally_open(label: str = "", pins: tuple = ("1", "2", "3", "4",
     Returns:
         Symbol: The 3-pole symbol.
     """
-    return three_pole_factory(normally_open, label, pins)
+    return three_pole_factory(normally_open_symbol, label, pins)
 
-def normally_open(label: str = "", pins: tuple = ()) -> Symbol:
+def normally_open_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     """
     Create an IEC 60617 Normally Open Contact.
     
@@ -85,7 +85,7 @@ def normally_open(label: str = "", pins: tuple = ()) -> Symbol:
 
     return Symbol(elements, ports, label=label)
     
-def three_pole_normally_closed(label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")) -> Symbol:
+def three_pole_normally_closed_symbol(label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")) -> Symbol:
     """
     Create an IEC 60617 Three Pole Normally Closed Contact.
     
@@ -96,9 +96,9 @@ def three_pole_normally_closed(label: str = "", pins: tuple = ("1", "2", "3", "4
     Returns:
         Symbol: The 3-pole symbol.
     """
-    return three_pole_factory(normally_closed, label, pins)
+    return three_pole_factory(normally_closed_symbol, label, pins)
 
-def normally_closed(label: str = "", pins: tuple = ()) -> Symbol:
+def normally_closed_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     """
     Create an IEC 60617 Normally Closed Contact.
     
@@ -166,7 +166,7 @@ def normally_closed(label: str = "", pins: tuple = ()) -> Symbol:
 
     return Symbol(elements, ports, label=label)
 
-def spdt_contact(label: str = "", pins: tuple = ("1", "2", "4")) -> Symbol:
+def spdt_contact_symbol(label: str = "", pins: tuple = ("1", "2", "4"), inverted: bool = False) -> Symbol:
     """
     Create an IEC 60617 Single Pole Double Throw (SPDT) Contact (Changeover).
     
@@ -174,7 +174,7 @@ def spdt_contact(label: str = "", pins: tuple = ("1", "2", "4")) -> Symbol:
     One input (Common) and two outputs (NC, NO).
     Breaker arm rests at the NC contact.
     
-    Symbol Layout:
+    Symbol Layout (Standard):
        NC      NO
         |__     |
            \    |
@@ -192,12 +192,15 @@ def spdt_contact(label: str = "", pins: tuple = ("1", "2", "4")) -> Symbol:
     Args:
         label (str): The component tag.
         pins (tuple): A tuple of 3 pin numbers (Common, NC, NO).
+        inverted (bool): If True, Common is at Top, NC/NO at Bottom.
         
     Returns:
         Symbol: The symbol.
     """
     
     h_half = GRID_SIZE # 5.0
+    
+    # Standard Orientation
     top_y = -GRID_SIZE / 2 # -2.5
     bot_y = GRID_SIZE / 2  # 2.5
     
@@ -206,33 +209,59 @@ def spdt_contact(label: str = "", pins: tuple = ("1", "2", "4")) -> Symbol:
     
     style = standard_style()
     
-    # Common (Input) - Bottom Right
-    # Pivot point at (2.5, 2.5)
-    # Vertical lead down to port
-    l_com = Line(Point(x_right, bot_y), Point(x_right, h_half), style)
+    elements = []
     
-    # NO (Output) - Top Right
-    # Vertical lead up to port
-    l_no = Line(Point(x_right, -h_half), Point(x_right, top_y), style)
-    
-    # NC (Output) - Top Left
-    # Vertical lead up to port
-    l_nc = Line(Point(x_left, -h_half), Point(x_left, top_y), style)
-    
-    # NC Seat (Horizontal)
-    # Extends from left vertical line towards the center/right
-    # Let's extend it to x=0 to give the blade a target
-    nc_seat_end_x = 0
-    seat_nc = Line(Point(x_left, top_y), Point(nc_seat_end_x, top_y), style)
-    
-    # Blade
-    # Starts at Common Pivot (Right, Bottom) -> (2.5, 2.5)
-    blade_start = Point(x_right, bot_y)
-    
-    # Target is the end of the NC seat
-    target_x = nc_seat_end_x
-    target_y = top_y
-    
+    if not inverted:
+        # Standard: Common (Input) - Bottom Right
+        l_com = Line(Point(x_right, bot_y), Point(x_right, h_half), style)
+        
+        # NO (Output) - Top Right
+        l_no = Line(Point(x_right, -h_half), Point(x_right, top_y), style)
+        
+        # NC (Output) - Top Left
+        l_nc = Line(Point(x_left, -h_half), Point(x_left, top_y), style)
+        
+        # NC Seat (Top)
+        nc_seat_end_x = 0
+        seat_nc = Line(Point(x_left, top_y), Point(nc_seat_end_x, top_y), style)
+        
+        # Blade: Common (Bot Right) -> NC Seat (Top Center)
+        blade_start = Point(x_right, bot_y)
+        target_x = nc_seat_end_x
+        target_y = top_y
+        
+        ports = {
+            "1": Port("1", Point(x_right, h_half), Vector(0, 1)),      # Common (Bottom)
+            "2": Port("2", Point(x_left, -h_half), Vector(0, -1)),     # NC (Top Left)
+            "4": Port("4", Point(x_right, -h_half), Vector(0, -1))     # NO (Top Right)
+        }
+    else:
+        # Inverted: Common (Input) - Top Right
+        # Common line goes UP from pivot
+        l_com = Line(Point(x_right, top_y), Point(x_right, -h_half), style)
+        
+        # NO (Output) - Bottom Right
+        l_no = Line(Point(x_right, bot_y), Point(x_right, h_half), style)
+        
+        # NC (Output) - Bottom Left
+        l_nc = Line(Point(x_left, bot_y), Point(x_left, h_half), style)
+        
+        # NC Seat (Bottom)
+        nc_seat_end_x = 0
+        seat_nc = Line(Point(x_left, bot_y), Point(nc_seat_end_x, bot_y), style)
+        
+        # Blade: Common (Top Right) -> NC Seat (Bottom Center)
+        blade_start = Point(x_right, top_y)
+        target_x = nc_seat_end_x
+        target_y = bot_y
+        
+        ports = {
+            "1": Port("1", Point(x_right, -h_half), Vector(0, -1)),     # Common (Top)
+            "2": Port("2", Point(x_left, h_half), Vector(0, 1)),        # NC (Bottom Left)
+            "4": Port("4", Point(x_right, h_half), Vector(0, 1))        # NO (Bottom Right)
+        }
+
+    # Calculate Blade (Shared Logic)
     dx = target_x - blade_start.x
     dy = target_y - blade_start.y
     length = (dx**2 + dy**2)**0.5
@@ -244,17 +273,16 @@ def spdt_contact(label: str = "", pins: tuple = ("1", "2", "4")) -> Symbol:
     blade_end = Point(blade_start.x + dx * scale, blade_start.y + dy * scale)
     blade = Line(blade_start, blade_end, style)
     
-    elements = [l_com, l_no, l_nc, seat_nc, blade]
-    
+    # Assemble standard elements
+    if not inverted:
+        elements.extend([l_com, l_no, l_nc, seat_nc, blade])
+    else:
+        # Assuming vars are defined in scope from the block
+        elements.extend([l_com, l_no, l_nc, seat_nc, blade])
+
     if label:
         elements.append(standard_text(label, Point(0, 0)))
         
-    ports = {
-        "1": Port("1", Point(x_right, h_half), Vector(0, 1)),      # Common (Right)
-        "2": Port("2", Point(x_left, -h_half), Vector(0, -1)),     # NC (Left)
-        "4": Port("4", Point(x_right, -h_half), Vector(0, -1))     # NO (Right)
-    }
-    
     if pins:
         # Expected tuple: (Common, NC, NO)
         p_labels = list(pins)
@@ -265,46 +293,42 @@ def spdt_contact(label: str = "", pins: tuple = ("1", "2", "4")) -> Symbol:
         
         offset = 2.0 # mm
         
-        if common_pin:
-             # Common is at (2.5, 2.5). Port 1 is at (2.5, 5.0).
-             # Wait, Port 1 is at (x_right, h_half) = (2.5, 5.0).
-             # Label on Right: x + offset
+        if common_pin and "1" in ports:
              pos = ports["1"].position
+             # Common aligns Right
              elements.append(Text(
                 content=common_pin,
                 position=Point(pos.x + offset, pos.y),
-                anchor="start", # Left aligned, grows Right
+                anchor="start",
                 font_size=TEXT_SIZE_PIN,
                 style=Style(stroke="none", fill=COLOR_BLACK, font_family=TEXT_FONT_FAMILY_AUX)
             ))
             
-        if nc_pin:
-             # NC is at (-2.5, -5.0). Port 2.
-             # Label on Left: x - offset
+        if nc_pin and "2" in ports:
              pos = ports["2"].position
+             # NC aligns Left
              elements.append(Text(
                 content=nc_pin,
                 position=Point(pos.x - offset, pos.y),
-                anchor="end", # Right aligned, grows Left
+                anchor="end",
                 font_size=TEXT_SIZE_PIN,
                 style=Style(stroke="none", fill=COLOR_BLACK, font_family=TEXT_FONT_FAMILY_AUX)
             ))
 
-        if no_pin:
-             # NO is at (2.5, -5.0). Port 4.
-             # Label on Right: x + offset
+        if no_pin and "4" in ports:
              pos = ports["4"].position
+             # NO aligns Right
              elements.append(Text(
                 content=no_pin,
                 position=Point(pos.x + offset, pos.y),
-                anchor="start", # Left aligned, grows Right
+                anchor="start", 
                 font_size=TEXT_SIZE_PIN,
                 style=Style(stroke="none", fill=COLOR_BLACK, font_family=TEXT_FONT_FAMILY_AUX)
             ))
 
     return Symbol(elements, ports, label=label)
 
-def three_pole_spdt(label: str = "", pins: tuple = ("11", "12", "14", "21", "22", "24", "31", "32", "34")) -> Symbol:
+def three_pole_spdt_symbol(label: str = "", pins: tuple = ("11", "12", "14", "21", "22", "24", "31", "32", "34")) -> Symbol:
     """
     Create an IEC 60617 Three Pole SPDT Contact.
     
@@ -333,14 +357,14 @@ def three_pole_spdt(label: str = "", pins: tuple = ("11", "12", "14", "21", "22"
     spacing = DEFAULT_POLE_SPACING * 4.0 
 
     # Pole 1
-    p1 = spdt_contact(label=label, pins=pins[0:3])
+    p1 = spdt_contact_symbol(label=label, pins=pins[0:3])
     
     # Pole 2
-    p2 = spdt_contact(label="", pins=pins[3:6])
+    p2 = spdt_contact_symbol(label="", pins=pins[3:6])
     p2 = translate(p2, spacing, 0)
     
     # Pole 3
-    p3 = spdt_contact(label="", pins=pins[6:9])
+    p3 = spdt_contact_symbol(label="", pins=pins[6:9])
     p3 = translate(p3, spacing * 2, 0)
     
     # Combine elements

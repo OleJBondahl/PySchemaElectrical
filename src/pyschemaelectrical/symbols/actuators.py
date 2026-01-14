@@ -6,7 +6,7 @@ from pyschemaelectrical.model.constants import GRID_SIZE
 from pyschemaelectrical.model.parts import standard_style
 from pyschemaelectrical.utils.transform import rotate
 
-def emergency_stop_button(label: str = "", rotation: float = 0.0) -> Symbol:
+def emergency_stop_button_symbol(label: str = "", rotation: float = 0.0) -> Symbol:
     """
     Emergency Stop Head (Mushroom).
     

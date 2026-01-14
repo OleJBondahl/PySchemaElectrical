@@ -19,7 +19,7 @@ The codebase adheres to **Functional Programming** and **Data-Oriented** princip
 *   **Do not modify objects in place.** Always create new instances with updated values (e.g., using `dataclasses.replace`).
 
 ### Pure Functions
-*   Symbol creation functions (e.g., `normally_open(label, pins)`) are pure factories that return a `Symbol` object.
+*   Symbol creation functions (e.g., `normally_open_symbol(label, pins)`) are pure factories that return a `Symbol` object.
 *   Transformation functions (e.g., `translate(symbol, x, y)`, `rotate(symbol, angle)`) returns a **new** transformed object. They do **not** mutate the input.
 
 ### Coordinate System

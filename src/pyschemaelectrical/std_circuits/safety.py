@@ -1,39 +1,66 @@
 """
 Standard Safety Circuits.
 
-Note: This module requires terminal IDs to be passed from the calling project.
-No terminal constants are hard-coded in the library.
+This module provides standard safety circuit configurations.
+All terminal IDs, tags, and pins are parameters with sensible defaults.
+Layout values use constants from model.constants but can be overridden.
 """
 
 from typing import Any, Tuple, List
-from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.symbols.assemblies import emergency_stop_assembly
 
-def create_emergency_stop(
-    state: Any, 
-    x: float, 
+from pyschemaelectrical.builder import CircuitBuilder
+from pyschemaelectrical.symbols.assemblies import emergency_stop_assembly_symbol
+from pyschemaelectrical.model.constants import (
+    LayoutDefaults,
+    StandardTags,
+)
+
+
+def emergency_stop(
+    state: Any,
+    x: float,
     y: float,
-    terminal_1: str = None,
-    terminal_2: str = None,
+    # Required terminal parameters
+    tm_top: str,
+    tm_bot: str,
+    # Layout parameters (with defaults from constants)
+    spacing: float = LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
+    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    # Component parameters (with defaults)
+    tag_prefix: str = StandardTags.SWITCH,
     **kwargs
 ) -> Tuple[Any, Any, List[Any]]:
     """
     Create an Emergency Stop circuit.
-    
-    Args:
-        terminal_1: Input terminal ID
-        terminal_2: Output terminal ID  
-    """
-    if not all([terminal_1, terminal_2]):
-        raise ValueError("terminal_1 and terminal_2 are required parameters")
-    
-    builder = CircuitBuilder(state)
-    builder.set_layout(x, y)
-    
-    builder.add_terminal(terminal_1, count=1)
-    builder.add_component(emergency_stop_assembly, tag_prefix="S")
-    builder.add_terminal(terminal_2, count=1)
 
-    
+    Args:
+        state: Autonumbering state
+        x: X position
+        y: Y position
+        tm_top: Input terminal ID
+        tm_bot: Output terminal ID
+        spacing: Horizontal spacing between circuit instances
+        symbol_spacing: Vertical spacing between components
+        tag_prefix: Tag prefix for emergency stop (default: "S")
+
+    Returns:
+        Tuple of (state, circuit, used_terminals)
+    """
+    builder = CircuitBuilder(state)
+    builder.set_layout(x, y, spacing=spacing, symbol_spacing=symbol_spacing)
+
+    # 1. Input Terminal
+    builder.add_terminal(tm_top, poles=1)
+
+    # 2. Emergency Stop Assembly
+    builder.add_component(
+        emergency_stop_assembly_symbol, 
+        tag_prefix=tag_prefix,
+        pins=("1", "2") # Default pins for NC contact inside assembly
+    )
+
+    # 3. Output Terminal
+    builder.add_terminal(tm_bot, poles=1)
+
     result = builder.build(count=kwargs.get("count", 1))
     return result.state, result.circuit, result.used_terminals

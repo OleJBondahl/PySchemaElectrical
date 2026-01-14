@@ -60,8 +60,8 @@ def auto_connect_circuit(circuit: Circuit):
 def render_system(
     circuits: Union[Circuit, List[Circuit]], 
     filename: str, 
-    width: Union[str, int] = DEFAULT_DOC_WIDTH, 
-    height: Union[str, int] = DEFAULT_DOC_HEIGHT
+    width: Union[str, int] = "auto", 
+    height: Union[str, int] = "auto"
 ):
     """
     Render one or more circuits to an SVG file.

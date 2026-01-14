@@ -5,7 +5,7 @@ from pyschemaelectrical.model.primitives import Line, Circle, Element, Text
 from pyschemaelectrical.model.parts import standard_style, standard_text
 from pyschemaelectrical.model.constants import GRID_SIZE, COLOR_BLACK
 from pyschemaelectrical.utils.transform import translate
-from .blocks import terminal_box
+from .blocks import terminal_box_symbol
 
 def current_transducer_symbol() -> Symbol:
     """
@@ -44,7 +44,7 @@ def current_transducer_symbol() -> Symbol:
     
     return Symbol(elements, ports, label="")
 
-def current_transducer_assembly(label: str = "", pins: Tuple[str, ...] = ("1", "2")) -> Symbol:
+def current_transducer_assembly_symbol(label: str = "", pins: Tuple[str, ...] = ("1", "2")) -> Symbol:
     """
     Create a Current Transducer Assembly.
     
@@ -83,7 +83,7 @@ def current_transducer_assembly(label: str = "", pins: Tuple[str, ...] = ("1", "
     if pins and pins[0].isdigit():
         start_num = int(pins[0])
         
-    box_sym = terminal_box(label=label, num_pins=num_pins, start_pin_number=start_num)
+    box_sym = terminal_box_symbol(label=label, num_pins=num_pins, start_pin_number=start_num)
     
     # Calculate Box Dimensions to determine offset
     # Box Origin is at Top-Left Pin (0,0 of box local coords).

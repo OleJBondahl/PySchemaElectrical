@@ -8,7 +8,7 @@ from pyschemaelectrical.model.constants import GRID_SUBDIVISION
 IEC 60617 Coil Symbols.
 """
 
-def coil(label: str = "", pins: tuple = (), show_terminals: bool = True) -> Symbol:
+def coil_symbol(label: str = "", pins: tuple = (), show_terminals: bool = True) -> Symbol:
     """
     Create an IEC 60617 Coil symbol (Square).
     

@@ -143,14 +143,99 @@ class StandardCircuitKeys:
     MAIN = 'MAIN'
     SUPPLY = 'SUPPLY'
     OUTPUT = 'OUTPUT'
-    
+
     # Control power
     V24 = 'V24'
     GND = 'GND'
-    
+
     # Generic I/O
     INPUT = 'INPUT'
     INPUT_1 = 'INPUT_1'
     INPUT_2 = 'INPUT_2'
     OUTPUT_24V = 'OUTPUT_24V'
     OUTPUT_GND = 'OUTPUT_GND'
+
+
+# =============================================================================
+# Layout Constants for std_circuits
+# =============================================================================
+# These constants define geometric layout values used in standard circuit creation.
+# They are derived from GRID_SIZE for consistency.
+
+class LayoutDefaults:
+    """
+    Default layout values for standard circuits.
+    All values are in mm and relate to GRID_SIZE for consistency.
+    """
+    # Circuit spacing (horizontal distance between circuit instances)
+    CIRCUIT_SPACING_MOTOR = 150.0       # Motor circuits (3-pole, wider)
+    CIRCUIT_SPACING_POWER = 150.0       # Power distribution circuits
+    CIRCUIT_SPACING_CONTROL = 100.0     # Control circuits (single-pole, narrower)
+    CIRCUIT_SPACING_SINGLE_POLE = 100.0 # Single-pole circuits
+
+    # Symbol spacing (vertical distance between components within a circuit)
+    SYMBOL_SPACING_DEFAULT = 50.0       # Default builder value
+    SYMBOL_SPACING_STANDARD = 60.0      # Standard spacing for most circuits
+
+    # Horizontal offsets (for positioning parallel components)
+    # PSU terminal pairs (L/N at top, 24V/GND at bottom)
+    PSU_TERMINAL_OFFSET = 15.0          # ±15mm from center for L/N and 24V/GND pairs
+
+    # Changeover switch terminal offsets
+    CHANGEOVER_TERMINAL_OFFSET = GRID_SIZE * 4  # ±20mm (4 grid units) for main/EM inputs
+
+    # Control circuit column offset
+    CONTROL_COLUMN_OFFSET = GRID_SIZE * 6       # 30mm (6 grid units) for feedback column
+
+    # Composition offsets (for combining multiple circuits)
+    VOLTAGE_MONITOR_OFFSET = 50.0       # Offset after changeover circuits
+    PSU_LAYOUT_OFFSET = 25.0            # Offset after voltage monitor
+
+
+@dataclass(frozen=True)
+class CircuitLayoutConfig:
+    """
+    Complete layout configuration for a circuit type.
+    Projects can create custom configs or use the defaults.
+    """
+    circuit_spacing: float
+    symbol_spacing: float
+    terminal_offset: float = 0.0        # Horizontal offset for terminal pairs
+    column_offset: float = 0.0          # Offset for secondary columns
+
+
+class CircuitLayouts:
+    """Pre-configured layout configurations for standard circuit types."""
+
+    PSU = CircuitLayoutConfig(
+        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_POWER,
+        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_STANDARD,
+        terminal_offset=LayoutDefaults.PSU_TERMINAL_OFFSET
+    )
+
+    CHANGEOVER = CircuitLayoutConfig(
+        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_POWER,
+        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_STANDARD,
+        terminal_offset=LayoutDefaults.CHANGEOVER_TERMINAL_OFFSET
+    )
+
+    DOL_STARTER = CircuitLayoutConfig(
+        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_MOTOR,
+        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_DEFAULT
+    )
+
+    MOTOR_CONTROL = CircuitLayoutConfig(
+        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_CONTROL,
+        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+        column_offset=LayoutDefaults.CONTROL_COLUMN_OFFSET
+    )
+
+    SWITCH = CircuitLayoutConfig(
+        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
+        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_STANDARD
+    )
+
+    EMERGENCY_STOP = CircuitLayoutConfig(
+        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
+        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_DEFAULT
+    )

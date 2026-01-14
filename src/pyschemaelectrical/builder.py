@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
-from pyschemaelectrical.symbols.terminals import terminal, three_pole_terminal
+from pyschemaelectrical.symbols.terminals import terminal_symbol, three_pole_terminal_symbol
 from pyschemaelectrical.utils.autonumbering import next_terminal_pins, next_tag
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.system.connection_registry import register_connection
@@ -97,7 +97,7 @@ class CircuitBuilder:
 
     def add_terminal(
         self, 
-        terminal_id: Any, 
+        tm_id: Any, 
         poles: int = 1, 
         pins: Optional[Union[List[str], Tuple[str, ...]]] = None,
         label_pos: Optional[str] = None,
@@ -109,7 +109,7 @@ class CircuitBuilder:
     ) -> 'CircuitBuilder':
         """Add a terminal block."""
         if logical_name:
-            self._spec.terminal_map[logical_name] = terminal_id
+            self._spec.terminal_map[logical_name] = tm_id
 
         spec = ComponentSpec(
             func=None,
@@ -120,7 +120,7 @@ class CircuitBuilder:
             y_increment=y_increment,
             auto_connect_next=auto_connect_next,
             kwargs={
-                "terminal_id": terminal_id, 
+                "tm_id": tm_id, 
                 "label_pos": label_pos,
                 "logical_name": logical_name,
                 **kwargs
@@ -134,6 +134,7 @@ class CircuitBuilder:
         symbol_func: Callable, 
         tag_prefix: str, 
         poles: int = 1,
+        pins: Optional[Union[List[str], Tuple[str, ...]]] = None,
         x_offset: float = 0.0,
         y_increment: Optional[float] = None,
         auto_connect_next: bool = True,
@@ -145,6 +146,7 @@ class CircuitBuilder:
             tag_prefix=tag_prefix,
             kind="symbol",
             poles=poles,
+            pins=pins,
             x_offset=x_offset,
             y_increment=y_increment,
             auto_connect_next=auto_connect_next,
@@ -222,7 +224,7 @@ class CircuitBuilder:
         used_terminals = []
         for comp in self._spec.components:
             if comp.kind == "terminal":
-                tid = comp.kwargs.get("terminal_id")
+                tid = comp.kwargs.get("tm_id")
                 lname = comp.kwargs.get("logical_name")
                 if lname and lname in self._spec.terminal_map:
                     tid = self._spec.terminal_map[lname]
@@ -262,7 +264,7 @@ def _create_single_circuit_from_spec(
         pins = []
         
         if component_spec.kind == "terminal":
-            tid = component_spec.kwargs["terminal_id"]
+            tid = component_spec.kwargs["tm_id"]
             lname = component_spec.kwargs.get("logical_name")
             
             # Resolve Terminal ID
@@ -289,7 +291,9 @@ def _create_single_circuit_from_spec(
             else:
                 state, tag = next_tag(state, prefix)
             instance_tags[prefix] = tag 
- 
+            
+            if component_spec.pins:
+                pins = list(component_spec.pins) 
         
         realized_components.append({
             "spec": component_spec,
@@ -338,6 +342,9 @@ def _create_single_circuit_from_spec(
                 state = register_connection(state, comp_b["tag"], pin_b, comp_a["tag"], pin_a, side=side_b)
 
     # --- Phase 3: Instantiation ---
+    from pyschemaelectrical.model.primitives import Line
+    from pyschemaelectrical.model.parts import standard_style
+
     for rc in realized_components:
         component_spec = rc["spec"]
         tag = rc["tag"]
@@ -348,18 +355,62 @@ def _create_single_circuit_from_spec(
         if component_spec.kind == "terminal":
             lpos = component_spec.kwargs.get("label_pos")
             if component_spec.poles == 3:
-                    sym = three_pole_terminal(tag, pins=rc["pins"], label_pos=lpos)
+                    sym = three_pole_terminal_symbol(tag, pins=rc["pins"], label_pos=lpos)
             else:
-                    sym = terminal(tag, pins=rc["pins"], label_pos=lpos)
+                    sym = terminal_symbol(tag, pins=rc["pins"], label_pos=lpos)
         
         elif component_spec.kind == "symbol":
             kwargs = component_spec.kwargs.copy()
-            sym = component_spec.func(tag, **kwargs)
+            if rc["pins"]:
+                 # Explicitly pass resolved pins to the symbol factory so it can render labels
+                 sym = component_spec.func(tag, pins=rc["pins"], **kwargs)
+            else:
+                 sym = component_spec.func(tag, **kwargs)
 
         if sym:
-            add_symbol(c, sym, final_x, rc["y"])
+            # Respect auto_connect configuration
+            if not component_spec.auto_connect_next:
+                # We need to set this attribute on the symbol instance
+                # Since Symbol is frozen (dataclass), we might need to recreate or use object setattr if not frozen
+                # Symbol is frozen=True? Let's check. 
+                # Actually, Symbol is frozen. But we can't easily modify it.
+                # However, system.auto_connect_circuit checks `s.skip_auto_connect`.
+                # We can't set it if it's frozen. 
+                # Workaround: Symbol might not be frozen in all versions or we use replace.
+                from dataclasses import replace
+                sym = replace(sym, skip_auto_connect=True)
+
+            placed_sym = add_symbol(c, sym, final_x, rc["y"])
+            rc["symbol"] = placed_sym # Store placed symbol for manual connection phase
 
     # --- Phase 4: Graphics ---
+    # 1. Manual Connections Rendering
+    style = standard_style()
+    for (idx_a, p_a, idx_b, p_b, side_a, side_b) in spec.manual_connections:
+        if idx_a >= len(realized_components) or idx_b >= len(realized_components):
+            continue
+        
+        comp_a = realized_components[idx_a]
+        comp_b = realized_components[idx_b]
+        
+        if "symbol" not in comp_a or "symbol" not in comp_b:
+            continue
+            
+        sym_a = comp_a["symbol"]
+        sym_b = comp_b["symbol"]
+        
+        pin_a = _resolve_pin(comp_a, p_a, is_input=(side_a=="top"))
+        pin_b = _resolve_pin(comp_b, p_b, is_input=(side_b=="top"))
+        
+        port_a = sym_a.ports.get(pin_a)
+        port_b = sym_b.ports.get(pin_b)
+        
+        if port_a and port_b:
+            # Draw direct line
+            line = Line(port_a.position, port_b.position, style)
+            c.elements.append(line)
+
+    # 2. Auto Connections
     auto_connect_circuit(c)
     
     return state, c.elements, instance_tags
@@ -368,12 +419,22 @@ def _create_single_circuit_from_spec(
 def _resolve_pin(component_data, pole_idx, is_input):
     """Helper to resolve pin names."""
     spec = component_data["spec"]
+    
+    # CASE 1: Terminals
+    # Terminals strictly follow numbering: Pole 0 -> 1(In)/2(Out), Pole 1 -> 3(In)/4(Out)
+    # We MUST ignore the visual 'pins' list for ID resolution because those are labels, not Port IDs.
     if spec.kind == "terminal":
+        base = pole_idx * 2
+        offset = 1 if is_input else 2
+        return str(base + offset)
+
+    # CASE 2: Symbols
+    # Use explicit pins if provided (Mapping label to Port ID)
+    if component_data["pins"] and pole_idx < len(component_data["pins"]):
         return component_data["pins"][pole_idx]
     
-    # Strategy for Symbols:
-    # 1. Check spec for overrides (TODO)
-    # 2. Heuristic
+    # Fallback/Heuristic for Symbols without explicit pins
+    # Assumes standard 1/2, 3/4 pairing
     base_idx = pole_idx * 2
     offset = 0 if is_input else 1
     return str(base_idx + offset + 1)

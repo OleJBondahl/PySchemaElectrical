@@ -1,92 +1,203 @@
 """
 Standard Motor Circuits.
 
-Note: This module requires terminal IDs to be passed from the calling project.
-No terminal or spacing constants are defined in the library.
+This module provides standard motor circuit configurations.
+All terminal IDs, tags, and pins are parameters with sensible defaults.
+Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, List, Tuple, Optional
 
-from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.symbols.assemblies import contactor
-from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker
-from pyschemaelectrical.symbols.protection import three_pole_thermal_overload
-from pyschemaelectrical.symbols.transducers import current_transducer_assembly
-from pyschemaelectrical.system.connection_registry import register_connection
+from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from pyschemaelectrical.symbols.assemblies import contactor_symbol
+from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker_symbol
+from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
+from pyschemaelectrical.symbols.transducers import current_transducer_assembly_symbol
+from pyschemaelectrical.symbols.terminals import three_pole_terminal_symbol
+from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
+from pyschemaelectrical.layout.layout import create_horizontal_layout
+from pyschemaelectrical.model.constants import (
+    LayoutDefaults,
+    StandardTags,
+)
 
 
-def create_dol_starter(
+def dol_starter(
     state: Any,
-    x: float, 
+    x: float,
     y: float,
-    count: int = 1,
-    spacing: float = 150,
-    terminal_input: str = None,
-    terminal_output: str = None,
+    # Required terminal parameters
+    tm_top: str,
+    tm_bot: str,
+    # Layout parameters (with defaults from constants)
+    spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
+    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    # Component parameters (with defaults)
+    breaker_tag_prefix: str = StandardTags.BREAKER,
+    thermal_tag_prefix: str = "FT",
+    contactor_tag_prefix: str = StandardTags.CONTACTOR,
+    ct_tag_prefix: str = "CT",
+    # Pin parameters for symbols (with defaults)
+    breaker_pins: Tuple[str, ...] = ("1", "2", "3", "4", "5", "6"),
+    thermal_pins: Tuple[str, ...] = ("", "T1", "", "T2", "", "T3"),
+    contactor_pins: Tuple[str, ...] = ("1", "2", "3", "4", "5", "6"),
+    ct_pins: Tuple[str, ...] = ("1", "2", "3", "4"),
+    # Pin parameters for terminals (None = auto-number)
+    tm_top_pins: Optional[Tuple[str, ...]] = None,
+    tm_bot_pins: Optional[Tuple[str, ...]] = None,
+    # Optional aux terminals
+    tm_aux_1: Optional[str] = None,
+    tm_aux_2: Optional[str] = None,
     **kwargs
 ) -> Tuple[Any, Any, List[Any]]:
     """
     Create a Direct-On-Line (DOL) Motor Starter.
-    
+
     Args:
         state: Autonumbering state
         x: X position
         y: Y position
-        count: Number of circuits to create
-        spacing: Spacing between circuits
-        terminal_input: Input terminal ID (required)
-        terminal_output: Output terminal ID (required)
-        **kwargs: Additional options including terminal_maps for aux connections
+        tm_top: Top terminal ID (Input)
+        tm_bot: Bottom terminal ID (Output)
+        spacing: Horizontal spacing between circuit instances
+        symbol_spacing: Vertical spacing between components
+        breaker_tag_prefix: Tag prefix for circuit breaker (default: "F")
+        thermal_tag_prefix: Tag prefix for thermal overload (default: "FT")
+        contactor_tag_prefix: Tag prefix for contactor (default: "Q")
+        ct_tag_prefix: Tag prefix for current transducer (default: "CT")
+        breaker_pins: Pin labels for circuit breaker (default: ("1", "2", "3", "4", "5", "6"))
+        thermal_pins: Pin labels for thermal overload (default: ("", "T1", "", "T2", "", "T3"))
+        contactor_pins: Pin labels for contactor (default: ("1", "2", "3", "4", "5", "6"))
+        ct_pins: Pin labels for current transducer (default: ("1", "2", "3", "4"))
+        tm_top_pins: Pin labels for top terminal (None = auto-number)
+        tm_bot_pins: Pin labels for bottom terminal (None = auto-number)
+        tm_aux_1: Optional terminal ID for 24V aux connection
+        tm_aux_2: Optional terminal ID for GND aux connection
+
+    Returns:
+        Tuple of (state, circuit, used_terminals)
     """
-    if not terminal_input or not terminal_output:
-        raise ValueError("terminal_input and terminal_output are required parameters")
-    
-    builder = CircuitBuilder(state)
-    builder.set_layout(x, y, spacing=spacing)
-    
-    # 1. Main Power Terminal
-    builder.add_terminal(terminal_input, poles=3, label_pos="left")
-    
-    # 2. Circuit Breaker (Q)
-    builder.add_component(three_pole_circuit_breaker, tag_prefix="F", poles=3)
-    
-    # 3. Thermal Overload (FT)
-    builder.add_component(three_pole_thermal_overload, tag_prefix="FT", poles=3)
+    # Support legacy terminal_maps parameter
+    terminal_maps = kwargs.get('terminal_maps') or {}
+    if not tm_aux_1:
+        tm_aux_1 = terminal_maps.get('FUSED_24V')
+    if not tm_aux_2:
+        tm_aux_2 = terminal_maps.get('GND')
 
-    # 4. Contactor (K)
-    builder.add_component(contactor, tag_prefix="Q", poles=3)
-    
-    # 5. Current Transducer (CT)
-    # The CT has 3 poles for power, plus aux connections.
-    # We add it as a 3-pole component for the main flow.
-    # Note: current_transducer_assembly function should be checked for signature matching.
-    builder.add_component(current_transducer_assembly, tag_prefix="CT", poles=3)
-    
-    # 6. Motor Terminal
-    builder.add_terminal(terminal_output, poles=3, label_pos="left")
-    
-    # 7. Aux Terminals (Optional)
-    tm = kwargs.get('terminal_maps') or {}
-    t_24v = tm.get('FUSED_24V')
-    t_gnd = tm.get('GND')
-
-    
-    if t_24v:
-        builder.add_terminal(t_24v, poles=1, label_pos="left", auto_connect_next=False)
+    def create_single_dol(s, start_x, start_y, tag_gens, t_maps):
+        """Create a single DOL starter instance."""
+        c = Circuit()
+        current_y = start_y
+        used_terminals_list = [tm_top, tm_bot]
         
-    if t_gnd:
-        builder.add_terminal(t_gnd, poles=1, label_pos="left", auto_connect_next=False)
+        # Get terminal pins (auto-number if not provided)
+        if tm_top_pins is None:
+            s, input_pins = next_terminal_pins(s, tm_top, 3)
+        else:
+            input_pins = tm_top_pins
+            
+        if tm_bot_pins is None:
+            s, output_pins = next_terminal_pins(s, tm_bot, 3)
+        else:
+            output_pins = tm_bot_pins
+        
+        # Get component tags
+        s, breaker_tag = next_tag(s, breaker_tag_prefix)
+        s, thermal_tag = next_tag(s, thermal_tag_prefix)
+        s, cont_tag = next_tag(s, contactor_tag_prefix)
+        s, ct_tag = next_tag(s, ct_tag_prefix)
+        
+        # 1. Input Terminal
+        sym = three_pole_terminal_symbol(tm_top, pins=input_pins, label_pos="left")
+        add_symbol(c, sym, start_x, current_y)
+        current_y += symbol_spacing
+        
+        # 2. Circuit Breaker
+        sym = three_pole_circuit_breaker_symbol(breaker_tag, pins=breaker_pins)
+        add_symbol(c, sym, start_x, current_y)
+        current_y += symbol_spacing / 2  # Half spacing to thermal overload
+        
+        # 3. Thermal Overload (top pins hidden)
+        sym = three_pole_thermal_overload_symbol(thermal_tag, pins=thermal_pins)
+        add_symbol(c, sym, start_x, current_y)
+        current_y += symbol_spacing
+        
+        # 4. Contactor
+        sym = contactor_symbol(cont_tag, contact_pins=contactor_pins)
+        add_symbol(c, sym, start_x, current_y)
+        current_y += symbol_spacing
+        
+        # 5. Current Transducer (inline with connection)
+        sym = current_transducer_assembly_symbol(ct_tag, pins=ct_pins)
+        add_symbol(c, sym, start_x, current_y)
+        current_y += symbol_spacing
+        
+        # 6. Output Terminal
+        sym = three_pole_terminal_symbol(tm_bot, pins=output_pins, label_pos="left")
+        add_symbol(c, sym, start_x, current_y)
+        
+        # Connect all symbols sequentially
+        auto_connect_circuit(c)
+        
+        return s, c.elements
+    
+    # Use horizontal layout for multiple instances
+    count = kwargs.get("count", 1)
+    final_state, all_elements = create_horizontal_layout(
+        state=state,
+        start_x=x,
+        start_y=y,
+        count=count,
+        spacing=spacing,
+        generator_func_single=create_single_dol,
+        default_tag_generators={},
+        tag_generators=kwargs.get("tag_generators"),
+        terminal_maps=terminal_maps
+    )
+    
+    circuit = Circuit(elements=all_elements)
+    used_terminals = [tm_top, tm_bot]
+    
+    return final_state, circuit, used_terminals
 
-    
-    # Build main flow
-    result = builder.build(count=kwargs.get("count", count))
-    
-    # 7. Add Aux connections (24V/GND -> CT) if needed
-    # Using result.state and result.component_map we could do this.
-    # For now, adhering to existing behavior but returning clean tuple.
-    
-    return result.state, result.circuit, result.used_terminals
 
-def create_vfd_starter(state, x, y, count=1, **kwargs):
-    # Placeholder for VFD
-    pass
+def vfd_starter(
+    state: Any,
+    x: float,
+    y: float,
+    # Required terminal parameters
+    tm_top: str,
+    tm_bot: str,
+    # Layout parameters (with defaults from constants)
+    spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
+    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    # Component parameters (with defaults)
+    breaker_tag_prefix: str = StandardTags.BREAKER,
+    vfd_tag_prefix: str = "U",
+    **kwargs
+) -> Tuple[Any, Any, List[Any]]:
+    """
+    Create a Variable Frequency Drive (VFD) Motor Starter.
+
+    Args:
+        state: Autonumbering state
+        x: X position
+        y: Y position
+        tm_top: Top terminal ID (Input)
+        tm_bot: Bottom terminal ID (Output)
+        spacing: Horizontal spacing between circuit instances
+        symbol_spacing: Vertical spacing between components
+        breaker_tag_prefix: Tag prefix for circuit breaker (default: "F")
+        vfd_tag_prefix: Tag prefix for VFD (default: "U")
+
+    Returns:
+        Tuple of (state, circuit, used_terminals)
+
+    Note:
+        This is a placeholder for VFD starter implementation.
+    """
+    # Placeholder - to be implemented
+    # Suppress unused parameter warnings until implementation
+    _ = (state, x, y, tm_top, tm_bot, spacing,
+         symbol_spacing, breaker_tag_prefix, vfd_tag_prefix, kwargs)
+    raise NotImplementedError("VFD starter not yet implemented")
