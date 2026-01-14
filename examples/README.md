@@ -160,7 +160,7 @@ To integrate these examples into your project:
 ```python
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
 from pyschemaelectrical.std_circuits import dol_starter
-from pyschemaelectrical.system.render import render_system
+from pyschemaelectrical.system import render_system
 from constants import Terminals
 
 state = create_autonumberer()

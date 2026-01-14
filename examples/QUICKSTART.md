@@ -74,8 +74,8 @@ state, circuit, terminals = std_circuits.dol_starter(
     state=state,
     x=0,
     y=0,
-    terminal_input=Terminals.MAIN_POWER,
-    terminal_output=Terminals.MOTOR_1,
+    tm_top=Terminals.MAIN_POWER,
+    tm_bot=Terminals.MOTOR_1,
     count=1  # Number of motor circuits
 )
 
