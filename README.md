@@ -41,22 +41,6 @@ uv pip install -e .
 pip install -e .
 ```
 
-## Packaging
-
-To build and publish the package, use `uv`:
-
-1.  **Build**: Creates source distribution and wheel in `dist/`.
-    ```bash
-    uv build
-    ```
-
-2.  **Publish**: Uploads to PyPI (requires API token).
-    ```bash
-    uv publish
-    ```
-
-See [PACKAGING.md](docs/PACKAGING.md) for detailed release instructions.
-
 ## Quick Start
 
 The fastest way to generate a schematic is using the **Standard Circuits** library.

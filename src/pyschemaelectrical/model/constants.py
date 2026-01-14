@@ -86,7 +86,7 @@ class StandardTags:
     CONTACTOR = "Q"  # Power switching devices
     RELAY = "K"  # Auxiliary relays and contactors
     SWITCH = "S"  # Control switches
-    POWER_SUPPLY = "G"  # Generators and power supplies
+    POWER_SUPPLY = "PSU"  # Generators and power supplies
     TRANSFORMER = "T"  # Transformers
     MOTOR = "M"  # Motors
     INDICATOR = "H"  # Indicator lamps
