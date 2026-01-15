@@ -162,11 +162,13 @@ def export_registry_to_csv(registry: TerminalRegistry, filepath: str):
         key = (conn.terminal_tag, conn.terminal_pin)
         grouped[key][conn.side].append(conn)
         
-    # Sort keys
+    # Sort keys - handle mixed int/string pins by using tuple with explicit type handling
     def sort_key(k):
         t, p = k
-        try: return (t, int(p))
-        except: return (t, p)
+        try: 
+            return (t, 0, int(p), str(p))  # Numeric pins sort first
+        except (ValueError, TypeError): 
+            return (t, 1, 0, str(p))  # Non-numeric pins sort after numeric
         
     sorted_keys = sorted(grouped.keys(), key=sort_key)
     

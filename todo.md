@@ -1,5 +1,8 @@
 # TODO
 
+## Completed
+- [x] Migrated terminal bridge utilities from `auxillary_cabinet_v3` project to the library as `utils/terminal_bridges.py`. Functions now accept internal_connections dict as a parameter for flexibility.
+
 ## Cleanup
 - [ ] Check for other potential duplicate functionality in the library.
 - [ ] The `next_contact_pins` function was found to be triply defined (once in `utils.py`, once in `lib_func`, and potentially utilized in `autonumbering.py` logic). Ensure only one source of truth is used.
@@ -8,7 +11,10 @@
 ## Testing
 - [ ] The library tests are currently suboptimal. Improve coverage and quality for `wire_labels.py` and `system.py` additions.
 - [ ] Add regression tests to ensure PDF output remains identical after migration.
+- [ ] Add tests for `terminal_bridges.py` module.
 
 ## Documentation
 - [ ] Verify that all new functions have comprehensive docstrings (completed during migration).
 - [ ] Add examples of using `merge_circuits` and `add_wire_labels_to_circuit` to the `examples/` directory.
+- [ ] Add example for using `update_csv_with_internal_connections` to the `examples/` directory.
+

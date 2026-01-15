@@ -421,20 +421,34 @@ def _resolve_pin(component_data, pole_idx, is_input):
     spec = component_data["spec"]
     
     # CASE 1: Terminals
-    # Terminals strictly follow numbering: Pole 0 -> 1(In)/2(Out), Pole 1 -> 3(In)/4(Out)
-    # We MUST ignore the visual 'pins' list for ID resolution because those are labels, not Port IDs.
+    # Terminals are pass-through: Input and Output correspond to the SAME Pin Number.
+    # While visual ports are "1"(In) and "2"(Out), the data registry needs the Pin Label.
     if spec.kind == "terminal":
+        if component_data["pins"] and pole_idx < len(component_data["pins"]):
+            return component_data["pins"][pole_idx]
+            
+        # Fallback (should ideally not happen if pins are generated)
         base = pole_idx * 2
         offset = 1 if is_input else 2
         return str(base + offset)
 
     # CASE 2: Symbols
     # Use explicit pins if provided (Mapping label to Port ID)
-    if component_data["pins"] and pole_idx < len(component_data["pins"]):
-        return component_data["pins"][pole_idx]
+    if component_data["pins"]:
+        # Logic: If provided pins list is large enough to cover distinct In/Out pins per pole
+        # e.g. ["A1", "A2"] for 1 pole -> In=A1, Out=A2
+        # e.g. ["1", "2", "3", "4"] for 2 pole -> In1=1, Out1=2, In2=3, Out2=4
+        if len(component_data["pins"]) >= spec.poles * 2:
+            idx = (pole_idx * 2) + (0 if is_input else 1)
+            if idx < len(component_data["pins"]):
+                return component_data["pins"][idx]
+        
+        # Fallback: If pins list is short (e.g. ["1"] for 1 pole switch?), just return the pin for that pole
+        if pole_idx < len(component_data["pins"]):
+            return component_data["pins"][pole_idx]
     
     # Fallback/Heuristic for Symbols without explicit pins
-    # Assumes standard 1/2, 3/4 pairing
+    # Assumes standard 1/2, 3/4 pairing port naming
     base_idx = pole_idx * 2
     offset = 0 if is_input else 1
     return str(base_idx + offset + 1)

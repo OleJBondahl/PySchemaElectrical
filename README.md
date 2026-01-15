@@ -207,6 +207,31 @@ from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
 add_wire_labels_to_circuit(my_circuit, ["RD 2.5mm²", "BK 1.5mm²"])
 ```
 
+### Terminal Bridge Utilities
+
+Utilities for managing internal terminal connections (bridges). Bridges represent physical jumpers between pins on terminal strips.
+
+```python
+from pyschemaelectrical import update_csv_with_internal_connections
+
+# Define project-specific internal connections
+# "all" = all pins bridged, or list of (start, end) ranges
+internal_connections = {
+    "X009": [(1, 2)],       # Pins 1-2 bridged
+    "X102": [(1, 2)],       # Power distribution
+    "X103": "all",          # All ground pins bridged
+}
+
+# Update the system terminals CSV with bridge group info
+update_csv_with_internal_connections("terminals.csv", internal_connections)
+```
+
+Additional utilities:
+- `expand_range_to_pins(start, end)` - Expand range to list of pins
+- `get_connection_groups_for_terminal(tag, pins, connections)` - Get bridge groups
+- `generate_internal_connections_data(terminal_pins, connections)` - Generate all bridge data
+- `parse_terminal_pins_from_csv(csv_path)` - Parse terminal pins from CSV
+
 ## Design Principles
 
 1.  **Immutability**: All Symbols are immutable. Transformations (move, rotate) return *new* instances.

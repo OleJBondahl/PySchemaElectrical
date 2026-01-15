@@ -28,6 +28,7 @@ src/pyschemaelectrical/symbols/breakers.py
 src/pyschemaelectrical/symbols/coils.py
 src/pyschemaelectrical/symbols/contacts.py
 src/pyschemaelectrical/symbols/protection.py
+src/pyschemaelectrical/symbols/references.py
 src/pyschemaelectrical/symbols/terminals.py
 src/pyschemaelectrical/symbols/transducers.py
 src/pyschemaelectrical/system/__init__.py
@@ -38,5 +39,6 @@ src/pyschemaelectrical/utils/__init__.py
 src/pyschemaelectrical/utils/autonumbering.py
 src/pyschemaelectrical/utils/export_utils.py
 src/pyschemaelectrical/utils/renderer.py
+src/pyschemaelectrical/utils/terminal_bridges.py
 src/pyschemaelectrical/utils/transform.py
 src/pyschemaelectrical/utils/utils.py

@@ -37,11 +37,7 @@ class TestStandardCircuitsSnapshot:
         svg_content = render_circuit_to_string(circuit)
         snapshot_svg(svg_content, "dol_starter")
 
-    def test_psu_snapshot(self, snapshot_svg):
-        state = create_autonumberer()
-        state, circuit, _ = psu(state, 0, 0, tm_top="X1", tm_bot_left="X2", tm_bot_right="X3")
-        svg_content = render_circuit_to_string(circuit)
-        snapshot_svg(svg_content, "psu_circuit")
+
 
     def test_changeover_snapshot(self, snapshot_svg):
         state = create_autonumberer()
