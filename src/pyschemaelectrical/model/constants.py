@@ -9,27 +9,32 @@ from typing import Tuple
 
 # Grid System
 GRID_SIZE = 5.0  # mm, Base grid unit
-GRID_SUBDIVISION = 2.5 # mm, Half grid for smaller alignments
+GRID_SUBDIVISION = GRID_SIZE / 2 # 2.5mm, Half grid for smaller alignments
 
 # Geometry
-TERMINAL_RADIUS = 1.25 # mm
-LINE_WIDTH_THIN = 0.25 # mm
-LINE_WIDTH_THICK = 0.5 # mm
-LINKAGE_DASH_PATTERN = "2, 2" # Stippled/Dashed pattern for mechanical linkages (2mm dash, 2mm gap)
+TERMINAL_RADIUS = 0.25 * GRID_SIZE # 1.25mm
+LINE_WIDTH_THIN = 0.05 * GRID_SIZE # 0.25mm
+LINE_WIDTH_THICK = 0.1 * GRID_SIZE # 0.5mm
+LINKAGE_DASH_PATTERN = f"{0.4 * GRID_SIZE}, {0.4 * GRID_SIZE}" # "2.0, 2.0" Stippled/Dashed pattern
+
+# Reference Symbol Geometry
+REF_ARROW_LENGTH = 3 * GRID_SUBDIVISION # 7.5mm
+REF_ARROW_HEAD_LENGTH = 0.4 * GRID_SIZE # 2.0mm
+REF_ARROW_HEAD_WIDTH = 0.32 * GRID_SIZE # 1.6mm
 
 # Text & Fonts
 TEXT_FONT_FAMILY="Times New Roman"
-TEXT_SIZE_MAIN = 5.0 # For component tags like K1, X1
-TEXT_OFFSET_X = -5.0 # mm, default label offset from symbol center
+TEXT_SIZE_MAIN = GRID_SIZE # 5.0mm
+TEXT_OFFSET_X = -GRID_SIZE # -5.0mm
 
 TEXT_FONT_FAMILY_AUX = "sans-serif"
-TEXT_SIZE_PIN = 3.5 # For pin numbers like 13, 14
-PIN_LABEL_OFFSET_X = 1.5 # mm, distance from port
+TEXT_SIZE_PIN = 0.7 * GRID_SIZE # 3.5mm
+PIN_LABEL_OFFSET_X = 0.3 * GRID_SIZE # 1.5mm
 PIN_LABEL_OFFSET_Y_ADJUST = 0.0 # mm, adjustment for up/down ports
 
 # Layout
-DEFAULT_POLE_SPACING = 10.0 # mm, 2 * GRID_SIZE
-DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 1.0 # mm
+DEFAULT_POLE_SPACING = 2 * GRID_SIZE # 10.0mm
+DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 0.2 * GRID_SIZE # 1.0mm
 
 # Colors
 COLOR_BLACK = "black"
@@ -59,21 +64,21 @@ class StandardSpacing:
     """Standard spacing configurations for different circuit types."""
     
     MOTOR = SpacingConfig(
-        circuit_spacing=150.0,
-        symbols_start_x=50.0,
-        symbols_spacing=60.0
+        circuit_spacing=30 * GRID_SIZE, # 150.0mm
+        symbols_start_x=10 * GRID_SIZE, # 50.0mm
+        symbols_spacing=12 * GRID_SIZE  # 60.0mm
     )
     
     SINGLE_POLE = SpacingConfig(
-        circuit_spacing=100.0,
-        symbols_start_x=50.0,
-        symbols_spacing=60.0
+        circuit_spacing=20 * GRID_SIZE, # 100.0mm
+        symbols_start_x=10 * GRID_SIZE, # 50.0mm
+        symbols_spacing=12 * GRID_SIZE  # 60.0mm
     )
     
     POWER_DISTRIBUTION = SpacingConfig(
-        circuit_spacing=80.0,
-        symbols_start_x=50.0,
-        symbols_spacing=40.0
+        circuit_spacing=16 * GRID_SIZE, # 80.0mm
+        symbols_start_x=10 * GRID_SIZE, # 50.0mm
+        symbols_spacing=8 * GRID_SIZE   # 40.0mm
     )
 
 
@@ -168,18 +173,18 @@ class LayoutDefaults:
     All values are in mm and relate to GRID_SIZE for consistency.
     """
     # Circuit spacing (horizontal distance between circuit instances)
-    CIRCUIT_SPACING_MOTOR = 150.0       # Motor circuits (3-pole, wider)
-    CIRCUIT_SPACING_POWER = 150.0       # Power distribution circuits
-    CIRCUIT_SPACING_CONTROL = 100.0     # Control circuits (single-pole, narrower)
-    CIRCUIT_SPACING_SINGLE_POLE = 100.0 # Single-pole circuits
+    CIRCUIT_SPACING_MOTOR = 30 * GRID_SIZE       # 150.0mm Motor circuits (3-pole, wider)
+    CIRCUIT_SPACING_POWER = 30 * GRID_SIZE       # 150.0mm Power distribution circuits
+    CIRCUIT_SPACING_CONTROL = 20 * GRID_SIZE     # 100.0mm Control circuits (single-pole, narrower)
+    CIRCUIT_SPACING_SINGLE_POLE = 20 * GRID_SIZE # 100.0mm Single-pole circuits
 
     # Symbol spacing (vertical distance between components within a circuit)
-    SYMBOL_SPACING_DEFAULT = 50.0       # Default builder value
-    SYMBOL_SPACING_STANDARD = 60.0      # Standard spacing for most circuits
+    SYMBOL_SPACING_DEFAULT = 10 * GRID_SIZE       # 50.0mm Default builder value
+    SYMBOL_SPACING_STANDARD = 12 * GRID_SIZE      # 60.0mm Standard spacing for most circuits
 
     # Horizontal offsets (for positioning parallel components)
     # PSU terminal pairs (L/N at top, 24V/GND at bottom)
-    PSU_TERMINAL_OFFSET = 15.0          # ±15mm from center for L/N and 24V/GND pairs
+    PSU_TERMINAL_OFFSET = 3 * GRID_SIZE          # 15.0mm ±15mm from center for L/N and 24V/GND pairs
 
     # Changeover switch terminal offsets
     CHANGEOVER_TERMINAL_OFFSET = GRID_SIZE * 4  # ±20mm (4 grid units) for main/EM inputs
@@ -188,8 +193,8 @@ class LayoutDefaults:
     CONTROL_COLUMN_OFFSET = GRID_SIZE * 6       # 30mm (6 grid units) for feedback column
 
     # Composition offsets (for combining multiple circuits)
-    VOLTAGE_MONITOR_OFFSET = 50.0       # Offset after changeover circuits
-    PSU_LAYOUT_OFFSET = 25.0            # Offset after voltage monitor
+    VOLTAGE_MONITOR_OFFSET = 10 * GRID_SIZE       # 50.0mm Offset after changeover circuits
+    PSU_LAYOUT_OFFSET = 5 * GRID_SIZE            # 25.0mm Offset after voltage monitor
 
 
 @dataclass(frozen=True)

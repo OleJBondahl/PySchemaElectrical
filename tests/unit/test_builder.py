@@ -26,7 +26,7 @@ class TestBuilderUnit:
         assert len(builder._spec.components) == 1
         spec = builder._spec.components[0]
         assert spec.kind == "terminal"
-        assert spec.kwargs["terminal_id"] == "X99"
+        assert spec.kwargs["tm_id"] == "X99"
 
     def test_add_component(self):
         state = create_autonumberer()
