@@ -234,14 +234,14 @@ def create_horizontal_layout(
     start_y: float,
     count: int,
     spacing: float,
-    generator_func_single: Callable[[Dict[str, Any], float, float, Dict[str, Any], Dict[str, Any]], Tuple[Dict[str, Any], Any]],
+    generator_func_single: Callable[[Dict[str, Any], float, float, Dict[str, Any], Dict[str, Any], int], Tuple[Dict[str, Any], Any]],
     default_tag_generators: Dict[str, Callable],
     tag_generators: Optional[Dict[str, Callable]] = None,
     terminal_maps: Optional[Dict[str, Any]] = None
 ) -> Tuple[Dict[str, Any], List[Any]]:
     """
     Generic function to create multiple circuits horizontally.
-    Wrapper around layout_horizontal to inject dependencies.
+    Passes instance index to generator function for dynamic pin generation.
     """
     
     tm = terminal_maps or {}
@@ -249,16 +249,13 @@ def create_horizontal_layout(
     if tag_generators:
         gens.update(tag_generators)
 
-    # Wrap the single circuit creator to match layout_horizontal's expected signature
-    def generator_func_wrapper(s, x, y):
-        # We pass the resolved generators and maps to the single circuit creator
-        return generator_func_single(s, x, y, gens, tm)
-
-    return layout_horizontal(
-        start_state=state,
-        start_x=start_x,
-        start_y=start_y,
-        spacing=spacing,
-        count=count,
-        generate_func=generator_func_wrapper
-    )
+    current_state = state
+    all_elements = []
+    
+    for i in range(count):
+        x_pos = start_x + (i * spacing)
+        # Pass instance index (i) to generator function
+        current_state, elems = generator_func_single(current_state, x_pos, start_y, gens, tm, i)
+        all_elements.extend(elems)
+        
+    return current_state, all_elements

@@ -229,3 +229,47 @@ def three_pole_factory(single_pole_func: Callable[..., Symbol], label: str = "",
     add_remapped_ports(p3, "1", "2", ("5", "6"))
     
     return Symbol(elements=all_elements, ports=new_ports, label=label)
+
+def two_pole_factory(single_pole_func: Callable[..., Symbol], label: str = "", pins: Tuple[str, ...] = ("1", "2", "3", "4"), pole_spacing: float = DEFAULT_POLE_SPACING) -> Symbol:
+    """
+    Factory to create a two pole symbol from a single pole function.
+    
+    Args:
+        single_pole_func (Callable): A function that returns a single pole Symbol.
+        label (str): The label for the composite symbol (e.g. "-F1").
+        pins (Tuple[str, ...]): A tuple of 4 pin labels.
+        pole_spacing (float): Horizontal spacing between poles.
+        
+    Returns:
+        Symbol: The combined 2-pole symbol.
+    """
+    if len(pins) != 4:
+        raise ValueError(f"Two pole symbol requires 4 pin labels, got {len(pins)}")
+        
+    # Pole 1
+    p1 = single_pole_func(label=label, pins=(pins[0], pins[1]))
+    
+    # Pole 2
+    p2 = single_pole_func(label="", pins=(pins[2], pins[3]))
+    p2 = translate(p2, pole_spacing, 0)
+    
+    # Combine elements
+    all_elements = p1.elements + p2.elements
+    
+    new_ports = {}
+    
+    def add_remapped_ports(symbol: Symbol, in_key: str, out_key: str, port_ids: Tuple[str, str]):
+        if in_key in symbol.ports:
+            p = symbol.ports[in_key]
+            new_id = port_ids[0]
+            new_ports[new_id] = replace(p, id=new_id)
+        if out_key in symbol.ports:
+            p = symbol.ports[out_key]
+            new_id = port_ids[1]
+            new_ports[new_id] = replace(p, id=new_id)
+
+    # Use fixed port IDs (1-4)
+    add_remapped_ports(p1, "1", "2", ("1", "2"))
+    add_remapped_ports(p2, "1", "2", ("3", "4"))
+    
+    return Symbol(elements=all_elements, ports=new_ports, label=label)

@@ -1,7 +1,7 @@
 from typing import Tuple
 from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style
 from pyschemaelectrical.model.primitives import Line
-from pyschemaelectrical.model.parts import standard_text, standard_style, create_pin_labels, three_pole_factory
+from pyschemaelectrical.model.parts import standard_text, standard_style, create_pin_labels, three_pole_factory, two_pole_factory
 from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
 
 def circuit_breaker_symbol(label: str = "", pins: tuple = ()) -> Symbol:
@@ -86,3 +86,17 @@ def three_pole_circuit_breaker_symbol(label: str = "", pins: Tuple[str, str, str
         Symbol: Three pole circuit breaker symbol.
     """
     return three_pole_factory(circuit_breaker_symbol, label, pins)
+
+def two_pole_circuit_breaker_symbol(label: str = "", pins: Tuple[str, str, str, str] = ("1", "2", "3", "4")) -> Symbol:
+    """IEC 60617 Two Pole Circuit Breaker.
+    
+    Composed of 2 single-pole circuit breaker symbols.
+    
+    Args:
+        label (str): Component label (e.g., "F1").
+        pins (Tuple): Four pin designations.
+        
+    Returns:
+        Symbol: Two pole circuit breaker symbol.
+    """
+    return two_pole_factory(circuit_breaker_symbol, label, pins)

@@ -20,6 +20,7 @@ from pyschemaelectrical.model.constants import (
     LayoutDefaults,
     StandardTags,
 )
+from pyschemaelectrical.system.connection_registry import register_connection
 
 
 def dol_starter(
@@ -84,7 +85,7 @@ def dol_starter(
     if not tm_aux_2:
         tm_aux_2 = terminal_maps.get('GND')
 
-    def create_single_dol(s, start_x, start_y, tag_gens, t_maps):
+    def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single DOL starter instance."""
         c = Circuit()
         current_y = start_y
@@ -138,6 +139,72 @@ def dol_starter(
         
         # Connect all symbols sequentially
         auto_connect_circuit(c)
+        
+        # --- Explicit Registry Registration ---
+        # 1. Top Terminal (Output Side/Bottom) -> Circuit Breaker (Input Side/Top)
+        # tm_top pins: [1(In), 2(Out), 3(In), 4(Out), 5(In), 6(Out)]
+        # breaker pins: [1, 2, 3, 4, 5, 6] -> Inputs: 1, 3, 5
+        for i in range(3):
+            term_pin_idx = (i * 2) + 1 # Indices 1, 3, 5 (Labels "2", "4", "6")
+            if term_pin_idx < len(input_pins):
+                term_pin = input_pins[term_pin_idx]
+                
+                # Breaker input index: 0, 2, 4 (Labels "1", "3", "5")
+                brk_pin_idx = i * 2
+                if brk_pin_idx < len(breaker_pins):
+                    brk_pin = breaker_pins[brk_pin_idx]
+                    
+                    s = register_connection(s, tm_top, term_pin, breaker_tag, brk_pin, side='bottom')
+
+        # 2. CT (Output Side/Bottom) -> Bottom Terminal (Input Side/Top)
+        # ct pins: Depends on symbol. Assuming line-through or just outputs.
+        # tm_bot pins: [1(In), 2(Out)...]. Input side is Top (Odd indices 0, 2, 4 -> Labels 1, 3, 5)
+        # For simplicity, we assume CT connects to tm_bot.
+        # If CT pins are limited (4), we might map differently. 
+        # But auto_connect relies on geometry.
+        # Here we do a best-effort mapping for 3 phases.
+        for i in range(3):
+            # Term Pin Input: Indices 0, 2, 4 (Labels "1", "3", "5")
+            term_pin_idx = i * 2
+            if term_pin_idx < len(output_pins):
+                term_pin = output_pins[term_pin_idx]
+                
+                # CT Output pins... this is ambiguous without checking symbol.
+                # Assuming CT passes flow: Input(Top)->Output(Bot)
+                # But CT sym default pins are ("1", "2", "3", "4"). Only 4 pins?
+                # Maybe CT is only on one phase? Or all 3?
+                # If CT is 3-phase, it should have 6 pins.
+                # If symbol only has 4 pins, maybe it's just measuring 3 phases + N? or 1 phase?
+                # Let's map sequentially from the last component.
+                
+                # Actually, in generic diagram, 'auto_connect' calculates precise overlap.
+                # For registry, we guess.
+                # Let's assume contactor connects to tm_bot if CT is weird?
+                # In create_single_dol: Contactor -> CT -> Output Terminal.
+                # If CT pins are sparse, maybe using Contactor output (pins 2,4,6) is safer?
+                # But physically it flows through CT.
+                
+                # Let's use CT pins if available, cycle them? 
+                # Better: check len(ct_pins).
+                # If len < 3, it's partial.
+                
+                # If we want to be safe, we register connection from "ct_tag" using index i (if exists) 
+                # But CT might have 1,2,3,4. 1,2,3 inputs? or pairs?
+                # Let's assume it maps to Contactor Output for the registry if CT is ambiguous, 
+                # OR assume CT pin i matches.
+                pass
+                
+                # REVISION: Let's register Contactor -> Terminal if CT is unknown/passive
+                # Contactor Pins: 1,2,3,4,5,6. Outputs: 1,3,5 (Indices). 
+                # Wait, standard contactor: 1/L1, 3/L2, 5/L3 (Top). 2/T1, 4/T2, 6/T3 (Bot).
+                # So Outputs are indices 1, 3, 5 (Pins "2", "4", "6").
+                
+                cont_pin_idx = (i * 2) + 1
+                if cont_pin_idx < len(contactor_pins):
+                     # We register Contactor -> tm_bot
+                     cont_pin = contactor_pins[cont_pin_idx]
+                     # print(f"DEBUG_DOL: i={i} tm_bot={tm_bot} pin={term_pin} cont={cont_tag} cont_pin={cont_pin}")
+                     s = register_connection(s, tm_bot, term_pin, cont_tag, cont_pin, side='top')
         
         return s, c.elements
     

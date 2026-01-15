@@ -211,7 +211,7 @@ class CircuitBuilder:
             start_y=self._spec.layout.start_y,
             count=count,
             spacing=self._spec.layout.spacing,
-            generator_func_single=lambda s, x, y, gens, tm: single_instance_gen(s, x, y, gens, tm),
+            generator_func_single=lambda s, x, y, gens, tm, instance: single_instance_gen(s, x, y, gens, tm),
             default_tag_generators={}, 
             tag_generators=tag_generators,
             terminal_maps=terminal_maps

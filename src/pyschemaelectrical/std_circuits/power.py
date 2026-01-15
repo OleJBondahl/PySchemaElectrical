@@ -12,6 +12,7 @@ from pyschemaelectrical.system.system import Circuit
 from pyschemaelectrical.builder import CircuitBuilder
 from pyschemaelectrical.symbols.blocks import psu_symbol
 from pyschemaelectrical.symbols.contacts import three_pole_spdt_symbol
+from pyschemaelectrical.symbols.breakers import two_pole_circuit_breaker_symbol
 from pyschemaelectrical.model.constants import (
     GRID_SIZE,
     LayoutDefaults,
@@ -80,8 +81,26 @@ def psu(
         auto_connect_next=False # Manual connection guarantees correct routing
     )
 
-    # 2. PSU Block (Middle)
+    # 2. Circuit Breaker (Middle Top) - 2 Pole (L, N) protecting the PSU
+    # Uses pins 1,2,3,4. 1/3 Inputs (Top), 2/4 Outputs (Bot)
+    # L -> 1/2, N -> 3/4
+    # Requires new tag prefix or re-use existing
+    # We'll use "F" by default for circuit breakers, but allow override if needed via kwargs or heuristic
+    breaker_tag_prefix = kwargs.get("breaker_tag_prefix", StandardTags.BREAKER)
+    
+    builder.add_component(
+        two_pole_circuit_breaker_symbol,
+        tag_prefix=breaker_tag_prefix,
+        y_increment=symbol_spacing,
+        pins=("1", "2", "3", "4"),
+        x_offset=0, # Aligns with L/N of the 3-pole terminal (approx)
+        auto_connect_next=False
+    )
+
+    # 3. PSU Block (Middle Bottom)
     # Define explicit pins for consistent lookup
+    # Input pins: L, N, PE (Indices 0, 1, 2)
+    # Output pins: 24V, GND (Indices 3, 4)
     psu_pins = ("L", "N", "PE", "24V", "GND")
     builder.add_component(
         psu_symbol,
@@ -90,6 +109,51 @@ def psu(
         pins=psu_pins,
         auto_connect_next=False
     )
+
+    # 4. Output 1 Terminal (Bottom Left - 24V)
+    # Connects to PSU pin index 3 ("24V") which is at index 0 of bottom section (x=0)
+    builder.add_terminal(
+        tm_bot_left,
+        logical_name='OUTPUT_1',
+        x_offset=0,
+        y_increment=0, # Do not advance Y so next terminal is side-by-side
+        pins=[tm_bot_left_pins[0]],
+        auto_connect_next=False
+    )
+
+    # 5. Output 2 Terminal (Bottom Right - GND)
+    # Connects to PSU pin index 4 ("GND") which is at index 1 of bottom section (x=DEFAULT_POLE_SPACING)
+    builder.add_terminal(
+        tm_bot_right,
+        logical_name='OUTPUT_2',
+        x_offset=DEFAULT_POLE_SPACING,
+        y_increment=0,
+        pins=[tm_bot_right_pins[0]],
+        label_pos="right",
+        auto_connect_next=False
+    )
+
+    # Manual Connections
+    # Components: 0=TM_IN, 1=BREAKER, 2=PSU, 3=TM_OUT1, 4=TM_OUT2
+    
+    # A. Input Terminal -> Breaker/PSU
+    # L (Pole 0) -> Breaker Pin 1 (Index 0)
+    builder.add_connection(0, 0, 1, 0, side_a="bottom", side_b="top") 
+    # N (Pole 1) -> Breaker Pin 3 (Index 2)
+    builder.add_connection(0, 1, 1, 2, side_a="bottom", side_b="top")
+    # PE (Pole 2) -> PSU PE (Index 2) - Bypasses Breaker
+    builder.add_connection(0, 2, 2, 2, side_a="bottom", side_b="top")
+
+    # B. Breaker -> PSU
+    # Breaker Pin 2 (Index 1) -> PSU L (Index 0)
+    builder.add_connection(1, 1, 2, 0, side_a="bottom", side_b="top")
+    # Breaker Pin 4 (Index 3) -> PSU N (Index 1)
+    builder.add_connection(1, 3, 2, 1, side_a="bottom", side_b="top")
+
+    # C. PSU -> Output Terminals
+    # PSU Output pins are at indices 3 ("24V") and 4 ("GND")
+    builder.add_connection(2, 3, 3, 0, side_a="bottom", side_b="top") # 24V -> Term
+    builder.add_connection(2, 4, 4, 0, side_a="bottom", side_b="top") # GND -> Term
 
     # 3. Output 1 Terminal (Bottom Left - 24V)
     # Connects to PSU pin index 3 ("24V") which is at index 0 of bottom section (x=0)
@@ -114,18 +178,27 @@ def psu(
         auto_connect_next=False
     )
 
-    # Manual Connections
-    # Components: 0=TM_IN, 1=PSU, 2=TM_OUT1, 3=TM_OUT2
+    # 1b. Circuit Breaker (2-pole)
+    # Placed between Input Terminal and PSU.
+    # We add it as component #4 (index 4) but logically it sits between #0 and #1.
+    # Note: Builder index order reflects 'add' order: 
+    # 0 = TM_IN
+    # 1 = PSU
+    # 2 = TM_OUT1
+    # 3 = TM_OUT2
+    # 4 = Breaker (We will add it now)
     
-    # Input Connections (TM_IN -> PSU)
-    builder.add_connection(0, 0, 1, 0, side_a="bottom", side_b="top") # L -> L
-    builder.add_connection(0, 1, 1, 1, side_a="bottom", side_b="top") # N -> N
-    builder.add_connection(0, 2, 1, 2, side_a="bottom", side_b="top") # PE -> PE
+    # We want it visually between TM_IN and PSU.
+    # Since builder manages Y automatically by y_increment of previous component,
+    # we should have added it BEFORE PSU. 
+    # However, since this is a declarative builder, strictly sequential adds are best for auto-layout.
+    # But wait, the previous code already added the PSU. 
+    # We must insert the breaker BEFORE the PSU in the sequence to get correct Y positioning.
+    # Since we cannot easily "insert" into the builder call sequence in a patch without rewriting the whole function body,
+    # I will replace the whole component addition sequence.
     
-    # Output Connections (PSU -> TM_OUT)
-    # PSU Output pins are at indices 3 ("24V") and 4 ("GND")
-    builder.add_connection(1, 3, 2, 0, side_a="bottom", side_b="top") # 24V -> Term
-    builder.add_connection(1, 4, 3, 0, side_a="bottom", side_b="top") # GND -> Term
+    pass # Replaced by the ReplacementChunk block below covering lines 65-129
+
 
     result = builder.build(count=kwargs.get("count", 1))
     return result.state, result.circuit, result.used_terminals
@@ -178,7 +251,7 @@ def changeover(
     # Three-pole spacing is 40mm between poles
     pole_spacing = GRID_SIZE * 8  # 40mm
     
-    def create_single_changeover(s, start_x, start_y, tag_gens, t_maps):
+    def create_single_changeover(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single changeover instance with single terminals."""
         c = Circuit()
         

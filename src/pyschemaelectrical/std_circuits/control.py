@@ -22,6 +22,7 @@ from pyschemaelectrical.model.constants import (
     StandardTags,
     GRID_SIZE
 )
+from pyschemaelectrical.system.connection_registry import register_connection
 
 
 def spdt(
@@ -82,13 +83,33 @@ def spdt(
     """
     terminal_maps = kwargs.get('terminal_maps') or {}
 
-    def create_single_control(s, start_x, start_y, tag_gens, t_maps):
-        """Create a single Motor Control instance."""
+    def create_single_control(s, start_x, start_y, tag_gens, t_maps, instance):
+        """Create a single Motor Control instance with dynamic pin numbering."""
         c = Circuit()
         
         # --- Tags ---
-        s, coil_tag = next_tag(s, coil_tag_prefix)
-        s, contact_tag = next_tag(s, contact_tag_prefix)
+        # Check if custom tag generators are provided, otherwise use next_tag
+        if tag_gens and coil_tag_prefix in tag_gens:
+            s, coil_tag = tag_gens[coil_tag_prefix](s)
+        else:
+            s, coil_tag = next_tag(s, coil_tag_prefix)
+            
+        if tag_gens and contact_tag_prefix in tag_gens:
+            s, contact_tag = tag_gens[contact_tag_prefix](s)
+        else:
+            s, contact_tag = next_tag(s, contact_tag_prefix)
+        
+        # --- Dynamic Pin Generation ---
+        # If contact_pins is the default (1, 2, 4), generate instance-based pins
+        # Instance 0: 11, 12, 14
+        # Instance 1: 21, 22, 24
+        # Instance 2: 31, 32, 34, etc.
+        if contact_pins == ("1", "2", "4") and instance >= 0:
+            # Generate pins based on instance: (i+1)1, (i+1)2, (i+1)4
+            pin_prefix = str(instance + 1)
+            dynamic_contact_pins = (f"{pin_prefix}1", f"{pin_prefix}2", f"{pin_prefix}4")
+        else:
+            dynamic_contact_pins = contact_pins
         
         # --- Pins (Terminals) ---
         if tm_top_pins is None:
@@ -123,8 +144,8 @@ def spdt(
         coil_sym = coil_symbol(coil_tag, pins=coil_pins)
         add_symbol(c, coil_sym, start_x, y_r2)
         
-        # 3. SPDT Inverted (Underneath Coil)
-        spdt_sym = spdt_contact_symbol(contact_tag, pins=contact_pins, inverted=True)
+        # 3. SPDT Inverted (Underneath Coil) - use dynamic pins
+        spdt_sym = spdt_contact_symbol(contact_tag, pins=dynamic_contact_pins, inverted=True)
         
         # Alignment Correction:
         # SPDT Inverted: Common pin is at local x=+2.5 (GRID_SIZE/2).
@@ -163,9 +184,25 @@ def spdt(
         
         # --- Auto Connect ---
         # Automatically connects sequence: Top -> Coil -> SPDT -> DoubleTerminal
-        # The geometric alignment ensures proper connections.
+        # Connect all symbols sequentially (Top->Coil->SPDT->Terminals)
         auto_connect_circuit(c)
         
+        # --- Explicit Registry Registration ---
+        # Use dynamic_contact_pins for registry
+        # 1. Top Terminal (Output/Bottom "2") -> Coil (Input/Top "A1")
+        if len(p_top) >= 2 and len(coil_pins) >= 1:
+             s = register_connection(s, tm_top, p_top[1], coil_tag, coil_pins[0], side='bottom')
+             
+        # 2. SPDT (NC "X2") -> Left Terminal (Input/Top "1")
+        if len(dynamic_contact_pins) >= 2 and len(p_left) >= 1:
+             # SPDT pins: (Com=X1, NC=X2, NO=X4). Index 1 is NC.
+             s = register_connection(s, tm_bot_left, p_left[0], contact_tag, dynamic_contact_pins[1], side='top')
+             
+        # 3. SPDT (NO "X4") -> Right Terminal (Input/Top "1")
+        if len(dynamic_contact_pins) >= 3 and len(p_right) >= 1:
+             # SPDT pins: (Com=X1, NC=X2, NO=X4). Index 2 is NO.
+             s = register_connection(s, tm_bot_right, p_right[0], contact_tag, dynamic_contact_pins[2], side='top')
+             
         return s, c.elements
 
     # Use horizontal layout for multiple instances
@@ -313,5 +350,8 @@ def coil(
         auto_connect_next=True # Connects Coil output to this
     )
 
-    result = builder.build(count=kwargs.get("count", 1))
+    result = builder.build(
+        count=kwargs.get("count", 1),
+        tag_generators=kwargs.get("tag_generators")
+    )
     return result.state, result.circuit, result.used_terminals
