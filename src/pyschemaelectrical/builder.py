@@ -421,16 +421,18 @@ def _resolve_pin(component_data, pole_idx, is_input):
     spec = component_data["spec"]
     
     # CASE 1: Terminals
-    # Terminals are pass-through: Input and Output correspond to the SAME Pin Number.
-    # While visual ports are "1"(In) and "2"(Out), the data registry needs the Pin Label.
+    # Terminals have fixed port IDs regardless of custom pin labels.
+    # For a 3-pole terminal: ports "1", "2", "3", "4", "5", "6"
+    # Each pole has 2 ports: input (odd) and output (even)
+    # Pole 0: ports "1" (input), "2" (output)
+    # Pole 1: ports "3" (input), "4" (output)  
+    # Pole 2: ports "5" (input), "6" (output)
     if spec.kind == "terminal":
-        if component_data["pins"] and pole_idx < len(component_data["pins"]):
-            return component_data["pins"][pole_idx]
-            
-        # Fallback (should ideally not happen if pins are generated)
-        base = pole_idx * 2
-        offset = 1 if is_input else 2
-        return str(base + offset)
+        # Calculate port ID based on pole index and side
+        # Formula: (pole_idx * 2) + 1 + (0 if input else 1)
+        # Simplified: (pole_idx * 2) + (1 if input else 2)
+        port_num = (pole_idx * 2) + (1 if is_input else 2)
+        return str(port_num)
 
     # CASE 2: Symbols
     # Use explicit pins if provided (Mapping label to Port ID)
@@ -438,12 +440,13 @@ def _resolve_pin(component_data, pole_idx, is_input):
         # Logic: If provided pins list is large enough to cover distinct In/Out pins per pole
         # e.g. ["A1", "A2"] for 1 pole -> In=A1, Out=A2
         # e.g. ["1", "2", "3", "4"] for 2 pole -> In1=1, Out1=2, In2=3, Out2=4
-        if len(component_data["pins"]) >= spec.poles * 2:
+        if len(component_data["pins"]) == spec.poles * 2:
             idx = (pole_idx * 2) + (0 if is_input else 1)
             if idx < len(component_data["pins"]):
                 return component_data["pins"][idx]
         
-        # Fallback: If pins list is short (e.g. ["1"] for 1 pole switch?), just return the pin for that pole
+        # For symbols with custom named ports (e.g. PSU with ["L", "N", "PE", "24V", "GND"])
+        # Or short pins list - use pole_idx directly
         if pole_idx < len(component_data["pins"]):
             return component_data["pins"][pole_idx]
     

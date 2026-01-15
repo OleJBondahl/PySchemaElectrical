@@ -116,7 +116,7 @@ def psu(
         tm_bot_left,
         logical_name='OUTPUT_1',
         x_offset=0,
-        y_increment=0, # Do not advance Y so next terminal is side-by-side
+        y_increment=0, # Don't advance Y so OUTPUT_2 appears at same level
         pins=[tm_bot_left_pins[0]],
         auto_connect_next=False
     )
@@ -127,7 +127,7 @@ def psu(
         tm_bot_right,
         logical_name='OUTPUT_2',
         x_offset=DEFAULT_POLE_SPACING,
-        y_increment=0,
+        y_increment=symbol_spacing,  # Advance Y for any potential next component
         pins=[tm_bot_right_pins[0]],
         label_pos="right",
         auto_connect_next=False
@@ -154,51 +154,6 @@ def psu(
     # PSU Output pins are at indices 3 ("24V") and 4 ("GND")
     builder.add_connection(2, 3, 3, 0, side_a="bottom", side_b="top") # 24V -> Term
     builder.add_connection(2, 4, 4, 0, side_a="bottom", side_b="top") # GND -> Term
-
-    # 3. Output 1 Terminal (Bottom Left - 24V)
-    # Connects to PSU pin index 3 ("24V") which is at index 0 of bottom section (x=0)
-    builder.add_terminal(
-        tm_bot_left,
-        logical_name='OUTPUT_1',
-        x_offset=0,
-        y_increment=0, # Do not advance Y so next terminal is side-by-side
-        pins=[tm_bot_left_pins[0]],
-        auto_connect_next=False
-    )
-
-    # 4. Output 2 Terminal (Bottom Right - GND)
-    # Connects to PSU pin index 4 ("GND") which is at index 1 of bottom section (x=DEFAULT_POLE_SPACING)
-    builder.add_terminal(
-        tm_bot_right,
-        logical_name='OUTPUT_2',
-        x_offset=DEFAULT_POLE_SPACING,
-        y_increment=0,
-        pins=[tm_bot_right_pins[0]],
-        label_pos="right",
-        auto_connect_next=False
-    )
-
-    # 1b. Circuit Breaker (2-pole)
-    # Placed between Input Terminal and PSU.
-    # We add it as component #4 (index 4) but logically it sits between #0 and #1.
-    # Note: Builder index order reflects 'add' order: 
-    # 0 = TM_IN
-    # 1 = PSU
-    # 2 = TM_OUT1
-    # 3 = TM_OUT2
-    # 4 = Breaker (We will add it now)
-    
-    # We want it visually between TM_IN and PSU.
-    # Since builder manages Y automatically by y_increment of previous component,
-    # we should have added it BEFORE PSU. 
-    # However, since this is a declarative builder, strictly sequential adds are best for auto-layout.
-    # But wait, the previous code already added the PSU. 
-    # We must insert the breaker BEFORE the PSU in the sequence to get correct Y positioning.
-    # Since we cannot easily "insert" into the builder call sequence in a patch without rewriting the whole function body,
-    # I will replace the whole component addition sequence.
-    
-    pass # Replaced by the ReplacementChunk block below covering lines 65-129
-
 
     result = builder.build(count=kwargs.get("count", 1))
     return result.state, result.circuit, result.used_terminals
