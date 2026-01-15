@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Tuple, Any
 from dataclasses import dataclass, field
 import csv
 
@@ -41,9 +41,9 @@ def update_registry(state: Dict[str, Any], registry: TerminalRegistry) -> Dict[s
     new_state['terminal_registry'] = registry
     return new_state
 
-def register_connection(state: Dict[str, Any], 
+def register_connection(state: Dict[str, Any],
                         terminal_tag: str, terminal_pin: str,
-                        component_tag: str, component_pin: str, 
+                        component_tag: str, component_pin: str,
                         side: str = 'bottom') -> Dict[str, Any]:
     """
     Functional helper to register a connection in the state.
@@ -51,6 +51,102 @@ def register_connection(state: Dict[str, Any],
     reg = get_registry(state)
     new_reg = reg.add_connection(terminal_tag, terminal_pin, component_tag, component_pin, side)
     return update_registry(state, new_reg)
+
+
+def register_3phase_connections(
+    state: Dict[str, Any],
+    terminal_tag: str,
+    terminal_pins: Tuple[str, ...],
+    component_tag: str,
+    component_pins: Tuple[str, ...],
+    side: str = 'bottom'
+) -> Dict[str, Any]:
+    """
+    Register all 3 phase connections between a terminal and a component.
+
+    This is a convenience function for 3-phase circuits that need to register
+    all L1, L2, L3 connections at once.
+
+    Args:
+        state: The current autonumbering state
+        terminal_tag: The terminal block tag (e.g., "X001")
+        terminal_pins: Sequential terminal pins (e.g., ("1", "2", "3"))
+        component_tag: The component tag (e.g., "F1")
+        component_pins: Component pins for each phase (e.g., ("1", "3", "5"))
+        side: Connection side ('top' or 'bottom')
+
+    Returns:
+        Updated state with all connections registered.
+
+    Example:
+        >>> # Register breaker F1 to input terminal X001
+        >>> state = register_3phase_connections(
+        ...     state, "X001", ("1", "2", "3"),
+        ...     "F1", ("1", "3", "5"), side='bottom'
+        ... )
+    """
+    for i in range(min(3, len(terminal_pins), len(component_pins))):
+        state = register_connection(
+            state, terminal_tag, terminal_pins[i],
+            component_tag, component_pins[i], side
+        )
+    return state
+
+
+def register_3phase_input(
+    state: Dict[str, Any],
+    terminal_tag: str,
+    terminal_pins: Tuple[str, ...],
+    component_tag: str,
+    component_pins: Tuple[str, ...] = ("1", "3", "5"),
+) -> Dict[str, Any]:
+    """
+    Register 3-phase input connections (terminal to component input pins).
+
+    Standard 3-phase component input pins are 1, 3, 5 (L1, L2, L3).
+
+    Args:
+        state: The current autonumbering state
+        terminal_tag: The terminal block tag (e.g., "X001")
+        terminal_pins: Sequential terminal pins from next_terminal_pins
+        component_tag: The component tag (e.g., "F1")
+        component_pins: Component input pins (default: ("1", "3", "5"))
+
+    Returns:
+        Updated state with all connections registered.
+    """
+    return register_3phase_connections(
+        state, terminal_tag, terminal_pins,
+        component_tag, component_pins, side='bottom'
+    )
+
+
+def register_3phase_output(
+    state: Dict[str, Any],
+    terminal_tag: str,
+    terminal_pins: Tuple[str, ...],
+    component_tag: str,
+    component_pins: Tuple[str, ...] = ("2", "4", "6"),
+) -> Dict[str, Any]:
+    """
+    Register 3-phase output connections (component output pins to terminal).
+
+    Standard 3-phase component output pins are 2, 4, 6 (T1, T2, T3).
+
+    Args:
+        state: The current autonumbering state
+        terminal_tag: The terminal block tag (e.g., "X201")
+        terminal_pins: Sequential terminal pins from next_terminal_pins
+        component_tag: The component tag (e.g., "Q1")
+        component_pins: Component output pins (default: ("2", "4", "6"))
+
+    Returns:
+        Updated state with all connections registered.
+    """
+    return register_3phase_connections(
+        state, terminal_tag, terminal_pins,
+        component_tag, component_pins, side='top'
+    )
 
 def export_registry_to_csv(registry: TerminalRegistry, filepath: str):
     """

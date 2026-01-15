@@ -6,6 +6,7 @@ This module provides functional abstractions for adding wire specification label
 """
 
 from typing import List, Tuple, Optional
+from itertools import cycle, islice
 from pyschemaelectrical.model.core import Point, Element
 from pyschemaelectrical.model.primitives import Line, Text
 from pyschemaelectrical.model.constants import TEXT_SIZE_PIN, TEXT_FONT_FAMILY_AUX
@@ -166,3 +167,77 @@ def create_labeled_connections(
     
     # Flatten the list of lists into a single list
     return reduce(lambda acc, x: acc + x, all_elements, [])
+
+
+def find_vertical_wires(elements: List[Element], tolerance: float = 0.1) -> List[Line]:
+    """
+    Find all vertical wire segments in a circuit.
+    
+    Args:
+        elements: List of circuit elements
+        tolerance: X-coordinate tolerance for considering a wire vertical (mm)
+        
+    Returns:
+        List of Line elements that are vertical wires
+    """
+    vertical_wires = []
+    
+    for element in elements:
+        if isinstance(element, Line):
+            # Check if line is vertical (start.x ≈ end.x and start.y != end.y)
+            if (abs(element.start.x - element.end.x) < tolerance and 
+                abs(element.start.y - element.end.y) > tolerance):
+                vertical_wires.append(element)
+    
+    return vertical_wires
+
+
+def add_wire_labels_to_circuit(
+    circuit,
+    wire_labels: Optional[List[str]] = None,
+    offset_x: float = -2.5
+) -> None:
+    """
+    Add wire labels to all vertical wires in a circuit.
+    
+    This function mutates the circuit by adding text elements for wire labels.
+    Wire labels are applied in order to vertical wires found in the circuit.
+    
+    Args:
+        circuit: The Circuit object to add labels to
+        wire_labels: List of wire label strings. If None, uses rotating standard labels.
+        offset_x: Horizontal offset for labels from wire centerline (mm)
+    """
+    # Find all vertical wires in the circuit
+    vertical_wires = find_vertical_wires(circuit.elements)
+    
+    if not vertical_wires:
+        print("Warning: No vertical wires found in circuit")
+        return
+    
+    # If no wire labels are provided, do not add any labels
+    if wire_labels is None:
+        return
+    
+    # Ensure we have enough labels
+    if len(wire_labels) < len(vertical_wires):
+        # Repeat the provided wire labels to cover all wires
+        # This handles cases where count > 1 (creating multiple circuit instances)
+        wire_labels = list(islice(cycle(wire_labels), len(vertical_wires)))
+    
+    # Add labels to each wire
+    for i, wire in enumerate(vertical_wires):
+        if i >= len(wire_labels):
+            break
+            
+        label_text = wire_labels[i]
+        
+        # Calculate label position at wire midpoint
+        label_pos = calculate_wire_label_position(wire.start, wire.end, offset_x=offset_x)
+        
+        # Create text element
+        text_element = create_wire_label_text(label_text, label_pos)
+        
+        # Add to circuit
+        circuit.elements.append(text_element)
+

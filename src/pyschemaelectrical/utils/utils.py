@@ -2,7 +2,7 @@
 Utility functions for circuit generation and state management.
 Contains helpers for tag counters and contact pin management.
 """
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List, Optional, Callable
 
 
 def set_tag_counter(state: Dict[str, Any], prefix: str, value: int) -> Dict[str, Any]:
@@ -68,3 +68,45 @@ def next_contact_pins(state: Dict[str, Any], tag: str) -> Tuple[Dict[str, Any], 
     new_state['contact_channels'] = new_channel_map
     
     return new_state, pins
+
+
+def apply_start_indices(state: Dict[str, Any], start_indices: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
+    """
+    Apply start indices to tag counters.
+
+    Args:
+        state: Current autonumbering state
+        start_indices: Dict of {prefix: start_value}
+
+    Returns:
+        Updated state
+    """
+    if not start_indices:
+        return state
+    for prefix, value in start_indices.items():
+        state = set_tag_counter(state, prefix, value)
+    return state
+
+
+def create_fixed_tag_generator(tag: str) -> Callable[[Any], Tuple[Any, str]]:
+    """
+    Create a generator that always returns a fixed tag.
+
+    Args:
+        tag: The fixed tag to return (e.g., "K2", "K3")
+
+    Returns:
+        A lambda function that returns (state, tag)
+    """
+    return lambda s: (s, tag)
+
+
+def merge_terminals(target: List, source: List) -> None:
+    """
+    Merge terminal lists (mutates target).
+
+    Args:
+        target: The target terminal list
+        source: The source terminal list to append
+    """
+    target.extend(source)

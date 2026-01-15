@@ -46,7 +46,7 @@ def main():
     # Example 2: Multiple DOL starters (count=2)
     print("\nCreating multiple DOL starters (count=2)...")
     state_multi = create_autonumberer()
-    state_multi, circuit_multi, used_terminals_multi = std_circuits.create_dol_starter(
+    state_multi, circuit_multi, used_terminals_multi = std_circuits.dol_starter(
         state=state_multi,
         x=0,
         y=0,

@@ -185,6 +185,28 @@ auto_connect_circuit(c)
 # register_connection(state, "S1", "2", "S2", "3", side="bottom")
 ```
 
+### Circuit Merging
+
+You can combine multiple circuit objects into one.
+
+```python
+from pyschemaelectrical.system.system import merge_circuits
+
+# Merges sub_circuit contents into main_circuit
+merge_circuits(main_circuit, sub_circuit) 
+```
+
+### Wire Labeling
+
+Utilities exist to find vertical wires and add text labels (e.g., color/size).
+
+```python
+from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+
+# Adds labels to all vertical wires found in the circuit
+add_wire_labels_to_circuit(my_circuit, ["RD 2.5mm²", "BK 1.5mm²"])
+```
+
 ## Design Principles
 
 1.  **Immutability**: All Symbols are immutable. Transformations (move, rotate) return *new* instances.

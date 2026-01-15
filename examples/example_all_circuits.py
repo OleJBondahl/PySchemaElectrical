@@ -11,6 +11,7 @@ from pyschemaelectrical import (
     render_system,
     std_circuits
 )
+from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
 from constants import Terminals, Pins, Paths
 
 
@@ -163,6 +164,26 @@ def create_all_examples():
     print(f"✓ Saved: {Paths.SWITCH}")
     print(f"  Terminals: {terminals}")
     
+    # 9. Wire Labels
+    print("\n[9/9] Wire Labels Example")
+    print("-" * 40)
+    state = create_autonumberer()
+    state, circuit, terminals = std_circuits.dol_starter(
+        state=state,
+        x=0,
+        y=0,
+        tm_top=Terminals.MAIN_POWER,
+        tm_bot=Terminals.MOTOR_1,
+        tm_aux_1=Terminals.FUSED_24V,
+        tm_aux_2=Terminals.GND
+    )
+    labels = ["L1 2.5mm²", "L2 2.5mm²", "L3 2.5mm²", "RD 0.75mm²", "BK 0.75mm²"]
+    add_wire_labels_to_circuit(circuit, labels)
+    
+    render_system(circuit, Paths.WIRE_LABELS)
+    print(f"✓ Saved: {Paths.WIRE_LABELS}")
+    print(f"  Terminals: {terminals}")
+
     # Summary
     print("\n" + "=" * 80)
     print("All Examples Complete!")
@@ -177,6 +198,7 @@ def create_all_examples():
     print(f"  6. {Paths.POWER_DISTRIBUTION}")
     print(f"  7. {Paths.MOTOR_CONTROL}")
     print(f"  8. {Paths.SWITCH}")
+    print(f"  9. {Paths.WIRE_LABELS}")
     print()
 
 

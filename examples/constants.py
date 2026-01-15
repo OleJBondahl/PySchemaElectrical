@@ -99,6 +99,7 @@ class Paths:
     POWER_DISTRIBUTION = f"{OUTPUT_DIR}/power_distribution.svg"
     MOTOR_CONTROL = f"{OUTPUT_DIR}/motor_control.svg"
     SWITCH = f"{OUTPUT_DIR}/switch.svg"
+    WIRE_LABELS = f"{OUTPUT_DIR}/wire_labels.svg"
     
     # Combined examples
     ALL_CIRCUITS = f"{OUTPUT_DIR}/all_circuits.svg"

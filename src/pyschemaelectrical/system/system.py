@@ -83,3 +83,13 @@ def render_system(
     render_to_svg(all_elements, filename, width=width, height=height)
 
 
+def merge_circuits(target: Circuit, source: Circuit) -> None:
+    """
+    Merge source circuit into target circuit (mutates target).
+
+    Args:
+        target: The circuit to merge into
+        source: The circuit to merge from
+    """
+    target.symbols.extend(source.symbols)
+    target.elements.extend(source.elements)
