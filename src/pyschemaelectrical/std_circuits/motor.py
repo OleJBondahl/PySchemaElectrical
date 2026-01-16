@@ -13,12 +13,17 @@ from pyschemaelectrical.symbols.assemblies import contactor_symbol
 from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker_symbol
 from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
 from pyschemaelectrical.symbols.transducers import current_transducer_assembly_symbol
-from pyschemaelectrical.symbols.terminals import three_pole_terminal_symbol
+from pyschemaelectrical.symbols.terminals import (
+    three_pole_terminal_symbol,
+    terminal_symbol,
+)
+from pyschemaelectrical.symbols.motors import three_pole_motor_symbol
 from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
-from pyschemaelectrical.layout.layout import create_horizontal_layout
+from pyschemaelectrical.layout.layout import create_horizontal_layout, auto_connect
 from pyschemaelectrical.model.constants import (
     LayoutDefaults,
     StandardTags,
+    DEFAULT_POLE_SPACING,
 )
 from pyschemaelectrical.system.connection_registry import register_connection
 
@@ -30,6 +35,7 @@ def dol_starter(
     # Required terminal parameters
     tm_top: str,
     tm_bot: str,
+    tm_bot_right: str,
     # Layout parameters (with defaults from constants)
     spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
@@ -38,6 +44,7 @@ def dol_starter(
     thermal_tag_prefix: str = "FT",
     contactor_tag_prefix: str = StandardTags.CONTACTOR,
     ct_tag_prefix: str = "CT",
+    motor_tag_prefix: str = StandardTags.MOTOR,
     # Pin parameters for symbols (with defaults)
     breaker_pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
     thermal_pins: Tuple[str, str, str, str, str, str] = ("", "T1", "", "T2", "", "T3"),
@@ -53,6 +60,7 @@ def dol_starter(
     # Pin parameters for terminals (None = auto-number)
     tm_top_pins: Optional[Tuple[str, ...]] = None,
     tm_bot_pins: Optional[Tuple[str, ...]] = None,
+    tm_bot_right_pins: Optional[Tuple[str, ...]] = None,
     # Optional aux terminals
     tm_aux_1: Optional[str] = None,
     tm_aux_2: Optional[str] = None,
@@ -79,6 +87,8 @@ def dol_starter(
         ct_pins: Pin labels for current transducer (default: ("1", "2", "3", "4"))
         tm_top_pins: Pin labels for top terminal (None = auto-number)
         tm_bot_pins: Pin labels for bottom terminal (None = auto-number)
+        tm_bot_right: Terminal ID for the single pole terminal at the bottom right (PE)
+        tm_bot_right_pins: Pin labels for the bottom right terminal (None = auto-number)
         tm_aux_1: Optional terminal ID for 24V aux connection
         tm_aux_2: Optional terminal ID for GND aux connection
 
@@ -96,7 +106,7 @@ def dol_starter(
         """Create a single DOL starter instance."""
         c = Circuit()
         current_y = start_y
-        used_terminals_list = [tm_top, tm_bot]
+        used_terminals_list = [tm_top, tm_bot, tm_bot_right]
 
         # Get terminal pins (auto-number if not provided)
         if tm_top_pins is None:
@@ -109,11 +119,17 @@ def dol_starter(
         else:
             output_pins = tm_bot_pins
 
+        if tm_bot_right_pins is None:
+            s, output_right_pins = next_terminal_pins(s, tm_bot_right, 1)
+        else:
+            output_right_pins = tm_bot_right_pins
+
         # Get component tags
         s, breaker_tag = next_tag(s, breaker_tag_prefix)
         s, thermal_tag = next_tag(s, thermal_tag_prefix)
         s, cont_tag = next_tag(s, contactor_tag_prefix)
         s, ct_tag = next_tag(s, ct_tag_prefix)
+        s, motor_tag = next_tag(s, motor_tag_prefix)
 
         # 1. Input Terminal
         sym = three_pole_terminal_symbol(tm_top, pins=input_pins, label_pos="left")
@@ -142,10 +158,23 @@ def dol_starter(
 
         # 6. Output Terminal
         sym = three_pole_terminal_symbol(tm_bot, pins=output_pins, label_pos="left")
-        add_symbol(c, sym, start_x, current_y)
+        tm_bot_sym = add_symbol(c, sym, start_x, current_y)
+
+        # 6b. PE Terminal (tm_bot_right) - same Y level
+        sym = terminal_symbol(tm_bot_right, pins=output_right_pins, label_pos="right")
+        add_symbol(c, sym, start_x + 3 * DEFAULT_POLE_SPACING, current_y)
+
+        # 7. Motor - Below terminals
+        current_y += symbol_spacing
+        motor_pins = ("U", "V", "W", "PE")
+        sym = three_pole_motor_symbol(motor_tag, pins=motor_pins)
+        motor_sym = add_symbol(c, sym, start_x + DEFAULT_POLE_SPACING, current_y)
 
         # Connect all symbols sequentially
         auto_connect_circuit(c)
+
+        # Manually connect Main Terminals -> Motor (because PE terminal breaks sequential chain)
+        c.elements.extend(auto_connect(tm_bot_sym, motor_sym))
 
         # --- Explicit Registry Registration ---
         # 1. Top Terminal (Output Side/Bottom) -> Circuit Breaker (Input Side/Top)
@@ -182,6 +211,23 @@ def dol_starter(
                         s, tm_bot, term_pin, cont_tag, cont_pin, side="top"
                     )
 
+        # 3. Bottom Terminal (Output Side/Bottom) -> Motor (Input Side/Top)
+        # Motor: U, V, W
+        # Connect tm_bot (1, 2, 3) to Motor (U, V, W)
+        for i, motor_pin in enumerate(["U", "V", "W"]):
+            if i < len(output_pins):
+                term_pin = output_pins[i]
+                s = register_connection(
+                    s, tm_bot, term_pin, motor_tag, motor_pin, side="bottom"
+                )
+
+        # 4. PE Terminal -> Motor PE
+        if len(output_right_pins) > 0:
+            pe_pin = output_right_pins[0]
+            s = register_connection(
+                s, tm_bot_right, pe_pin, motor_tag, "PE", side="bottom"
+            )
+
         return s, c.elements
 
     # Use horizontal layout for multiple instances
@@ -199,6 +245,6 @@ def dol_starter(
     )
 
     circuit = Circuit(elements=all_elements)
-    used_terminals = [tm_top, tm_bot]
+    used_terminals = [tm_top, tm_bot, tm_bot_right]
 
     return final_state, circuit, used_terminals
