@@ -134,27 +134,27 @@ def dol_starter(
         # 1. Input Terminal
         sym = three_pole_terminal_symbol(tm_top, pins=input_pins, label_pos="left")
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing
+        current_y += symbol_spacing * 2 / 3
 
         # 2. Circuit Breaker
         sym = three_pole_circuit_breaker_symbol(breaker_tag, pins=breaker_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing / 2  # Half spacing to thermal overload
+        current_y += symbol_spacing / 3  # Half spacing to thermal overload
 
         # 3. Thermal Overload (top pins hidden)
         sym = three_pole_thermal_overload_symbol(thermal_tag, pins=thermal_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing
+        current_y += symbol_spacing * 2 / 3
 
         # 4. Contactor
         sym = contactor_symbol(cont_tag, contact_pins=contactor_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing
+        current_y += symbol_spacing * 2 / 3  # Full spacing to CT area
 
-        # 5. Current Transducer (inline with connection)
+        # 5. Current Transducer (inline with connection) - placed close to bottom terminal
         sym = current_transducer_assembly_symbol(ct_tag, pins=ct_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing
+        current_y += symbol_spacing / 3  # Reduced spacing to bottom terminal
 
         # 6. Output Terminal
         sym = three_pole_terminal_symbol(tm_bot, pins=output_pins, label_pos="left")
