@@ -367,8 +367,11 @@ def dynamic_block_symbol(
         )
         elements.append(text)
 
-    # Add label if provided
+    # Add label if provided - position to the LEFT of the block (not inside)
+    # Use the left edge of the box as the reference point so standard_text
+    # offsets the label outside the block, consistent with other symbols
     if label:
-        elements.append(standard_text(label, Point(center_x, center_y)))
+        left_edge = center_x - box_width / 2
+        elements.append(standard_text(label, Point(left_edge, center_y)))
 
     return Symbol(elements, ports, label=label)
