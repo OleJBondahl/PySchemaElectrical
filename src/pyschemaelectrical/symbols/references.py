@@ -14,7 +14,7 @@ from pyschemaelectrical.model.constants import (
 class RefSymbol(Symbol):
     pass
 
-def ref_symbol(tag: str = "", label: str = "", pins: Tuple[str, ...] = (), direction: str = "up", **kwargs) -> RefSymbol:
+def ref_symbol(tag: str = "", label: str = "", pins: Tuple[str, ...] = (), direction: str = "up", label_pos: str = "left", **kwargs) -> RefSymbol:
     """
     Reference symbol (arrow) to indicate connection to another circuit element.
     
@@ -23,6 +23,7 @@ def ref_symbol(tag: str = "", label: str = "", pins: Tuple[str, ...] = (), direc
         label (str): The text to display (e.g. "F1:1"). If empty, uses tag.
         pins (tuple): Ignored, present for builder compatibility.
         direction (str): "up" (points up, connects from below) or "down" (points down, connects from above).
+        label_pos (str): Position of the label ("left" or "right"). Default is "left".
         **kwargs: Extra arguments for compatibility.
     """
     elements: List[Element] = []
@@ -57,7 +58,7 @@ def ref_symbol(tag: str = "", label: str = "", pins: Tuple[str, ...] = (), direc
         # Label: Placed to the right of the middle of the shaft
         # standard_text(pos='right') moves text to x=5, anchor=start.
         mid_y = -REF_ARROW_LENGTH / 2
-        elements.append(standard_text(text_content, Point(0, mid_y), label_pos='right'))
+        elements.append(standard_text(text_content, Point(0, mid_y), label_pos=label_pos))
         
         # Port: Connects to below (output/down)
         ports["2"] = Port("2", origin, Vector(0, 1))
@@ -84,7 +85,7 @@ def ref_symbol(tag: str = "", label: str = "", pins: Tuple[str, ...] = (), direc
         
         # Label
         mid_y = REF_ARROW_LENGTH / 2
-        elements.append(standard_text(text_content, Point(0, mid_y), label_pos='right'))
+        elements.append(standard_text(text_content, Point(0, mid_y), label_pos=label_pos))
         
         # Port: Connects to above (input/up)
         ports["1"] = Port("1", origin, Vector(0, -1))

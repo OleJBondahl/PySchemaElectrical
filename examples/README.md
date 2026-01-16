@@ -16,6 +16,7 @@ examples/
 ├── example_power_distribution.py     # Complete power distribution system
 ├── example_motor_control.py          # Motor control circuit example
 ├── example_switch.py                 # Simple switch circuit example
+├── example_dynamic_block.py          # Dynamic block with 5 terminals example
 └── output/                           # Generated SVG files
     ├── dol_starter.svg
     ├── emergency_stop.svg
@@ -60,6 +61,7 @@ python example_voltage_monitor.py
 python example_power_distribution.py
 python example_motor_control.py
 python example_switch.py
+python example_dynamic_block.py
 ```
 
 ## Available Standard Circuits
@@ -128,6 +130,15 @@ Single-pole normally-open switch with:
 - Output terminal
 
 **Use case**: Basic on/off control
+
+### 9. Dynamic Block (`dynamic_block`)
+Custom dynamic block symbol with 5 pins connected to 5 single pole terminals:
+- Custom symbol creation with rectangular body
+- 5 independent connection points
+- Individual terminal connections
+- Pin labeling demonstration
+
+**Use case**: Template for creating custom multi-pin components (e.g., PLCs, custom modules, interface blocks)
 
 ## Customization
 

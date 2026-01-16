@@ -15,3 +15,5 @@ from .assemblies import contactor_symbol, emergency_stop_assembly_symbol
 from .actuators import emergency_stop_button_symbol
 from .transducers import current_transducer_symbol, current_transducer_assembly_symbol
 from .references import ref_symbol
+from .motors import motor_symbol, three_pole_motor_symbol
+

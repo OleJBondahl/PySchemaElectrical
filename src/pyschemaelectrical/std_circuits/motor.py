@@ -39,9 +39,16 @@ def dol_starter(
     contactor_tag_prefix: str = StandardTags.CONTACTOR,
     ct_tag_prefix: str = "CT",
     # Pin parameters for symbols (with defaults)
-    breaker_pins: Tuple[str, ...] = ("1", "2", "3", "4", "5", "6"),
-    thermal_pins: Tuple[str, ...] = ("", "T1", "", "T2", "", "T3"),
-    contactor_pins: Tuple[str, ...] = ("1", "2", "3", "4", "5", "6"),
+    breaker_pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
+    thermal_pins: Tuple[str, str, str, str, str, str] = ("", "T1", "", "T2", "", "T3"),
+    contactor_pins: Tuple[str, str, str, str, str, str] = (
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+    ),
     ct_pins: Tuple[str, ...] = ("1", "2", "3", "4"),
     # Pin parameters for terminals (None = auto-number)
     tm_top_pins: Optional[Tuple[str, ...]] = None,
@@ -49,7 +56,7 @@ def dol_starter(
     # Optional aux terminals
     tm_aux_1: Optional[str] = None,
     tm_aux_2: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
     Create a Direct-On-Line (DOL) Motor Starter.
@@ -79,67 +86,67 @@ def dol_starter(
         Tuple of (state, circuit, used_terminals)
     """
     # Support legacy terminal_maps parameter
-    terminal_maps = kwargs.get('terminal_maps') or {}
+    terminal_maps = kwargs.get("terminal_maps") or {}
     if not tm_aux_1:
-        tm_aux_1 = terminal_maps.get('FUSED_24V')
+        tm_aux_1 = terminal_maps.get("FUSED_24V")
     if not tm_aux_2:
-        tm_aux_2 = terminal_maps.get('GND')
+        tm_aux_2 = terminal_maps.get("GND")
 
     def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single DOL starter instance."""
         c = Circuit()
         current_y = start_y
         used_terminals_list = [tm_top, tm_bot]
-        
+
         # Get terminal pins (auto-number if not provided)
         if tm_top_pins is None:
             s, input_pins = next_terminal_pins(s, tm_top, 3)
         else:
             input_pins = tm_top_pins
-            
+
         if tm_bot_pins is None:
             s, output_pins = next_terminal_pins(s, tm_bot, 3)
         else:
             output_pins = tm_bot_pins
-        
+
         # Get component tags
         s, breaker_tag = next_tag(s, breaker_tag_prefix)
         s, thermal_tag = next_tag(s, thermal_tag_prefix)
         s, cont_tag = next_tag(s, contactor_tag_prefix)
         s, ct_tag = next_tag(s, ct_tag_prefix)
-        
+
         # 1. Input Terminal
         sym = three_pole_terminal_symbol(tm_top, pins=input_pins, label_pos="left")
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing
-        
+
         # 2. Circuit Breaker
         sym = three_pole_circuit_breaker_symbol(breaker_tag, pins=breaker_pins)
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing / 2  # Half spacing to thermal overload
-        
+
         # 3. Thermal Overload (top pins hidden)
         sym = three_pole_thermal_overload_symbol(thermal_tag, pins=thermal_pins)
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing
-        
+
         # 4. Contactor
         sym = contactor_symbol(cont_tag, contact_pins=contactor_pins)
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing
-        
+
         # 5. Current Transducer (inline with connection)
         sym = current_transducer_assembly_symbol(ct_tag, pins=ct_pins)
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing
-        
+
         # 6. Output Terminal
         sym = three_pole_terminal_symbol(tm_bot, pins=output_pins, label_pos="left")
         add_symbol(c, sym, start_x, current_y)
-        
+
         # Connect all symbols sequentially
         auto_connect_circuit(c)
-        
+
         # --- Explicit Registry Registration ---
         # 1. Top Terminal (Output Side/Bottom) -> Circuit Breaker (Input Side/Top)
         # input_pins: sequential pins from next_terminal_pins, e.g. ("1", "2", "3")
@@ -154,7 +161,9 @@ def dol_starter(
                 if brk_pin_idx < len(breaker_pins):
                     brk_pin = breaker_pins[brk_pin_idx]
 
-                    s = register_connection(s, tm_top, term_pin, breaker_tag, brk_pin, side='bottom')
+                    s = register_connection(
+                        s, tm_top, term_pin, breaker_tag, brk_pin, side="bottom"
+                    )
 
         # 2. Contactor (Output Side/Bottom) -> Bottom Terminal (Input Side/Top)
         # output_pins: sequential pins from next_terminal_pins, e.g. ("4", "5", "6")
@@ -169,10 +178,12 @@ def dol_starter(
                 cont_pin_idx = (i * 2) + 1
                 if cont_pin_idx < len(contactor_pins):
                     cont_pin = contactor_pins[cont_pin_idx]
-                    s = register_connection(s, tm_bot, term_pin, cont_tag, cont_pin, side='top')
-        
+                    s = register_connection(
+                        s, tm_bot, term_pin, cont_tag, cont_pin, side="top"
+                    )
+
         return s, c.elements
-    
+
     # Use horizontal layout for multiple instances
     count = kwargs.get("count", 1)
     final_state, all_elements = create_horizontal_layout(
@@ -184,52 +195,10 @@ def dol_starter(
         generator_func_single=create_single_dol,
         default_tag_generators={},
         tag_generators=kwargs.get("tag_generators"),
-        terminal_maps=terminal_maps
+        terminal_maps=terminal_maps,
     )
-    
+
     circuit = Circuit(elements=all_elements)
     used_terminals = [tm_top, tm_bot]
-    
+
     return final_state, circuit, used_terminals
-
-
-def vfd_starter(
-    state: Any,
-    x: float,
-    y: float,
-    # Required terminal parameters
-    tm_top: str,
-    tm_bot: str,
-    # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
-    # Component parameters (with defaults)
-    breaker_tag_prefix: str = StandardTags.BREAKER,
-    vfd_tag_prefix: str = "U",
-    **kwargs
-) -> Tuple[Any, Any, List[Any]]:
-    """
-    Create a Variable Frequency Drive (VFD) Motor Starter.
-
-    Args:
-        state: Autonumbering state
-        x: X position
-        y: Y position
-        tm_top: Top terminal ID (Input)
-        tm_bot: Bottom terminal ID (Output)
-        spacing: Horizontal spacing between circuit instances
-        symbol_spacing: Vertical spacing between components
-        breaker_tag_prefix: Tag prefix for circuit breaker (default: "F")
-        vfd_tag_prefix: Tag prefix for VFD (default: "U")
-
-    Returns:
-        Tuple of (state, circuit, used_terminals)
-
-    Note:
-        This is a placeholder for VFD starter implementation.
-    """
-    # Placeholder - to be implemented
-    # Suppress unused parameter warnings until implementation
-    _ = (state, x, y, tm_top, tm_bot, spacing,
-         symbol_spacing, breaker_tag_prefix, vfd_tag_prefix, kwargs)
-    raise NotImplementedError("VFD starter not yet implemented")

@@ -16,6 +16,7 @@ from pyschemaelectrical.utils.transform import translate
 from pyschemaelectrical.symbols.coils import coil_symbol
 from pyschemaelectrical.symbols.contacts import spdt_contact_symbol, normally_open_symbol
 from pyschemaelectrical.symbols.terminals import terminal_symbol
+from pyschemaelectrical.symbols.references import ref_symbol
 from pyschemaelectrical.model.core import Symbol
 from pyschemaelectrical.model.constants import (
     LayoutDefaults,
@@ -154,10 +155,12 @@ def spdt(
         spdt_offset = GRID_SIZE / 2
         add_symbol(c, spdt_sym, start_x - spdt_offset, y_r3)
         
-        # 4. Double Terminal (Underneath SPDT)
-        # We create a composite symbol for the 2 output terminals to allow auto-connect branching
+        # 4. Double Terminal / Ref (Underneath SPDT)
+        # We create a composite symbol for the 2 output locations to allow auto-connect branching
         t_left = terminal_symbol(tm_bot_left, pins=p_left, label_pos="left")
-        t_right = terminal_symbol(tm_bot_right, pins=p_right, label_pos="right")
+        
+        # CHANGED: Use ref_symbol for the right branch instead of a terminal
+        t_right = ref_symbol(tag=tm_bot_right, label=tm_bot_right, direction="down", label_pos="right")
         
         # Alignment Correction for Terminals:
         # SPDT Center is now at (start_x - 2.5).
@@ -198,10 +201,11 @@ def spdt(
              # SPDT pins: (Com=X1, NC=X2, NO=X4). Index 1 is NC.
              s = register_connection(s, tm_bot_left, p_left[0], contact_tag, dynamic_contact_pins[1], side='top')
              
-        # 3. SPDT (NO "X4") -> Right Terminal (Input/Top "1")
-        if len(dynamic_contact_pins) >= 3 and len(p_right) >= 1:
+        # 3. SPDT (NO "X4") -> Right Ref (Input/Top "1")
+        if len(dynamic_contact_pins) >= 3:
              # SPDT pins: (Com=X1, NC=X2, NO=X4). Index 2 is NO.
-             s = register_connection(s, tm_bot_right, p_right[0], contact_tag, dynamic_contact_pins[2], side='top')
+             # Use "1" for the ref symbol port
+             s = register_connection(s, tm_bot_right, "1", contact_tag, dynamic_contact_pins[2], side='top')
              
         return s, c.elements
 
@@ -220,7 +224,8 @@ def spdt(
     )
     
     circuit = Circuit(elements=all_elements)
-    used_terminals = [tm_top, tm_bot_left, tm_bot_right]
+    # Exclude tm_bot_right because it is a reference symbol, not a terminal strip
+    used_terminals = [tm_top, tm_bot_left]
     
     return final_state, circuit, used_terminals
 
@@ -238,6 +243,8 @@ def no_contact(
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.SWITCH,
     switch_pins: Tuple[str, ...] = ("3", "4"),
+    tm_top_pins: Optional[Tuple[str, ...]] = None,
+    tm_bot_pins: Optional[Tuple[str, ...]] = None,
     **kwargs
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -253,6 +260,8 @@ def no_contact(
         symbol_spacing: Vertical spacing between components
         tag_prefix: Tag prefix for switch (default: "S")
         switch_pins: Pin labels for the switch (default: ("3", "4"))
+        tm_top_pins: Explicit pins for top terminal
+        tm_bot_pins: Explicit pins for bottom terminal
 
     Returns:
         Tuple of (state, circuit, used_terminals)
@@ -266,13 +275,13 @@ def no_contact(
     )
 
     # 1. Input Terminal
-    builder.add_terminal(tm_top, poles=1)
+    builder.add_terminal(tm_top, poles=1, pins=tm_top_pins)
 
     # 2. Switch (Normally Open)
     builder.add_component(normally_open_symbol, tag_prefix=tag_prefix, poles=1, pins=switch_pins)
 
     # 3. Output Terminal (GND)
-    builder.add_terminal(tm_bot, poles=1)
+    builder.add_terminal(tm_bot, poles=1, pins=tm_bot_pins)
 
     result = builder.build(
         count=kwargs.get("count", 1),

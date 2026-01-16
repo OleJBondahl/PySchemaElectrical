@@ -1,205 +1,70 @@
 """
 Example: All Standard Circuits.
 
-This example demonstrates all available standard circuits from the library,
-creating each one and rendering them to individual SVG files.
+This example runs all other example scripts to generate the full set of
+demonstration SVGs.
 """
 
-from pathlib import Path
-from pyschemaelectrical import (
-    create_autonumberer,
-    render_system,
-    std_circuits
-)
-from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
-from constants import Terminals, Pins, Paths
+# Import main functions from all example scripts
+from .example_dol_starter import main as dol_main
+from .example_emergency_stop import main as estop_main
+from .example_psu import main as psu_main
+from .example_changeover import main as changeover_main
+from .example_voltage_monitor import main as voltage_monitor_main
+from .example_power_distribution import main as power_dist_main
+from .example_motor_control import main as motor_control_main
+from .example_switch import main as switch_main
+from .example_wire_labels import main as wire_labels_main
+from .example_dynamic_block import main as dynamic_block_main
+from .example_pin_configurations import main as pin_configs_main
+from .example_motor_symbol import main as motor_symbol_main
 
 
 def create_all_examples():
-    """
-    Create all standard circuit examples and save them to individual SVG files.
-    
-    This demonstrates the complete library of standard circuits available.
-    """
-    
-    # Create output directory
-    output_dir = Path(Paths.OUTPUT_DIR)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
+    """Run all example scripts."""
     print("=" * 80)
-    print("Creating All Standard Circuit Examples")
+    print("Running All Example Scripts")
     print("=" * 80)
-    
-    # 1. DOL Starter
-    print("\n[1/8] DOL Motor Starter")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.dol_starter(
-        state=state,
-        x=0,
-        y=0,
-        tm_top=Terminals.MAIN_POWER,
-        tm_bot=Terminals.MOTOR_1,
-        tm_aux_1=Terminals.FUSED_24V,
-        tm_aux_2=Terminals.GND
-    )
-    render_system(circuit, Paths.DOL_STARTER)
-    print(f"✓ Saved: {Paths.DOL_STARTER}")
-    print(f"  Terminals: {terminals}")
-    
-    # 2. Emergency Stop
-    print("\n[2/8] Emergency Stop Circuit")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.emergency_stop(
-        state=state,
-        x=0,
-        y=0,
-        tm_top=Terminals.FUSED_24V,
-        tm_bot=Terminals.EM_STOP
-    )
-    render_system(circuit, Paths.EMERGENCY_STOP)
-    print(f"✓ Saved: {Paths.EMERGENCY_STOP}")
-    print(f"  Terminals: {terminals}")
-    
-    # 3. PSU
-    print("\n[3/8] Power Supply Unit")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.psu(
-        state=state,
-        x=0,
-        y=0,
-        tm_top=Terminals.AC_INPUT,
-        tm_bot_left=Terminals.FUSED_24V,
-        tm_bot_right=Terminals.GND,
-        tm_top_pins=(Pins.L, Pins.N),
-        tm_bot_left_pins=(Pins.V24_PLUS,),
-        tm_bot_right_pins=(Pins.GND,)
-    )
-    render_system(circuit, Paths.PSU)
-    print(f"✓ Saved: {Paths.PSU}")
-    print(f"  Terminals: {terminals}")
-    
-    # 4. Changeover
-    print("\n[4/8] Changeover Switch")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.changeover(
-        state=state,
-        x=0,
-        y=0,
-        tm_top_left=Terminals.MAIN_SUPPLY,
-        tm_top_right=Terminals.EMERGENCY_SUPPLY,
-        tm_bot=Terminals.CHANGEOVER_OUTPUT
-    )
-    render_system(circuit, Paths.CHANGEOVER)
-    print(f"✓ Saved: {Paths.CHANGEOVER}")
-    print(f"  Terminals: {terminals}")
-    
-    # 5. Voltage Monitor
-    print("\n[5/8] Voltage Monitor")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.coil(
-        state=state,
-        x=0,
-        y=0,
-        tm_top=Terminals.VOLTAGE_MONITOR,
-        tm_top_pins=Pins.VM_INPUT[:2]
-    )
-    render_system(circuit, Paths.VOLTAGE_MONITOR)
-    print(f"✓ Saved: {Paths.VOLTAGE_MONITOR}")
-    print(f"  Terminals: {terminals}")
-    
-    # 6. Power Distribution (Combined system)
-    print("\n[6/8] Power Distribution System")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.power_distribution(
-        state=state,
-        x=0,
-        y=0,
-        terminal_maps={
-            'INPUT_1': Terminals.MAIN_SUPPLY,
-            'INPUT_2': Terminals.EMERGENCY_SUPPLY,
-            'OUTPUT': Terminals.CHANGEOVER_OUTPUT,
-            'PSU_INPUT': Terminals.AC_INPUT,
-            'PSU_OUTPUT_1': Terminals.FUSED_24V,
-            'PSU_OUTPUT_2': Terminals.GND
-        }
-    )
-    render_system(circuit, Paths.POWER_DISTRIBUTION)
-    print(f"✓ Saved: {Paths.POWER_DISTRIBUTION}")
-    print(f"  Terminals: {terminals}")
-    
-    # 7. Motor Control
-    print("\n[7/8] Motor Control Circuit")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.spdt(
-        state=state,
-        x=0,
-        y=0,
-        tm_top=Terminals.EM_STOP,
-        tm_bot_left=Terminals.LIGHTS_SWITCHES,
-        tm_bot_right=Terminals.LIGHTS_SWITCHES
-    )
-    render_system(circuit, Paths.MOTOR_CONTROL)
-    print(f"✓ Saved: {Paths.MOTOR_CONTROL}")
-    print(f"  Terminals: {terminals}")
-    
-    # 8. Switch
-    print("\n[8/8] Simple Switch Circuit")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.no_contact(
-        state=state,
-        x=0,
-        y=0,
-        tm_top=Terminals.FUSED_24V,
-        tm_bot=Terminals.GND
-    )
-    render_system(circuit, Paths.SWITCH)
-    print(f"✓ Saved: {Paths.SWITCH}")
-    print(f"  Terminals: {terminals}")
-    
-    # 9. Wire Labels
-    print("\n[9/9] Wire Labels Example")
-    print("-" * 40)
-    state = create_autonumberer()
-    state, circuit, terminals = std_circuits.dol_starter(
-        state=state,
-        x=0,
-        y=0,
-        tm_top=Terminals.MAIN_POWER,
-        tm_bot=Terminals.MOTOR_1,
-        tm_aux_1=Terminals.FUSED_24V,
-        tm_aux_2=Terminals.GND
-    )
-    labels = ["L1 2.5mm²", "L2 2.5mm²", "L3 2.5mm²", "RD 0.75mm²", "BK 0.75mm²"]
-    add_wire_labels_to_circuit(circuit, labels)
-    
-    render_system(circuit, Paths.WIRE_LABELS)
-    print(f"✓ Saved: {Paths.WIRE_LABELS}")
-    print(f"  Terminals: {terminals}")
 
-    # Summary
+    print("\n--- 1. DOL Starter Examples ---")
+    dol_main()
+
+    print("\n--- 2. Emergency Stop Example ---")
+    estop_main()
+
+    print("\n--- 3. PSU Example ---")
+    psu_main()
+
+    print("\n--- 4. Changeover Example ---")
+    changeover_main()
+
+    print("\n--- 5. Voltage Monitor Example ---")
+    voltage_monitor_main()
+
+    print("\n--- 6. Power Distribution Example ---")
+    power_dist_main()
+
+    print("\n--- 7. Motor Control Example ---")
+    motor_control_main()
+
+    print("\n--- 8. Switch Example ---")
+    switch_main()
+
+    print("\n--- 9. Wire Labels Example ---")
+    wire_labels_main()
+
+    print("\n--- 10. Dynamic Block Example ---")
+    dynamic_block_main()
+
+    print("\n--- 11. Pin Configurations Examples ---")
+    pin_configs_main()
+
+    print("\n--- 12. Motor Symbol Test ---")
+    motor_symbol_main()
+
     print("\n" + "=" * 80)
     print("All Examples Complete!")
     print("=" * 80)
-    print(f"\nOutput directory: {Paths.OUTPUT_DIR}")
-    print("\nGenerated files:")
-    print(f"  1. {Paths.DOL_STARTER}")
-    print(f"  2. {Paths.EMERGENCY_STOP}")
-    print(f"  3. {Paths.PSU}")
-    print(f"  4. {Paths.CHANGEOVER}")
-    print(f"  5. {Paths.VOLTAGE_MONITOR}")
-    print(f"  6. {Paths.POWER_DISTRIBUTION}")
-    print(f"  7. {Paths.MOTOR_CONTROL}")
-    print(f"  8. {Paths.SWITCH}")
-    print(f"  9. {Paths.WIRE_LABELS}")
-    print()
 
 
 if __name__ == "__main__":

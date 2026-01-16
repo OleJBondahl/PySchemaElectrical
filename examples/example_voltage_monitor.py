@@ -7,13 +7,13 @@ standard circuits library.
 
 from pathlib import Path
 from pyschemaelectrical import create_autonumberer, std_circuits, render_system
-from constants import Terminals, Pins, Paths
+from .constants import Terminals, Pins, Paths
 
 
 def main():
     """
     Create a voltage monitor circuit example.
-    
+
     Demonstrates:
     - Creating a voltage monitoring circuit
     - Monitoring three-phase voltage
@@ -21,20 +21,20 @@ def main():
     """
     # Initialize autonumbering state
     state = create_autonumberer()
-    
+
     # Create output directory
     output_path = Path(Paths.VOLTAGE_MONITOR)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Create voltage monitor circuit (modeled as a coil circuit)
     print("Creating voltage monitor circuit...")
     state, circuit, used_terminals = std_circuits.coil(
         state=state,
         x=0,
         y=0,
-        tm_top=Terminals.VOLTAGE_MONITOR, # Monitors Pin 1 and Pin 2 of this terminal
+        tm_top=Terminals.VOLTAGE_MONITOR,  # Monitors Pin 1 and Pin 2 of this terminal
     )
-    
+
     # Render to SVG
     render_system(circuit, str(output_path))
     print(f"✓ Voltage monitor circuit saved to: {Paths.VOLTAGE_MONITOR}")

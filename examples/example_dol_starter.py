@@ -7,13 +7,13 @@ standard circuits library.
 
 from pathlib import Path
 from pyschemaelectrical import create_autonumberer, std_circuits, render_system
-from constants import Terminals, Paths
+from .constants import Terminals, Paths
 
 
 def main():
     """
     Create a DOL starter circuit example.
-    
+
     Demonstrates:
     - Creating a single DOL starter
     - Creating multiple DOL starters (count parameter)
@@ -21,11 +21,11 @@ def main():
     """
     # Initialize autonumbering state
     state = create_autonumberer()
-    
+
     # Create output directory
     output_path = Path(Paths.DOL_STARTER)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Example 1: Single DOL starter
     print("Creating DOL starter circuit...")
     state, circuit, used_terminals = std_circuits.dol_starter(
@@ -35,14 +35,14 @@ def main():
         tm_top=Terminals.MAIN_POWER,
         tm_bot=Terminals.MOTOR_1,
         tm_aux_1=Terminals.FUSED_24V,
-        tm_aux_2=Terminals.GND
+        tm_aux_2=Terminals.GND,
     )
-    
+
     # Render to SVG
     render_system(circuit, str(output_path))
     print(f"✓ Single DOL starter saved to: {Paths.DOL_STARTER}")
     print(f"  Used terminals: {used_terminals}")
-    
+
     # Example 2: Multiple DOL starters (count=2)
     print("\nCreating multiple DOL starters (count=2)...")
     state_multi = create_autonumberer()
@@ -54,9 +54,9 @@ def main():
         tm_bot=Terminals.MOTOR_1,
         tm_aux_1=Terminals.FUSED_24V,
         tm_aux_2=Terminals.GND,
-        count=2
+        count=2,
     )
-    
+
     multi_path = output_path.parent / "dol_starter_multiple.svg"
     render_system(circuit_multi, str(multi_path))
     print(f"✓ Multiple DOL starters saved to: {multi_path}")

@@ -321,9 +321,13 @@ def _create_single_circuit_from_spec(
             next_pin = _resolve_pin(next_comp, p, is_input=True)
 
             if curr["spec"].kind == "terminal" and next_comp["spec"].kind == "symbol":
-                state = register_connection(state, curr["tag"], curr_pin, next_comp["tag"], next_pin, side="bottom")
+                # Current is Terminal: Use registry pin for Terminal
+                reg_pin_curr = _resolve_registry_pin(curr, p)
+                state = register_connection(state, curr["tag"], reg_pin_curr, next_comp["tag"], next_pin, side="bottom")
             elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "terminal":
-                state = register_connection(state, next_comp["tag"], next_pin, curr["tag"], curr_pin, side="top")
+                # Next is Terminal: Use registry pin for Terminal
+                reg_pin_next = _resolve_registry_pin(next_comp, p)
+                state = register_connection(state, next_comp["tag"], reg_pin_next, curr["tag"], curr_pin, side="top")
 
     # 2. Manual Connections
     for (idx_a, p_a, idx_b, p_b, side_a, side_b) in spec.manual_connections:
@@ -337,9 +341,11 @@ def _create_single_circuit_from_spec(
         pin_b = _resolve_pin(comp_b, p_b, is_input=(side_b=="top"))
         
         if comp_a["spec"].kind == "terminal" and comp_b["spec"].kind == "symbol":
-                state = register_connection(state, comp_a["tag"], pin_a, comp_b["tag"], pin_b, side=side_a)
+                reg_pin_a = _resolve_registry_pin(comp_a, p_a)
+                state = register_connection(state, comp_a["tag"], reg_pin_a, comp_b["tag"], pin_b, side=side_a)
         elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "terminal":
-                state = register_connection(state, comp_b["tag"], pin_b, comp_a["tag"], pin_a, side=side_b)
+                reg_pin_b = _resolve_registry_pin(comp_b, p_b)
+                state = register_connection(state, comp_b["tag"], reg_pin_b, comp_a["tag"], pin_a, side=side_b)
 
     # --- Phase 3: Instantiation ---
     from pyschemaelectrical.model.primitives import Line
@@ -455,3 +461,46 @@ def _resolve_pin(component_data, pole_idx, is_input):
     base_idx = pole_idx * 2
     offset = 0 if is_input else 1
     return str(base_idx + offset + 1)
+
+
+def _resolve_registry_pin(component_data, pole_idx):
+    """
+    Resolve the physical pin number (label) for the registry.
+    
+    For Terminals: Returns the assigned terminal number (e.g. "42"), not the internal port ID.
+    For Symbols: Returns the pin label (e.g. "A1"), ensuring consistency with _resolve_pin.
+    """
+    spec = component_data["spec"]
+    
+    # CASE 1: Terminals
+    if spec.kind == "terminal":
+        # Usually 1 pin label per pole (the terminal number)
+        # component_data["pins"] should contain these labels.
+        if component_data["pins"] and pole_idx < len(component_data["pins"]):
+             return component_data["pins"][pole_idx]
+        
+        # Fallback: if no explicit pins provided, maybe we rely on a default counter?
+        # But here we just want a logical ID. 
+        # For a 1-pole terminal without explicit pins, we might assume it is "1", "2"... 
+        # relative to the start of the block?
+        # Actually, standard behavior without pins is undefined for registry if we want accurate numbering.
+        # But let's fallback to returning a 1-based index based on pole.
+        return str(pole_idx + 1)
+
+    # CASE 2: Symbols
+    # For symbols, the "Pin" in registry is usually the specific port label (e.g. "A1").
+    # Note: Registry doesn't strictly care about Input/Output distinction in the *name* of the pin,
+    # it cares about the *label* of the pin we connect to.
+    
+    # We must determine which pin (Input or Output side) we are talking about.
+    # _resolve_registry_pin is ambiguous if we don't know the side.
+    # BUT, actually register_connection takes `terminal_pin` and `component_pin`.
+    # For Terminals, `terminal_pin` is the Slice ID ("5"). 'side' handles Top/Bottom.
+    # For Components, `component_pin` IS the port label ("A1").
+    
+    # So we can't implement this universally without knowing 'is_input'.
+    # But wait, the problematic case is ONLY Terminals.
+    # For Symbols, `_resolve_pin` logic (returning "A1" or "A2") is exactly what we want.
+    
+    return None # Should use _resolve_pin for symbols
+
