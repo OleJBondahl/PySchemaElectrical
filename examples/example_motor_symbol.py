@@ -38,7 +38,10 @@ def main():
 
     # X1: 3-Pole Terminal (Pins 1, 2, 3)
     # y_increment=0 so PE stays on same row
-    builder.add_terminal(
+    # X1: 3-Pole Terminal (Pins 1, 2, 3)
+    # y_increment=0 so PE stays on same row
+    # Capture index for connection
+    _, idx_x1 = builder.add_terminal(
         tm_id="X1",
         poles=3,
         pins=("1", "2", "3"),
@@ -50,7 +53,7 @@ def main():
     # PE: 1-Pole Terminal (Pin 1)
     # x_offset shifts it right
     # y_increment=50 moves down for the motor
-    builder.add_terminal(
+    _, idx_pe = builder.add_terminal(
         tm_id="PE",
         poles=1,
         pins=("1",),
@@ -62,7 +65,7 @@ def main():
 
     # 2. Motor (Row 2)
     # x_offset=DEFAULT_POLE_SPACING aligns Center(V) with X1:2
-    builder.add_component(
+    _, idx_motor = builder.add_component(
         three_pole_motor_symbol,
         tag_prefix="-M",
         pins=("U", "V", "W", "PE"),
@@ -70,12 +73,13 @@ def main():
     )
 
     # 3. Connections
-    # X1 (Idx 0) -> Motor (Idx 2)
+    # X1 -> Motor
     for i in range(3):
-        builder.add_connection(0, i, 2, i)
+        builder.add_connection(idx_x1, i, idx_motor, i)
 
-    # PE (Idx 1) -> Motor (Idx 2, Pole 3)
-    builder.add_connection(1, 0, 2, 3)
+    # PE -> Motor (Pole 3 = 4th pin usually, but PE is 4th pin in input tuple)
+    # Motor pins: U(0), V(1), W(2), PE(3)
+    builder.add_connection(idx_pe, 0, idx_motor, 3)
 
     # Build & Render
     result = builder.build()

@@ -32,7 +32,6 @@ src/pyschemaelectrical/symbols/protection.py
 src/pyschemaelectrical/symbols/references.py
 src/pyschemaelectrical/symbols/terminals.py
 src/pyschemaelectrical/symbols/transducers.py
-src/pyschemaelectrical/symbols/valves.py
 src/pyschemaelectrical/system/__init__.py
 src/pyschemaelectrical/system/connection_registry.py
 src/pyschemaelectrical/system/system.py

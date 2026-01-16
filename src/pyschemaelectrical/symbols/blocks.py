@@ -1,4 +1,5 @@
 from typing import Tuple, List, Optional
+from dataclasses import replace
 from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style, Element
 from pyschemaelectrical.model.primitives import Text, Line
 from pyschemaelectrical.model.parts import box, standard_text, standard_style
@@ -373,5 +374,19 @@ def dynamic_block_symbol(
     if label:
         left_edge = center_x - box_width / 2
         elements.append(standard_text(label, Point(left_edge, center_y)))
+
+    # Aliasing for standard pole connectivity
+    # Map standard port IDs ("1", "2", "3", "4"...) to named ports
+    # Top Pins = Input (Odd Standard IDs: 1, 3, 5...)
+    for i, pin_label in enumerate(top_pins):
+        std_id = str(i * 2 + 1)
+        if std_id not in ports:
+            ports[std_id] = replace(ports[pin_label], id=std_id)
+
+    # Bottom Pins = Output (Even Standard IDs: 2, 4, 6...)
+    for i, pin_label in enumerate(bottom_pins):
+        std_id = str(i * 2 + 2)
+        if std_id not in ports:
+            ports[std_id] = replace(ports[pin_label], id=std_id)
 
     return Symbol(elements, ports, label=label)

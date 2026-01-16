@@ -106,8 +106,11 @@ class CircuitBuilder:
         y_increment: Optional[float] = None,
         auto_connect_next: bool = True,
         **kwargs
-    ) -> 'CircuitBuilder':
-        """Add a terminal block."""
+    ) -> Tuple['CircuitBuilder', int]:
+        """
+        Add a terminal block.
+        Returns: (builder_instance, component_index)
+        """
         if logical_name:
             self._spec.terminal_map[logical_name] = tm_id
 
@@ -127,7 +130,7 @@ class CircuitBuilder:
             }
         )
         self._spec.components.append(spec)
-        return self
+        return self, len(self._spec.components) - 1
 
     def add_component(
         self, 
@@ -139,8 +142,11 @@ class CircuitBuilder:
         y_increment: Optional[float] = None,
         auto_connect_next: bool = True,
         **kwargs
-    ) -> 'CircuitBuilder':
-        """Add a generic component/symbol."""
+    ) -> Tuple['CircuitBuilder', int]:
+        """
+        Add a generic component/symbol.
+        Returns: (builder_instance, component_index)
+        """
         spec = ComponentSpec(
             func=symbol_func,
             tag_prefix=tag_prefix,
@@ -153,7 +159,7 @@ class CircuitBuilder:
             kwargs=kwargs
         )
         self._spec.components.append(spec)
-        return self
+        return self, len(self._spec.components) - 1
 
     def add_connection(
         self, 
