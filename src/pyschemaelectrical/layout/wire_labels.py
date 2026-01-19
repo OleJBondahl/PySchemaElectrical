@@ -192,34 +192,41 @@ def find_vertical_wires(elements: List[Element], tolerance: float = 0.1) -> List
 
 def add_wire_labels_to_circuit(
     circuit, wire_labels: Optional[List[str]] = None, offset_x: float = -2.5
-) -> None:
+) -> "Circuit":
     """
     Add wire labels to all vertical wires in a circuit.
 
-    This function mutates the circuit by adding text elements for wire labels.
+    Returns a NEW circuit with wire labels added. Does NOT mutate the original.
     Wire labels are applied in order to vertical wires found in the circuit.
 
     Args:
         circuit: The Circuit object to add labels to
         wire_labels: List of wire label strings. If None, uses rotating standard labels.
         offset_x: Horizontal offset for labels from wire centerline (mm)
+
+    Returns:
+        Circuit: New circuit with wire labels added.
     """
+    from pyschemaelectrical.system.system import Circuit
+
     # Find all vertical wires in the circuit
     vertical_wires = find_vertical_wires(circuit.elements)
 
     if not vertical_wires:
         print("Warning: No vertical wires found in circuit")
-        return
+        return circuit
 
     # If no wire labels are provided, do not add any labels
     if wire_labels is None:
-        return
+        return circuit
 
     # Ensure we have enough labels
     if len(wire_labels) < len(vertical_wires):
         # Repeat the provided wire labels to cover all wires
         # This handles cases where count > 1 (creating multiple circuit instances)
         wire_labels = list(islice(cycle(wire_labels), len(vertical_wires)))
+
+    new_elements = []
 
     # Add labels to each wire
     for i, wire in enumerate(vertical_wires):
@@ -236,5 +243,10 @@ def add_wire_labels_to_circuit(
         # Create text element
         text_element = create_wire_label_text(label_text, label_pos)
 
-        # Add to circuit
-        circuit.elements.append(text_element)
+        # Add to new elements list
+        new_elements.append(text_element)
+
+    return Circuit(
+        symbols=circuit.symbols,
+        elements=list(circuit.elements) + new_elements,
+    )

@@ -41,10 +41,10 @@ def main():
     # The order depends on the internal creation order of lines in the circuit.
     # For a DOL starter, we expect main power lines and control lines.
     # We provide a list of labels to be applied cyclically if there are more wires than labels.
-    labels = ["L1 2.5mm²", "L2 2.5mm²", "L3 2.5mm²", "RD 0.75mm²", "BK 0.75mm²"]
+    labels = ["BR 2.5mm²", "BK 2.5mm²", "GY 2.5mm²"]
 
     # Add wire labels to the circuit
-    add_wire_labels_to_circuit(circuit, labels)
+    circuit = add_wire_labels_to_circuit(circuit, labels)
 
     # Render to SVG
     render_system(circuit, str(output_path))

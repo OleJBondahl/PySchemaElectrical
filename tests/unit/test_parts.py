@@ -1,25 +1,32 @@
 import pytest
 from pyschemaelectrical.model.core import Point, Vector, Symbol, Port, Element
 from pyschemaelectrical.model.primitives import Text, Circle, Polygon, Line
-from pyschemaelectrical.model.parts import standard_text, terminal_circle, box, create_pin_labels, three_pole_factory
+from pyschemaelectrical.model.parts import (
+    standard_text,
+    terminal_circle,
+    box,
+    create_pin_labels,
+    three_pole_factory,
+)
+
 
 class TestPartsUnit:
     def test_standard_text(self):
-        t = standard_text("K1", Point(0,0))
+        t = standard_text("K1", Point(0, 0))
         assert t.content == "K1"
         assert t.position.x < 0  # It applies an offset to the left
         assert t.anchor == "end"
 
     def test_terminal_circle(self):
-        c = terminal_circle(Point(10,10), filled=True)
-        assert c.center == Point(10,10)
+        c = terminal_circle(Point(10, 10), filled=True)
+        assert c.center == Point(10, 10)
         assert c.style.fill == "black"
-        
-        c2 = terminal_circle(Point(10,10), filled=False)
+
+        c2 = terminal_circle(Point(10, 10), filled=False)
         assert c2.style.fill == "none"
 
     def test_box(self):
-        b = box(Point(0,0), 10, 20)
+        b = box(Point(0, 0), 10, 20)
         assert isinstance(b, Polygon)
         assert len(b.points) == 4
         # check dimensions roughly
@@ -31,8 +38,8 @@ class TestPartsUnit:
     def test_create_pin_labels(self):
         # Setup ports
         ports = {
-            "1": Port("1", Point(0,0), Vector(0,-1)), # UP
-            "2": Port("2", Point(0,10), Vector(0,1))  # DOWN
+            "1": Port("1", Point(0, 0), Vector(0, -1)),  # UP
+            "2": Port("2", Point(0, 10), Vector(0, 1)),  # DOWN
         }
         labels = create_pin_labels(ports, ("13", "14"))
         assert len(labels) == 2
@@ -45,33 +52,68 @@ class TestPartsUnit:
         def mock_pole(label, pins):
             # Returns a symbol with 2 ports and a line
             return Symbol(
-                elements=[Line(Point(0,0), Point(0,10))],
+                elements=[Line(Point(0, 0), Point(0, 10))],
                 ports={
-                    "1": Port("1", Point(0,0), Vector(0,-1)), 
-                    "2": Port("2", Point(0,10), Vector(0,1))
+                    "1": Port("1", Point(0, 0), Vector(0, -1)),
+                    "2": Port("2", Point(0, 10), Vector(0, 1)),
                 },
-                label=label
+                label=label,
             )
 
         sym = three_pole_factory(
             single_pole_func=mock_pole,
             label="-Q1",
             pins=("1", "2", "3", "4", "5", "6"),
-            pole_spacing=10.0
+            pole_spacing=10.0,
         )
-        
+
         assert sym.label == "-Q1"
         assert len(sym.elements) == 3
-        
+
         assert "1" in sym.ports
-        assert "3" in sym.ports # Mapped from pole 2 pin 1
-        assert "5" in sym.ports # Mapped from pole 3 pin 1
-        
+        assert "3" in sym.ports  # Mapped from pole 2 pin 1
+        assert "5" in sym.ports  # Mapped from pole 3 pin 1
+
         assert sym.ports["1"].position.x == 0
         assert sym.ports["3"].position.x == 10
         assert sym.ports["5"].position.x == 20
 
     def test_three_pole_factory_validation(self):
-        def mock_pole(**kwargs): return Symbol([], {}, "")
+        def mock_pole(**kwargs):
+            return Symbol([], {}, "")
+
         with pytest.raises(ValueError):
-            three_pole_factory(mock_pole, pins=("1", "2")) # Invalid len
+            three_pole_factory(mock_pole, pins=("1", "2"))  # Invalid len
+
+    def test_create_pin_labels_preserves_insertion_order(self):
+        """Pin labels should follow port insertion order, not alphabetical order."""
+        # Create ports in a specific non-alphabetical order
+        # With current implementation (sorted keys), "A1" comes before "L" and "N"
+        # We want order "L", "A1", "N"
+
+        # Note: We must ensure the dict preserves order (Python 3.7+)
+        ports = {}
+        ports["L"] = Port("L", Point(0, 0), Vector(0, -1))
+        ports["A1"] = Port("A1", Point(10, 0), Vector(0, -1))
+        ports["N"] = Port("N", Point(20, 0), Vector(0, -1))
+
+        labels = create_pin_labels(ports, ("LIVE", "AUX", "NEUTRAL"))
+
+        # labels[0] is "LIVE". Should be at Port "L" (x=0)
+        # labels[1] is "AUX". Should be at Port "A1" (x=10)
+        # labels[2] is "NEUTRAL". Should be at Port "N" (x=20)
+
+        # We check relative X positions.
+        # LIVE should be leftmost (0), AUX middle (10), NEUTRAL rightmost (20).
+        # But if sorted: A1 (10) gets LIVE, L (0) gets AUX.
+        # So LIVE would be at 10, AUX at 0.
+
+        # Check X positions (ignoring small offsets)
+        x_live = labels[0].position.x
+        x_aux = labels[1].position.x
+
+        # If correct: x_live < x_aux (0 < 10)
+        # If bug: x_live > x_aux (10 > 0)
+        assert x_live < x_aux, (
+            f"Expected LIVE (at L) to be left of AUX (at A1). Got x_live={x_live}, x_aux={x_aux}"
+        )

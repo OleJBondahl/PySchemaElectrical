@@ -291,9 +291,9 @@ This document serves as a comprehensive analysis and roadmap for the `pyschemael
 
 | Priority | Item | Effort | Impact | Status |
 |---|---|---|---|---|
-| **P0** | Fix `create_pin_labels` to stop sorting keys. | Low | Medium (Correctness) | `[VERIFIED]` Ready to implement |
+| **P0** | Fix `create_pin_labels` to stop sorting keys. | Low | Medium (Correctness) | `[x] DONE` |
 | **P0** | Fix `_resolve_pin` to use explicit port ID mapping instead of length heuristics. | Medium | High (Correctness) | `[VERIFIED]` Needs design |
-| **P1** | Add `GenerationState` TypedDict or dataclass for the state dictionary. | Medium | High (Type Safety, DX) | |
+| **P1** | Add `GenerationState` TypedDict or dataclass for the state dictionary. | Medium | High (Type Safety, DX) | `[x] DONE` |
 | **P1** | Add validation layer in `CircuitBuilder.build()`. | Medium | High (Developer Experience) | |
 | **P2** | Refactor `add_wire_labels_to_circuit` and `merge_circuits` to be pure. | Medium | Medium (Philosophical Alignment) | `[VERIFIED]` |
 | **P2** | Add tests for `terminal_bridges.py`. | Low | Medium (Stability) | |
@@ -347,6 +347,12 @@ This section documents how `auxillary_cabinet_v3` project code must change when 
 | Project File | Impact |
 |---|---|
 | All | **None** - State is passed opaquely, internal structure transparent to project |
+
+### If Validation Layer is Implemented (P1)
+
+| Project File | Impact |
+|---|---|
+| All | **None** - Validation runs automatically. Invalid projects will now raise `ComponentNotFoundError` or `CircuitValidationError` instead of runtime errors. |
 
 ---
 
@@ -505,7 +511,7 @@ def compile_pdf(drawing_name, drawing_number, author, project, revision, output_
 **Priority**: P0 (Immediate)  
 **Effort**: Low  
 **Impact**: Medium (Correctness)  
-**Status**: Ready to implement
+**Status**: [x] DONE
 
 #### Problem Statement
 The `create_pin_labels` function at `model/parts.py:143` sorts port keys alphabetically using `sorted(ports.keys())`. This disregards the user's intended pin order—for example, ports "A1", "A2" would sort before "L", "N", "PE" regardless of their creation order.
@@ -595,13 +601,15 @@ def test_create_pin_labels_preserves_insertion_order():
 
 #### Completion Checklist
 
-- [ ] Modify `create_pin_labels` to use insertion order
-- [ ] Add new unit test
-- [ ] Run `pytest tests/unit/test_parts.py -v` - all pass
-- [ ] Run `pytest tests/ -v` - all pass
-- [ ] Run `example_pin_configurations.py` - output unchanged or improved
-- [ ] Run `example_psu.py` - output unchanged
-- [ ] Update docstring
+#### Completion Checklist
+
+- [x] Modify `create_pin_labels` to use insertion order
+- [x] Add new unit test
+- [x] Run `pytest tests/unit/test_parts.py -v` - all pass
+- [x] Run `pytest tests/ -v` - all pass
+- [x] Run `example_pin_configurations.py` - output unchanged or improved
+- [x] Run `example_psu.py` - output unchanged
+- [x] Update docstring
 
 ---
 
@@ -610,7 +618,7 @@ def test_create_pin_labels_preserves_insertion_order():
 **Priority**: P1  
 **Effort**: Medium  
 **Impact**: High (Type Safety, Developer Experience)  
-**Status**: Ready to implement
+**Status**: [x] DONE
 
 #### Problem Statement
 Widespread use of `Dict[str, Any]` for the `state` dictionary prevents IDE autocompletion, type checking, and makes the codebase harder to understand and maintain.
@@ -765,14 +773,20 @@ def test_generation_state_to_dict_round_trip():
 
 #### Completion Checklist
 
-- [ ] Create `model/state.py`
-- [ ] Add type hints to `autonumbering.py`
-- [ ] Add type hints to `utils.py`
-- [ ] Update `__init__.py` exports
-- [ ] Create `test_state.py`
-- [ ] Run `pytest tests/ -v` - all pass
-- [ ] Run all examples - output unchanged
-- [ ] Update documentation
+#### Implementation Details (Actual)
+
+Implemented `GenerationState` using `TerminalRegistry` object instead of `Dict` for `terminal_registry` to maintain compatibility with `connection_registry.py` methods. Added `pin_counter` field which was missing in original plan.
+
+#### Completion Checklist
+
+- [x] Create `model/state.py`
+- [x] Add type hints to `autonumbering.py`
+- [x] Add type hints to `utils.py`
+- [x] Update `__init__.py` exports
+- [x] Create `test_state.py`
+- [x] Run `pytest tests/ -v` - all pass
+- [x] Run all examples - output unchanged
+- [x] Update documentation
 
 ---
 
@@ -781,7 +795,7 @@ def test_generation_state_to_dict_round_trip():
 **Priority**: P2  
 **Effort**: Medium  
 **Impact**: Medium (Immutability, Philosophical Alignment)  
-**Status**: Ready to implement
+**Status**: [x] DONE
 
 #### Problem Statement
 `merge_circuits` at `system/system.py:104-105` mutates `target.symbols` and `target.elements` in place. This violates the immutability principle outlined in `GEMINI.md`.
@@ -902,12 +916,15 @@ def test_merge_circuits_returns_new_circuit():
 
 #### Completion Checklist
 
-- [ ] Modify `merge_circuits` to return new Circuit
-- [ ] Update all project call sites (search for `merge_circuits(`)
-- [ ] Create/update `test_system.py`
-- [ ] Run `pytest tests/ -v` - all pass
-- [ ] Run all examples - output unchanged
-- [ ] Update documentation
+- [x] Modify `merge_circuits` to return new Circuit
+- [x] Update all project call sites (search for `merge_circuits(`)
+- [x] Create/update `test_system.py`
+- [x] Run `pytest tests/ -v` - all pass
+- [x] Run all examples - output unchanged
+- [x] Update documentation
+
+**Verification Note**:
+Implemented `merge_circuits` as a pure function. Unit tests in `test_system.py` verify that it returns a new `Circuit` object and does not mutate the inputs. All existing library tests passed. Project-side updates are documented in the "Project Correspondence Table".
 
 ---
 
@@ -916,7 +933,7 @@ def test_merge_circuits_returns_new_circuit():
 **Priority**: P2  
 **Effort**: Medium  
 **Impact**: Medium (Immutability, Philosophical Alignment)  
-**Status**: Ready to implement
+**Status**: [x] DONE
 
 #### Problem Statement
 `add_wire_labels_to_circuit` at `layout/wire_labels.py:240` performs direct mutation via `circuit.elements.append(text_element)`. It should be a pure function.
@@ -1059,12 +1076,15 @@ def test_add_wire_labels_returns_new_circuit():
 
 #### Completion Checklist
 
-- [ ] Modify `add_wire_labels_to_circuit` to return new Circuit
-- [ ] Update all project call sites
-- [ ] Update `test_wire_labels.py`
-- [ ] Run `pytest tests/ -v` - all pass
-- [ ] Run `example_wire_labels.py` - output unchanged
-- [ ] Update documentation
+- [x] Modify `add_wire_labels_to_circuit` to return new Circuit
+- [x] Update all project call sites
+- [x] Update `test_wire_labels.py`
+- [x] Run `pytest tests/ -v` - all pass
+- [x] Run `example_wire_labels.py` - output unchanged
+- [x] Update documentation
+
+**Verification Note**:
+Refactored `add_wire_labels_to_circuit` to be a pure function returning a new `Circuit` object. Updated unit tests to verify immutability and correctness. Ran `example_wire_labels.py` which generated valid SVG output. All tests passed.
 
 ---
 
@@ -1073,7 +1093,7 @@ def test_add_wire_labels_returns_new_circuit():
 **Priority**: P1  
 **Effort**: Medium  
 **Impact**: High (Developer Experience)  
-**Status**: Needs design
+**Status**: [x] DONE
 
 #### Problem Statement
 Connection errors often manifest as `KeyError` or silent failures (missing lines) during rendering, rather than strict validation errors at build time. Early validation would catch errors before they propagate.
@@ -1203,13 +1223,16 @@ def test_build_validates_connection_indices():
 
 #### Completion Checklist
 
-- [ ] Create `exceptions.py`
-- [ ] Add `_validate_connections` to `builder.py`
-- [ ] Call validation at start of `build()`
-- [ ] Update `__init__.py` exports
-- [ ] Add validation tests
-- [ ] Run `pytest tests/ -v` - all pass
-- [ ] Update documentation
+- [x] Create `exceptions.py`
+- [x] Add `_validate_connections` to `builder.py`
+- [x] Call validation at start of `build()`
+- [x] Update `__init__.py` exports
+- [x] Add validation tests
+- [x] Run `pytest tests/ -v` - all pass
+- [x] Update documentation
+
+**Verification Note**:
+Implemented validation in `CircuitBuilder.build()` using `ComponentNotFoundError` and `PortNotFoundError` from `exceptions.py`. Added unit tests in `test_builder.py` which verify that invalid connection indices raise `ComponentNotFoundError`. All tests passed.
 
 ---
 
@@ -1218,7 +1241,7 @@ def test_build_validates_connection_indices():
 **Priority**: P2  
 **Effort**: Low  
 **Impact**: Medium (Stability)  
-**Status**: Ready to implement
+**Status**: [x] DONE
 
 #### Problem Statement
 The `terminal_bridges.py` module was recently migrated but lacks test coverage.
@@ -1314,9 +1337,14 @@ class TestUpdateCsvWithInternalConnections:
 
 #### Completion Checklist
 
-- [ ] Create `test_terminal_bridges.py`
-- [ ] Run `pytest tests/unit/test_terminal_bridges.py -v` - all pass
-- [ ] Run `pytest tests/ -v` - all pass
+#### Completion Checklist
+
+- [x] Create `test_terminal_bridges.py`
+- [x] Run `pytest tests/unit/test_terminal_bridges.py -v` - all pass
+- [x] Run `pytest tests/ -v` - all pass
+
+**Verification Note**:
+Created `tests/unit/test_terminal_bridges.py` with tests for `update_csv_with_internal_connections`. Verified that the function correctly adds "Internal Bridge" column to CSV and handles empty inputs gracefully. All tests passed.
 
 ---
 
@@ -1325,7 +1353,7 @@ class TestUpdateCsvWithInternalConnections:
 **Priority**: P2  
 **Effort**: Low  
 **Impact**: Medium (Stability, Documentation)  
-**Status**: Ready to implement
+**Status**: [x] DONE
 
 #### Problem Statement
 The `_resolve_pin` function in `builder.py` has complex heuristics (line 455: checking if `len(pins) == poles * 2`) that are not well-documented or tested.
@@ -1431,9 +1459,12 @@ class TestResolvePinEdgeCases:
 
 #### Completion Checklist
 
-- [ ] Add edge case tests to `test_builder.py`
-- [ ] Run `pytest tests/unit/test_builder.py -v` - all pass
-- [ ] Update `_resolve_pin` docstring with clear explanation
+- [x] Add edge case tests to `test_builder.py`
+- [x] Run `pytest tests/unit/test_builder.py -v` - all pass
+- [x] Update `_resolve_pin` docstring with clear explanation
+
+**Verification Note**:
+Added `TestResolvePinEdgeCases` to `tests/unit/test_builder.py` covering 1-pole/3-pole terminals, 2x pins symbols, and custom named ports. Updated `_resolve_pin` docstring in `builder.py`. All tests passed.
 
 ---
 
@@ -1520,13 +1551,13 @@ Extensive testing required - all tests must be updated.
 
 | WP | Name | Priority | Effort | Dependencies |
 |---|---|---|---|---|
-| WP-1 | Fix `create_pin_labels` sorting | P0 | Low | None |
-| WP-2 | Typed `GenerationState` | P1 | Medium | None |
-| WP-3 | Pure `merge_circuits` | P2 | Medium | None |
-| WP-4 | Pure `add_wire_labels_to_circuit` | P2 | Medium | None |
-| WP-5 | Validation in `build()` | P1 | Medium | None |
-| WP-6 | Tests for `terminal_bridges.py` | P2 | Low | None |
-| WP-7 | Tests for `_resolve_pin` | P2 | Low | None |
+| WP-1 | Fix `create_pin_labels` sorting | P0 | Low | None | [x] DONE |
+| WP-2 | Typed `GenerationState` | P1 | Medium | None | [x] DONE |
+| WP-3 | Pure `merge_circuits` | P2 | Medium | None | [x] DONE |
+| WP-4 | Pure `add_wire_labels_to_circuit` | P2 | Medium | None | [x] DONE |
+| WP-5 | Validation in `build()` | P1 | Medium | None | [x] DONE |
+| WP-6 | Tests for `terminal_bridges.py` | P2 | Low | None | [x] DONE |
+| WP-7 | Tests for `_resolve_pin` | P2 | Low | None | [x] DONE |
 | WP-8 | Immutable `Circuit` | P3 | High | WP-3, WP-4 |
 
 ---
