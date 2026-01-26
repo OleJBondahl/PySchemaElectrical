@@ -1,0 +1,96 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\OleJohanBondahl\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\OleJohanBondahl\Documents\GitHub_ZEN\PySchemaElectrical
+configfile: pyproject.toml
+plugins: cov-7.0.0
+collecting ... collected 14 items
+
+tests/unit/test_symbols.py::TestSymbolsUnit::test_terminals PASSED       [  7%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_contacts PASSED        [ 14%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_coil PASSED            [ 21%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_protection PASSED      [ 28%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_assemblies_contactor PASSED [ 35%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_single_phase_motor PASSED [ 42%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_three_phase_motor PASSED [ 50%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_three_phase_motor_positions PASSED [ 57%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_turn_switch_symbol_creation PASSED [ 64%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_turn_switch_symbol_with_label PASSED [ 71%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_turn_switch_symbol_rotation PASSED [ 78%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_turn_switch_assembly_creation PASSED [ 85%]
+tests/unit/test_symbols.py::TestSymbolsUnit::test_turn_switch_assembly_has_ports PASSED [ 92%]
+pytest : <unknown>:202: 
+SyntaxWarning: invalid 
+escape sequence '\ '
+At line:1 char:1
++ pytest 
+tests/unit/test_symbols.py 
+-v --tb=short 2>&1 | 
+Out-File -File ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (<unknow  
+  n>:202: ...e sequence '\   
+  ':String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+C:\Users\OleJohanBondahl\Docu
+ments\GitHub_ZEN\PySchemaElec
+trical\src\pyschemaelectrical
+\symbols\contacts.py:202: 
+SyntaxWarning: invalid 
+escape sequence '\ '
+  \    |
+tests/unit/test_symbols.py::TestSymbolsUnit::test_turn_switch_assembly_custom_pins PASSED [100%]
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.13.7-final-0 _______________
+
+Name                                                   Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------------------
+src\pyschemaelectrical\__init__.py                        11      0   100%
+src\pyschemaelectrical\builder.py                        221    170    23%   53, 78, 88-89, 95-98, 116-135, 152-164, 179-182, 192-200, 211-265, 285-468, 495-531, 541-573
+src\pyschemaelectrical\exceptions.py                      11      5    55%   19-22, 32
+src\pyschemaelectrical\layout\__init__.py                  1      0   100%
+src\pyschemaelectrical\layout\layout.py                   93     80    14%   30-44, 61-72, 79-89, 98-108, 137-160, 177-203, 235-244, 266-282
+src\pyschemaelectrical\layout\wire_labels.py              56     56     0%   8-249
+src\pyschemaelectrical\model\__init__.py                   4      0   100%
+src\pyschemaelectrical\model\constants.py                 94      0   100%
+src\pyschemaelectrical\model\core.py                      46     10    78%   18-20, 24, 51-53, 68-70
+src\pyschemaelectrical\model\parts.py                     89     25    72%   66-79, 158, 164, 217, 275-306
+src\pyschemaelectrical\model\primitives.py                34      0   100%
+src\pyschemaelectrical\model\state.py                     27     13    52%   40-44, 56-71, 87
+src\pyschemaelectrical\std_circuits\__init__.py            4      0   100%
+src\pyschemaelectrical\std_circuits\control.py            87     71    18%   85-230, 269-293, 328-366
+src\pyschemaelectrical\std_circuits\motor.py              88     75    15%   99-250
+src\pyschemaelectrical\std_circuits\power.py             112    100    11%   60-153, 190-282, 316-385
+src\pyschemaelectrical\std_circuits\safety.py             12      7    42%   49-66
+src\pyschemaelectrical\symbols\__init__.py                11      0   100%
+src\pyschemaelectrical\symbols\actuators.py               34     15    56%   20-52
+src\pyschemaelectrical\symbols\assemblies.py              42      8    81%   94-120
+src\pyschemaelectrical\symbols\blocks.py                 124    115     7%   40-109, 127-198, 251-392
+src\pyschemaelectrical\symbols\breakers.py                31     23    26%   34-80, 98, 115
+src\pyschemaelectrical\symbols\coils.py                   28      0   100%
+src\pyschemaelectrical\symbols\contacts.py               136     79    42%   117, 223-369, 394-437
+src\pyschemaelectrical\symbols\motors.py                  78      4    95%   110, 159, 177-178
+src\pyschemaelectrical\symbols\protection.py              46     12    74%   96-117
+src\pyschemaelectrical\symbols\references.py              35     25    29%   29-93
+src\pyschemaelectrical\symbols\terminals.py               54      1    98%   113
+src\pyschemaelectrical\symbols\transducers.py             35     25    29%   28-46, 70-131
+src\pyschemaelectrical\system\__init__.py                  1      0   100%
+src\pyschemaelectrical\system\connection_registry.py      61     39    36%   28-29, 32, 36, 40-42, 51-53, 88-93, 118, 146, 158-194
+src\pyschemaelectrical\system\system.py                   32     18    44%   41-44, 58-64, 82-94, 111
+src\pyschemaelectrical\system\system_analysis.py         111    111     0%   1-215
+src\pyschemaelectrical\utils\__init__.py                   6      0   100%
+src\pyschemaelectrical\utils\autonumbering.py             43     29    33%   30, 44, 60-63, 77, 102-104, 127-130, 143, 162-180, 201, 219, 239, 249
+src\pyschemaelectrical\utils\export_utils.py              12      9    25%   16-28
+src\pyschemaelectrical\utils\renderer.py                 144    133     8%   17-23, 33-83, 96-137, 151-224, 234-235, 247-248
+src\pyschemaelectrical\utils\terminal_bridges.py         105     93    11%   54, 83-103, 130-137, 157-198, 225-284
+src\pyschemaelectrical\utils\transform.py                 85     23    73%   45, 60, 102-105, 114, 119, 124, 142, 147, 160-162, 174, 179-190
+src\pyschemaelectrical\utils\utils.py                     31     23    26%   25-28, 38-42, 64-76, 93-97, 110, 121
+------------------------------------------------------------------------------------
+TOTAL                                                   2275   1397    39%
+============================= 14 passed in 0.30s ==============================

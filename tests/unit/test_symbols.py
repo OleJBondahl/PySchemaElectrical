@@ -12,8 +12,13 @@ from pyschemaelectrical.symbols.contacts import (
 )
 from pyschemaelectrical.symbols.coils import coil_symbol
 from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
-from pyschemaelectrical.symbols.assemblies import contactor_symbol
+from pyschemaelectrical.symbols.assemblies import (
+    contactor_symbol,
+    turn_switch_assembly_symbol,
+)
+from pyschemaelectrical.symbols.actuators import turn_switch_symbol
 from pyschemaelectrical.symbols.motors import motor_symbol, three_pole_motor_symbol
+
 
 class TestSymbolsUnit:
     def test_terminals(self):
@@ -105,3 +110,47 @@ class TestSymbolsUnit:
         # PE should be to the right (at radius=20)
         assert pe_pos.x > w_pos.x
         assert abs(pe_pos.x - 20.0) < 0.001
+
+    def test_turn_switch_symbol_creation(self):
+        """Test basic creation of turn switch symbol."""
+        sym = turn_switch_symbol()
+        assert sym is not None
+        assert isinstance(sym, Symbol)
+        assert len(sym.elements) == 3  # TOP, MID, BOT lines
+        assert len(sym.ports) == 0  # Actuator symbols have no ports
+
+    def test_turn_switch_symbol_with_label(self):
+        """Test turn switch symbol with label."""
+        sym = turn_switch_symbol(label="-S1")
+        assert sym is not None
+        assert sym.label == "-S1"
+
+    def test_turn_switch_symbol_rotation(self):
+        """Test rotation is applied."""
+        sym = turn_switch_symbol(rotation=180)
+        assert sym is not None
+        assert len(sym.elements) == 3
+        # Elements should be transformed (rotation applied)
+
+    def test_turn_switch_assembly_creation(self):
+        """Test basic creation of turn switch assembly."""
+        sym = turn_switch_assembly_symbol()
+        assert sym is not None
+        assert isinstance(sym, Symbol)
+        # Assembly should have multiple elements: contact + linkage + actuator
+        assert len(sym.elements) > 3
+
+    def test_turn_switch_assembly_has_ports(self):
+        """Assembly inherits ports from NO contact."""
+        sym = turn_switch_assembly_symbol()
+        assert "1" in sym.ports
+        assert "2" in sym.ports
+        assert len(sym.ports) == 2
+
+    def test_turn_switch_assembly_custom_pins(self):
+        """Test custom pin labels."""
+        sym = turn_switch_assembly_symbol(label="-S1", pins=("A", "B"))
+        assert sym.label == "-S1"
+        # Ports always use internal IDs "1" and "2", pins are just visual labels
+        assert "1" in sym.ports
+        assert "2" in sym.ports

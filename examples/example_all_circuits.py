@@ -14,6 +14,7 @@ from .example_voltage_monitor import main as voltage_monitor_main
 from .example_power_distribution import main as power_dist_main
 from .example_motor_control import main as motor_control_main
 from .example_switch import main as switch_main
+from .example_turn_switch import main as turn_switch_main
 from .example_wire_labels import main as wire_labels_main
 from .example_dynamic_block import main as dynamic_block_main
 from .example_pin_configurations import main as pin_configs_main
@@ -50,16 +51,19 @@ def create_all_examples():
     print("\n--- 8. Switch Example ---")
     switch_main()
 
-    print("\n--- 9. Wire Labels Example ---")
+    print("\n--- 9. Turn Switch Example ---")
+    turn_switch_main()
+
+    print("\n--- 10. Wire Labels Example ---")
     wire_labels_main()
 
-    print("\n--- 10. Dynamic Block Example ---")
+    print("\n--- 11. Dynamic Block Example ---")
     dynamic_block_main()
 
-    print("\n--- 11. Pin Configurations Examples ---")
+    print("\n--- 12. Pin Configurations Examples ---")
     pin_configs_main()
 
-    print("\n--- 12. Motor Symbol Test ---")
+    print("\n--- 13. Motor Symbol Test ---")
     motor_symbol_main()
 
     print("\n" + "=" * 80)
