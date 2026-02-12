@@ -1,15 +1,11 @@
-import pytest
-import pytest
+from pyschemaelectrical.builder import CircuitBuilder
 from pyschemaelectrical.std_circuits import (
-    dol_starter,
-    psu,
     changeover,
+    dol_starter,
     emergency_stop,
     spdt,
 )
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
-from pyschemaelectrical.utils.renderer import render_to_svg
-from pyschemaelectrical.builder import CircuitBuilder
 
 
 def render_circuit_to_string(circuit):
@@ -17,8 +13,9 @@ def render_circuit_to_string(circuit):
     # We use a temporary string Io or just render_to_svg to a dummy path?
     # Actually render_to_svg takes a path string.
     # But checking renderer.py, maybe we can use to_xml_element directly and tostring.
-    from pyschemaelectrical.utils.renderer import to_xml_element
     import xml.etree.ElementTree as ET
+
+    from pyschemaelectrical.utils.renderer import to_xml_element
 
     root = to_xml_element(circuit.elements)
     return ET.tostring(root, encoding="unicode")
@@ -72,10 +69,10 @@ class TestStandardCircuitsSnapshot:
         # Add terminals and components like a small system
         builder.add_terminal("X1", poles=3)
         # We need sumbols. Importing from library directly for this test
+        from pyschemaelectrical.symbols.assemblies import contactor_symbol
         from pyschemaelectrical.symbols.protection import (
             three_pole_thermal_overload_symbol,
         )
-        from pyschemaelectrical.symbols.assemblies import contactor_symbol
 
         builder.add_component(
             three_pole_thermal_overload_symbol, tag_prefix="-F", poles=3

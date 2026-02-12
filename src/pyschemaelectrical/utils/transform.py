@@ -1,10 +1,11 @@
-from typing import TypeVar, Union, List, Any, cast
 import math
-from functools import singledispatch
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Element
-from pyschemaelectrical.model.primitives import Line, Circle, Text, Path, Group, Polygon
 from dataclasses import replace
+from functools import singledispatch
+from typing import Any, TypeVar, Union, cast
+
 from pyschemaelectrical.model.constants import TEXT_OFFSET_X
+from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
+from pyschemaelectrical.model.primitives import Circle, Group, Line, Polygon, Text
 
 T = TypeVar("T", bound=Union[Element, Point, Port, Vector])
 

@@ -1,23 +1,23 @@
 from pyschemaelectrical.model.core import Symbol
+from pyschemaelectrical.symbols.actuators import turn_switch_symbol
+from pyschemaelectrical.symbols.assemblies import (
+    contactor_symbol,
+    turn_switch_assembly_symbol,
+)
+from pyschemaelectrical.symbols.coils import coil_symbol
+from pyschemaelectrical.symbols.contacts import (
+    normally_closed_symbol,
+    normally_open_symbol,
+    three_pole_normally_open_symbol,
+)
+from pyschemaelectrical.symbols.motors import motor_symbol, three_pole_motor_symbol
+from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
 
 # Imports from symbol library - assuming they are exposed correctly or via submodule
 from pyschemaelectrical.symbols.terminals import (
     terminal_symbol,
     three_pole_terminal_symbol,
 )
-from pyschemaelectrical.symbols.contacts import (
-    normally_open_symbol,
-    normally_closed_symbol,
-    three_pole_normally_open_symbol,
-)
-from pyschemaelectrical.symbols.coils import coil_symbol
-from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
-from pyschemaelectrical.symbols.assemblies import (
-    contactor_symbol,
-    turn_switch_assembly_symbol,
-)
-from pyschemaelectrical.symbols.actuators import turn_switch_symbol
-from pyschemaelectrical.symbols.motors import motor_symbol, three_pole_motor_symbol
 
 
 class TestSymbolsUnit:

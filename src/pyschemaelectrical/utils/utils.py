@@ -3,7 +3,8 @@ Utility functions for circuit generation and state management.
 Contains helpers for tag counters and contact pin management.
 """
 
-from typing import Dict, Any, Tuple, List, Optional, Callable, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 from pyschemaelectrical.model.state import GenerationState
 
 

@@ -21,12 +21,11 @@ Example Usage:
     update_csv_with_internal_connections("terminals.csv", connections)
 """
 
-from typing import Dict, List, Union, Tuple
 import csv
 import shutil
-from tempfile import NamedTemporaryFile
 from pathlib import Path
-
+from tempfile import NamedTemporaryFile
+from typing import Dict, List, Tuple, Union
 
 # Type aliases for internal connection definitions
 BridgeRange = Tuple[int, int]

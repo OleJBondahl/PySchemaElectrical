@@ -9,11 +9,12 @@ electrical symbols automatically. Key features include:
 - Vertical chain layout with automatic connections
 """
 
-from typing import List, Optional, Dict, Union, Tuple, Callable, Any
-from pyschemaelectrical.model.core import Symbol, Point, Vector, Element, Port
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
+from pyschemaelectrical.model.parts import standard_style
 from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.utils.transform import translate
-from pyschemaelectrical.model.parts import standard_style
 
 
 def get_connection_ports(symbol: Symbol, direction: Vector) -> List[Port]:

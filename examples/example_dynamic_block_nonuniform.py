@@ -6,10 +6,11 @@ for dynamic blocks, which is useful for PSU shared output blocks and
 other scenarios where pins don't align with uniform spacing.
 """
 
-from .constants import Paths
-from pyschemaelectrical import create_autonumberer, Circuit, render_system, add_symbol
+from pyschemaelectrical import Circuit, add_symbol, create_autonumberer, render_system
 from pyschemaelectrical.symbols import dynamic_block_symbol
 from pyschemaelectrical.utils.autonumbering import next_tag
+
+from .constants import Paths
 
 
 def main():

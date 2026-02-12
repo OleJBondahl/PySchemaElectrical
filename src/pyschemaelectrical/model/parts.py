@@ -11,26 +11,26 @@ electrical symbols according to IEC 60617 standards. It includes:
 All constants are imported from the constants module.
 """
 
-from .primitives import Line, Circle, Path, Group, Element, Text, Polygon
-from .core import Point, Style, Vector, Symbol
-from typing import List, Optional, Callable, Dict, Tuple, Any
 from dataclasses import replace
+from typing import Any, Callable, Dict, List, Tuple
+
 from pyschemaelectrical.utils.transform import translate
+
 from .constants import (
-    GRID_SIZE,
-    TEXT_SIZE_MAIN,
-    TEXT_FONT_FAMILY,
-    TEXT_OFFSET_X,
+    COLOR_BLACK,
+    DEFAULT_POLE_SPACING,
     LINE_WIDTH_THIN,
-    LINE_WIDTH_THICK,
-    TEXT_SIZE_PIN,
-    TEXT_FONT_FAMILY_AUX,
     PIN_LABEL_OFFSET_X,
     PIN_LABEL_OFFSET_Y_ADJUST,
     TERMINAL_RADIUS,
-    DEFAULT_POLE_SPACING,
-    COLOR_BLACK,
+    TEXT_FONT_FAMILY,
+    TEXT_FONT_FAMILY_AUX,
+    TEXT_OFFSET_X,
+    TEXT_SIZE_MAIN,
+    TEXT_SIZE_PIN,
 )
+from .core import Point, Style, Symbol
+from .primitives import Circle, Element, Polygon, Text
 
 
 def standard_style(filled: bool = False) -> Style:

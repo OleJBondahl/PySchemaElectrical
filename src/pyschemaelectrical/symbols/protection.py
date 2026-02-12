@@ -1,14 +1,15 @@
 from typing import List
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Element
-from pyschemaelectrical.model.primitives import Line, Element
+
+from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     box,
-    standard_text,
-    standard_style,
     create_pin_labels,
+    standard_style,
+    standard_text,
     three_pole_factory,
 )
-from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.primitives import Element, Line
 
 
 def thermal_overload_symbol(label: str = "", pins: tuple = ()) -> Symbol:

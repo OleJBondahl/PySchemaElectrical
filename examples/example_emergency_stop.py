@@ -6,8 +6,10 @@ standard circuits library.
 """
 
 from pathlib import Path
-from pyschemaelectrical import create_autonumberer, std_circuits, render_system
-from .constants import Terminals, Paths
+
+from pyschemaelectrical import create_autonumberer, render_system, std_circuits
+
+from .constants import Paths, Terminals
 
 
 def main():

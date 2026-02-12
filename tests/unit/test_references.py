@@ -1,6 +1,6 @@
-from pyschemaelectrical.model.core import Symbol, Point, Vector
-from pyschemaelectrical.symbols.references import ref_symbol
 from pyschemaelectrical.model.constants import REF_ARROW_LENGTH
+from pyschemaelectrical.model.core import Symbol
+from pyschemaelectrical.symbols.references import ref_symbol
 
 
 class TestReferenceSymbols:

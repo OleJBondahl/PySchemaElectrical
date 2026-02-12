@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Tuple, List, Optional, Dict, Union, Any
+from typing import Dict, List, Optional, Union
+
 
 @dataclass(frozen=True)
 class Vector:

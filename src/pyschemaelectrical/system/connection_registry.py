@@ -1,6 +1,7 @@
-from typing import List, Dict, Tuple, Any
-from dataclasses import dataclass, field
 import csv
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Tuple
+
 
 @dataclass(frozen=True)
 class Connection:
@@ -20,7 +21,7 @@ class TerminalRegistry:
     """
     connections: Tuple[Connection, ...] = field(default_factory=tuple)
 
-    def add_connection(self, terminal_tag: str, terminal_pin: str, 
+    def add_connection(self, terminal_tag: str, terminal_pin: str,
                        component_tag: str, component_pin: str, side: str) -> 'TerminalRegistry':
         """
         Returns a new TerminalRegistry with the added connection.
@@ -157,38 +158,38 @@ def export_registry_to_csv(registry: TerminalRegistry, filepath: str):
     # Result: Map[(Tag, Pin), {'top': [], 'bottom': []}]
     from collections import defaultdict
     grouped = defaultdict(lambda: {'top': [], 'bottom': []})
-    
+
     for conn in registry.connections:
         key = (conn.terminal_tag, conn.terminal_pin)
         grouped[key][conn.side].append(conn)
-        
+
     # Sort keys - handle mixed int/string pins by using tuple with explicit type handling
     def sort_key(k):
         t, p = k
-        try: 
+        try:
             return (t, 0, int(p), str(p))  # Numeric pins sort first
-        except (ValueError, TypeError): 
+        except (ValueError, TypeError):
             return (t, 1, 0, str(p))  # Non-numeric pins sort after numeric
-        
+
     sorted_keys = sorted(grouped.keys(), key=sort_key)
-    
+
     with open(filepath, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(["Component From", "Pin From", "Terminal Tag", "Terminal Pin", "Component To", "Pin To"])
-        
+
         for t_tag, t_pin in sorted_keys:
             data = grouped[(t_tag, t_pin)]
-            
+
             # Format Top side (usually "From")
             # Usually 'top' connections go to components inside the panel
             top_conns = data['top']
             from_comp = " / ".join(c.component_tag for c in top_conns)
             from_pin = " / ".join(c.component_pin for c in top_conns)
-            
+
             # Format Bottom side (usually "To")
             # Usually 'bottom' connections go to field
             bot_conns = data['bottom']
             to_comp = " / ".join(c.component_tag for c in bot_conns)
             to_pin = " / ".join(c.component_pin for c in bot_conns)
-            
+
             writer.writerow([from_comp, from_pin, t_tag, t_pin, to_comp, to_pin])

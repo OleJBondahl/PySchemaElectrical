@@ -6,7 +6,7 @@ related generation functions.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, Union
+from typing import Any, Dict, Union
 
 # Avoid direct import if circular dependency is feared, but verified safe here.
 from pyschemaelectrical.system.connection_registry import TerminalRegistry

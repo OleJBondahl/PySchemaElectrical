@@ -1,7 +1,8 @@
 import pytest
+
 from pyschemaelectrical.builder import CircuitBuilder
+from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
-from pyschemaelectrical.model.core import Symbol, Port, Point, Vector
 
 
 # Mock symbol function
@@ -77,7 +78,7 @@ class TestResolvePinEdgeCases:
 
     def test_terminal_pin_resolution_1_pole(self):
         """1-pole terminal should resolve to ports '1' (in) and '2' (out)."""
-        from pyschemaelectrical.builder import _resolve_pin, ComponentSpec
+        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=None, kind="terminal", poles=1),
@@ -89,7 +90,7 @@ class TestResolvePinEdgeCases:
 
     def test_terminal_pin_resolution_3_pole(self):
         """3-pole terminal poles should map to correct port IDs."""
-        from pyschemaelectrical.builder import _resolve_pin, ComponentSpec
+        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=None, kind="terminal", poles=3),
@@ -108,7 +109,7 @@ class TestResolvePinEdgeCases:
 
     def test_symbol_with_2x_pins(self):
         """Symbol with poles*2 pins should use interleaved indexing."""
-        from pyschemaelectrical.builder import _resolve_pin, ComponentSpec
+        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=lambda: None, kind="symbol", poles=2),
@@ -124,7 +125,7 @@ class TestResolvePinEdgeCases:
 
     def test_symbol_with_custom_named_ports(self):
         """Symbol with non-standard pin count should use direct indexing."""
-        from pyschemaelectrical.builder import _resolve_pin, ComponentSpec
+        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=lambda: None, kind="symbol", poles=1),

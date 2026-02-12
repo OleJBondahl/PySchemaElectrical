@@ -6,15 +6,16 @@ and a single PE terminal using the CircuitBuilder.
 """
 
 from pathlib import Path
+
 from pyschemaelectrical import (
+    CircuitBuilder,
     create_autonumberer,
     render_system,
-    CircuitBuilder,
 )
+from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
 from pyschemaelectrical.symbols import (
     three_pole_motor_symbol,
 )
-from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
 
 
 def main():

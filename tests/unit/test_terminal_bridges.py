@@ -1,6 +1,5 @@
 """Unit tests for terminal_bridges module."""
 
-import pytest
 import csv
 import tempfile
 from pathlib import Path

@@ -1,6 +1,8 @@
-import pytest
 import os
 from pathlib import Path
+
+import pytest
+
 
 # Fixture to handle snapshot comparison for SVG content
 @pytest.fixture
@@ -21,9 +23,9 @@ def snapshot_svg(request):
         # For now, we assume the generator is deterministic or mocked.
         # But we do trip whitespace from ends.
         content = content.strip()
-        
+
         snapshot_file = snapshot_dir / f"{snapshot_name}.svg"
-        
+
         # Environment variable to force update snapshots: PYTEST_UPDATE_SNAPSHOTS=1
         update_snapshots = os.getenv("PYTEST_UPDATE_SNAPSHOTS") == "1"
 
@@ -39,7 +41,7 @@ def snapshot_svg(request):
 
         # Compare
         expected_content = snapshot_file.read_text(encoding="utf-8").strip()
-        
+
         # Simple string equality
         # In a real scenario, XML parsing comparison might be more robust to ignore attribute order,
         # but string equality is stricter and strictly requested ("consistency").

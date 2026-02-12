@@ -1,13 +1,14 @@
 import pytest
-from pyschemaelectrical.model.core import Point, Vector, Symbol, Port, Element
-from pyschemaelectrical.model.primitives import Text, Circle, Polygon, Line
+
+from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
-    standard_text,
-    terminal_circle,
     box,
     create_pin_labels,
+    standard_text,
+    terminal_circle,
     three_pole_factory,
 )
+from pyschemaelectrical.model.primitives import Line, Polygon
 
 
 class TestPartsUnit:

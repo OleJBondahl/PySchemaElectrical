@@ -1,14 +1,15 @@
-from typing import Tuple, List
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Element
-from pyschemaelectrical.model.primitives import Line
+from typing import List, Tuple
+
+from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
-    standard_text,
-    standard_style,
     create_pin_labels,
+    standard_style,
+    standard_text,
     three_pole_factory,
     two_pole_factory,
 )
-from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.primitives import Line
 
 
 def circuit_breaker_symbol(label: str = "", pins: tuple = ()) -> Symbol:

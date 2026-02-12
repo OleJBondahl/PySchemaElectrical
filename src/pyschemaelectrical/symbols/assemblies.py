@@ -1,23 +1,23 @@
-from typing import Tuple, Dict, Any, Optional
-from dataclasses import replace
-from pyschemaelectrical.model.core import Symbol, Point, Style, Element, Vector
-from pyschemaelectrical.model.primitives import Line
-from pyschemaelectrical.utils.transform import translate
+from typing import Optional, Tuple
+
 from pyschemaelectrical.model.constants import (
+    COLOR_BLACK,
     DEFAULT_POLE_SPACING,
     GRID_SIZE,
     LINE_WIDTH_THIN,
     LINKAGE_DASH_PATTERN,
-    COLOR_BLACK,
 )
-from pyschemaelectrical.model.parts import standard_text
+from pyschemaelectrical.model.core import Point, Style, Symbol, Vector
+from pyschemaelectrical.model.primitives import Line
+from pyschemaelectrical.utils.transform import translate
+
+from .actuators import emergency_stop_button_symbol, turn_switch_symbol
+from .coils import coil_symbol
 from .contacts import (
-    three_pole_normally_open_symbol,
     normally_closed_symbol,
     normally_open_symbol,
+    three_pole_normally_open_symbol,
 )
-from .coils import coil_symbol
-from .actuators import emergency_stop_button_symbol, turn_switch_symbol
 
 
 def contactor_symbol(

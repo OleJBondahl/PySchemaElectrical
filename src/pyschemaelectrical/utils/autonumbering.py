@@ -15,8 +15,9 @@ Example:
     2
 """
 
-from typing import Dict, Tuple, Any, Union
-from pyschemaelectrical.model.state import create_initial_state, GenerationState
+from typing import Any, Dict, Tuple, Union
+
+from pyschemaelectrical.model.state import GenerationState, create_initial_state
 
 
 def create_autonumberer() -> Dict[str, Any]:

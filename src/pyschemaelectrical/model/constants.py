@@ -62,19 +62,19 @@ class SpacingConfig:
 
 class StandardSpacing:
     """Standard spacing configurations for different circuit types."""
-    
+
     MOTOR = SpacingConfig(
         circuit_spacing=30 * GRID_SIZE, # 150.0mm
         symbols_start_x=10 * GRID_SIZE, # 50.0mm
         symbols_spacing=12 * GRID_SIZE  # 60.0mm
     )
-    
+
     SINGLE_POLE = SpacingConfig(
         circuit_spacing=20 * GRID_SIZE, # 100.0mm
         symbols_start_x=10 * GRID_SIZE, # 50.0mm
         symbols_spacing=12 * GRID_SIZE  # 60.0mm
     )
-    
+
     POWER_DISTRIBUTION = SpacingConfig(
         circuit_spacing=16 * GRID_SIZE, # 80.0mm
         symbols_start_x=10 * GRID_SIZE, # 50.0mm
@@ -115,22 +115,22 @@ class PinSet:
 
 class StandardPins:
     """Standard pin definitions for electrical components."""
-    
+
     THREE_POLE = PinSet(
         pins=("L1", "T1", "L2", "T2", "L3", "T3"),
         description="Three-phase power connection (line/load pairs)"
     )
-    
+
     THERMAL_OVERLOAD = PinSet(
         pins=("", "T1", "", "T2", "", "T3"),
         description="Thermal overload relay terminals (load side only)"
     )
-    
+
     CURRENT_TRANSDUCER = PinSet(
         pins=("1", "2", "3", "4"),
         description="Current measurement transducer terminals"
     )
-    
+
     # Common single pin identifiers
     L = 'L'  # Line
     N = 'N'  # Neutral

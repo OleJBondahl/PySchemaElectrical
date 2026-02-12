@@ -5,12 +5,13 @@ This example demonstrates how to use the library's dynamic block symbol
 to create a custom block with 5 pins and connect each pin to a separate single pole terminal.
 """
 
-from .constants import Paths, Terminals
-from pyschemaelectrical import create_autonumberer, Circuit, render_system, add_symbol
-from pyschemaelectrical.symbols import terminal_symbol, dynamic_block_symbol
+from pyschemaelectrical import Circuit, add_symbol, create_autonumberer, render_system
 from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
+from pyschemaelectrical.symbols import dynamic_block_symbol, terminal_symbol
 from pyschemaelectrical.system.connection_registry import register_connection
 from pyschemaelectrical.utils.autonumbering import next_tag
+
+from .constants import Paths, Terminals
 
 
 def main():

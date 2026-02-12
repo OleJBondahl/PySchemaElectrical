@@ -5,8 +5,10 @@ This example demonstrates how to add wire labels (color, size) to circuit connec
 """
 
 from pathlib import Path
-from pyschemaelectrical import create_autonumberer, std_circuits, render_system
+
+from pyschemaelectrical import create_autonumberer, render_system, std_circuits
 from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+
 from .constants import Terminals
 
 

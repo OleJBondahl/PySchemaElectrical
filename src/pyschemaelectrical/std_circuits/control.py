@@ -6,23 +6,23 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, Tuple, List, Optional
+from typing import Any, List, Optional, Tuple
 
 from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
 from pyschemaelectrical.layout.layout import create_horizontal_layout
-from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
-from pyschemaelectrical.utils.transform import translate
+from pyschemaelectrical.model.constants import GRID_SIZE, LayoutDefaults, StandardTags
+from pyschemaelectrical.model.core import Symbol
 from pyschemaelectrical.symbols.coils import coil_symbol
 from pyschemaelectrical.symbols.contacts import (
-    spdt_contact_symbol,
     normally_open_symbol,
+    spdt_contact_symbol,
 )
-from pyschemaelectrical.symbols.terminals import terminal_symbol
 from pyschemaelectrical.symbols.references import ref_symbol
-from pyschemaelectrical.model.core import Symbol
-from pyschemaelectrical.model.constants import LayoutDefaults, StandardTags, GRID_SIZE
+from pyschemaelectrical.symbols.terminals import terminal_symbol
 from pyschemaelectrical.system.connection_registry import register_connection
+from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
+from pyschemaelectrical.utils.transform import translate
 
 
 def spdt(
@@ -46,6 +46,10 @@ def spdt(
     tm_top_pins: Optional[Tuple[str, ...]] = None,
     tm_bot_left_pins: Optional[Tuple[str, ...]] = None,
     tm_bot_right_pins: Optional[Tuple[str, ...]] = None,
+    # Multi-count, wire labels, and relay tag
+    count: int = 1,
+    wire_labels: Optional[List[str]] = None,
+    relay_tag: Optional[str] = None,
     **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -77,11 +81,22 @@ def spdt(
         tm_top_pins: Pins for Top terminal
         tm_bot_left_pins: Pins for Bottom Left terminal
         tm_bot_right_pins: Pins for Bottom Right terminal
+        count: Number of circuit instances.
+        wire_labels: Wire label strings to apply per instance.
+        relay_tag: Fixed relay tag (e.g., "K2"). When set, the contact tag
+                   is always this value and contact pins auto-increment.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
     """
     terminal_maps = kwargs.get("terminal_maps") or {}
+
+    # Build tag generators for relay_tag
+    effective_tag_generators = dict(kwargs.get("tag_generators") or {})
+    if relay_tag:
+        def _fixed_contact_gen(s):
+            return s, relay_tag
+        effective_tag_generators[contact_tag_prefix] = _fixed_contact_gen
 
     def create_single_control(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single Motor Control instance with dynamic pin numbering."""
@@ -228,7 +243,6 @@ def spdt(
         return s, c.elements
 
     # Use horizontal layout for multiple instances
-    count = kwargs.get("count", 1)
     final_state, all_elements = create_horizontal_layout(
         state=state,
         start_x=x,
@@ -237,11 +251,18 @@ def spdt(
         spacing=spacing,
         generator_func_single=create_single_control,
         default_tag_generators={},
-        tag_generators=kwargs.get("tag_generators"),
+        tag_generators=effective_tag_generators if effective_tag_generators else kwargs.get("tag_generators"),
         terminal_maps=terminal_maps,
     )
 
     circuit = Circuit(elements=all_elements)
+
+    # Apply wire labels if provided
+    if wire_labels is not None:
+        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+
+        circuit = add_wire_labels_to_circuit(circuit, wire_labels)
+
     # Exclude tm_bot_right because it is a reference symbol, not a terminal strip
     used_terminals = [tm_top, tm_bot_left]
 
@@ -263,6 +284,9 @@ def no_contact(
     switch_pins: Tuple[str, ...] = ("3", "4"),
     tm_top_pins: Optional[Tuple[str, ...]] = None,
     tm_bot_pins: Optional[Tuple[str, ...]] = None,
+    # Multi-count and wire labels
+    count: int = 1,
+    wire_labels: Optional[List[str]] = None,
     **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -280,6 +304,8 @@ def no_contact(
         switch_pins: Pin labels for the switch (default: ("3", "4"))
         tm_top_pins: Explicit pins for top terminal
         tm_bot_pins: Explicit pins for bottom terminal
+        count: Number of circuit instances.
+        wire_labels: Wire label strings to apply per instance.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
@@ -299,11 +325,12 @@ def no_contact(
     builder.add_terminal(tm_bot, poles=1, pins=tm_bot_pins)
 
     result = builder.build(
-        count=kwargs.get("count", 1),
+        count=count,
         start_indices=kwargs.get("start_indices"),
         terminal_start_indices=kwargs.get("terminal_start_indices"),
         tag_generators=kwargs.get("tag_generators"),
         terminal_maps=kwargs.get("terminal_maps"),
+        wire_labels=wire_labels,
     )
     return result.state, result.circuit, result.used_terminals
 

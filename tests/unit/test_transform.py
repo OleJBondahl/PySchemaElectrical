@@ -1,8 +1,14 @@
-import pytest
 import math
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Element
-from pyschemaelectrical.model.primitives import Line, Circle, Text, Path, Group, Polygon
-from pyschemaelectrical.utils.transform import translate, rotate, rotate_point, rotate_vector
+
+from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
+from pyschemaelectrical.model.primitives import Line
+from pyschemaelectrical.utils.transform import (
+    rotate,
+    rotate_point,
+    rotate_vector,
+    translate,
+)
+
 
 class TestTransformUnit:
     def test_translate_point(self):
@@ -22,9 +28,9 @@ class TestTransformUnit:
         l = Line(Point(0,0), Point(1,1))
         port = Port("1", Point(0,0), Vector(1,0))
         sym = Symbol(elements=[l], ports={"1": port}, label="S1")
-        
+
         sym2 = translate(sym, 10, 10)
-        
+
         assert sym2.elements[0].start == Point(10,10)
         assert sym2.ports["1"].position == Point(10,10)
 
@@ -45,10 +51,10 @@ class TestTransformUnit:
         # Symbol with line from (0,0) to (1,0)
         l = Line(Point(0,0), Point(1,0))
         sym = Symbol(elements=[l], ports={}, label="S2")
-        
+
         # Rotate 90 deg around (0,0)
         sym_rot = rotate(sym, 90, Point(0,0))
-        
+
         l_rot = sym_rot.elements[0]
         assert math.isclose(l_rot.start.x, 0, abs_tol=1e-9)
         assert math.isclose(l_rot.start.y, 0, abs_tol=1e-9)

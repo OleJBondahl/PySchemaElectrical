@@ -1,15 +1,16 @@
-from typing import Tuple, List, Optional
 from dataclasses import replace
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style, Element
-from pyschemaelectrical.model.primitives import Text, Line
-from pyschemaelectrical.model.parts import box, standard_text, standard_style
+from typing import List, Optional, Tuple
+
 from pyschemaelectrical.model.constants import (
-    GRID_SIZE,
-    DEFAULT_POLE_SPACING,
     COLOR_BLACK,
-    TEXT_SIZE_PIN,
+    DEFAULT_POLE_SPACING,
+    GRID_SIZE,
     TEXT_FONT_FAMILY_AUX,
+    TEXT_SIZE_PIN,
 )
+from pyschemaelectrical.model.core import Element, Point, Port, Style, Symbol, Vector
+from pyschemaelectrical.model.parts import box, standard_style, standard_text
+from pyschemaelectrical.model.primitives import Line, Text
 
 
 def terminal_box_symbol(

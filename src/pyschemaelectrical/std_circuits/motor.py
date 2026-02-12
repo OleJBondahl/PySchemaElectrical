@@ -6,26 +6,26 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Optional, Tuple
 
-from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
-from pyschemaelectrical.symbols.assemblies import contactor_symbol
-from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker_symbol
-from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
-from pyschemaelectrical.symbols.transducers import current_transducer_assembly_symbol
-from pyschemaelectrical.symbols.terminals import (
-    three_pole_terminal_symbol,
-    terminal_symbol,
-)
-from pyschemaelectrical.symbols.motors import three_pole_motor_symbol
-from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
-from pyschemaelectrical.layout.layout import create_horizontal_layout, auto_connect
+from pyschemaelectrical.layout.layout import auto_connect, create_horizontal_layout
 from pyschemaelectrical.model.constants import (
+    DEFAULT_POLE_SPACING,
     LayoutDefaults,
     StandardTags,
-    DEFAULT_POLE_SPACING,
 )
+from pyschemaelectrical.symbols.assemblies import contactor_symbol
+from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker_symbol
+from pyschemaelectrical.symbols.motors import three_pole_motor_symbol
+from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
+from pyschemaelectrical.symbols.terminals import (
+    terminal_symbol,
+    three_pole_terminal_symbol,
+)
+from pyschemaelectrical.symbols.transducers import current_transducer_assembly_symbol
 from pyschemaelectrical.system.connection_registry import register_connection
+from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
 
 
 def dol_starter(
@@ -64,6 +64,9 @@ def dol_starter(
     # Optional aux terminals
     tm_aux_1: Optional[str] = None,
     tm_aux_2: Optional[str] = None,
+    # Multi-count and wire label parameters
+    count: int = 1,
+    wire_labels: Optional[List[str]] = None,
     **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -74,7 +77,7 @@ def dol_starter(
         x: X position
         y: Y position
         tm_top: Top terminal ID (Input)
-        tm_bot: Bottom terminal ID (Output)
+        tm_bot: Bottom terminal ID (Output). Can be a list for per-instance terminals.
         spacing: Horizontal spacing between circuit instances
         symbol_spacing: Vertical spacing between components
         breaker_tag_prefix: Tag prefix for circuit breaker (default: "F")
@@ -91,6 +94,8 @@ def dol_starter(
         tm_bot_right_pins: Pin labels for the bottom right terminal (None = auto-number)
         tm_aux_1: Optional terminal ID for 24V aux connection
         tm_aux_2: Optional terminal ID for GND aux connection
+        count: Number of circuit instances to create.
+        wire_labels: Wire label strings to apply to vertical wires per instance.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
@@ -102,11 +107,17 @@ def dol_starter(
     if not tm_aux_2:
         tm_aux_2 = terminal_maps.get("GND")
 
+    # Resolve per-instance terminal: tm_bot can be a list
+    tm_bot_list = tm_bot if isinstance(tm_bot, list) else None
+
     def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single DOL starter instance."""
         c = Circuit()
         current_y = start_y
-        used_terminals_list = [tm_top, tm_bot, tm_bot_right]
+
+        # Resolve per-instance bottom terminal
+        instance_tm_bot = tm_bot_list[instance] if tm_bot_list else tm_bot
+        used_terminals_list = [tm_top, instance_tm_bot, tm_bot_right]
 
         # Get terminal pins (auto-number if not provided)
         if tm_top_pins is None:
@@ -115,7 +126,7 @@ def dol_starter(
             input_pins = tm_top_pins
 
         if tm_bot_pins is None:
-            s, output_pins = next_terminal_pins(s, tm_bot, 3)
+            s, output_pins = next_terminal_pins(s, instance_tm_bot, 3)
         else:
             output_pins = tm_bot_pins
 
@@ -157,7 +168,7 @@ def dol_starter(
         current_y += symbol_spacing / 3  # Reduced spacing to bottom terminal
 
         # 6. Output Terminal
-        sym = three_pole_terminal_symbol(tm_bot, pins=output_pins, label_pos="left")
+        sym = three_pole_terminal_symbol(instance_tm_bot, pins=output_pins, label_pos="left")
         tm_bot_sym = add_symbol(c, sym, start_x, current_y)
 
         # 6b. PE Terminal (tm_bot_right) - same Y level
@@ -208,7 +219,7 @@ def dol_starter(
                 if cont_pin_idx < len(contactor_pins):
                     cont_pin = contactor_pins[cont_pin_idx]
                     s = register_connection(
-                        s, tm_bot, term_pin, cont_tag, cont_pin, side="top"
+                        s, instance_tm_bot, term_pin, cont_tag, cont_pin, side="top"
                     )
 
         # 3. Bottom Terminal (Output Side/Bottom) -> Motor (Input Side/Top)
@@ -218,7 +229,7 @@ def dol_starter(
             if i < len(output_pins):
                 term_pin = output_pins[i]
                 s = register_connection(
-                    s, tm_bot, term_pin, motor_tag, motor_pin, side="bottom"
+                    s, instance_tm_bot, term_pin, motor_tag, motor_pin, side="bottom"
                 )
 
         # 4. PE Terminal -> Motor PE
@@ -231,7 +242,6 @@ def dol_starter(
         return s, c.elements
 
     # Use horizontal layout for multiple instances
-    count = kwargs.get("count", 1)
     final_state, all_elements = create_horizontal_layout(
         state=state,
         start_x=x,
@@ -245,6 +255,17 @@ def dol_starter(
     )
 
     circuit = Circuit(elements=all_elements)
-    used_terminals = [tm_top, tm_bot, tm_bot_right]
+
+    # Apply wire labels if provided
+    if wire_labels is not None:
+        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+
+        circuit = add_wire_labels_to_circuit(circuit, wire_labels)
+
+    # Collect used terminals
+    if tm_bot_list:
+        used_terminals = [tm_top] + tm_bot_list + [tm_bot_right]
+    else:
+        used_terminals = [tm_top, tm_bot, tm_bot_right]
 
     return final_state, circuit, used_terminals

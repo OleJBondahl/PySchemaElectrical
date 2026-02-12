@@ -6,20 +6,21 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, Tuple, List, Dict
+from typing import Any, Dict, List, Optional, Tuple
 
-from pyschemaelectrical.system.system import Circuit
 from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.symbols.blocks import psu_symbol
-from pyschemaelectrical.symbols.contacts import three_pole_spdt_symbol
-from pyschemaelectrical.symbols.breakers import two_pole_circuit_breaker_symbol
 from pyschemaelectrical.model.constants import (
+    DEFAULT_POLE_SPACING,
     GRID_SIZE,
     LayoutDefaults,
     StandardTags,
-    DEFAULT_POLE_SPACING,
 )
+from pyschemaelectrical.symbols.blocks import psu_symbol
+from pyschemaelectrical.symbols.breakers import two_pole_circuit_breaker_symbol
+from pyschemaelectrical.symbols.contacts import three_pole_spdt_symbol
+from pyschemaelectrical.system.system import Circuit
 from pyschemaelectrical.utils.autonumbering import next_terminal_pins
+
 from .control import coil
 
 
@@ -37,6 +38,9 @@ def psu(
     terminal_offset: float = LayoutDefaults.PSU_TERMINAL_OFFSET,  # Kept for back-compat but ignored
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.POWER_SUPPLY,
+    # Multi-count and wire labels
+    count: int = 1,
+    wire_labels: Optional[List[str]] = None,
     **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -53,6 +57,8 @@ def psu(
         symbol_spacing: Vertical spacing between components
         terminal_offset: Horizontal offset (Ignored)
         tag_prefix: Tag prefix for PSU component (default: "G")
+        count: Number of PSU instances.
+        wire_labels: Wire label strings to apply per instance.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
@@ -65,9 +71,7 @@ def psu(
     # Iterate based on count
     current_x = x
 
-    psu_count = kwargs.get("count", 1)
-
-    for i in range(psu_count):
+    for i in range(count):
         # Calculate pins for this iteration first (updates state counters)
         state, tm_top_pins = next_terminal_pins(state, tm_top, poles=3)
         state, tm_b_left_pins = next_terminal_pins(state, tm_bot_left, poles=1)
@@ -150,6 +154,12 @@ def psu(
         # Move X for next iteration
         current_x += spacing
 
+    # Apply wire labels if provided
+    if wire_labels is not None:
+        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+
+        system_circuit = add_wire_labels_to_circuit(system_circuit, wire_labels)
+
     return state, system_circuit, list(set(used_terminals))
 
 
@@ -167,6 +177,9 @@ def changeover(
     terminal_offset: float = LayoutDefaults.CHANGEOVER_TERMINAL_OFFSET,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.RELAY,
+    # Multi-count and wire labels
+    count: int = 1,
+    wire_labels: Optional[List[str]] = None,
     **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -183,14 +196,16 @@ def changeover(
         symbol_spacing: Vertical spacing between components
         terminal_offset: Horizontal offset for input terminals (±offset from center)
         tag_prefix: Tag prefix for changeover switch (default: "K")
+        count: Number of circuit instances.
+        wire_labels: Wire label strings to apply per instance.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
     """
-    from pyschemaelectrical.system.system import Circuit, add_symbol
+    from pyschemaelectrical.layout.layout import auto_connect, create_horizontal_layout
     from pyschemaelectrical.symbols.terminals import terminal_symbol
+    from pyschemaelectrical.system.system import Circuit, add_symbol
     from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
-    from pyschemaelectrical.layout.layout import create_horizontal_layout, auto_connect
 
     # SPDT contact structure (from contacts.py):
     # - Port "2" (NC): at (-2.5, -5.0) relative to pole center
@@ -263,7 +278,6 @@ def changeover(
 
         return s, c.elements
 
-    count = kwargs.get("count", 1)
     final_state, all_elements = create_horizontal_layout(
         state=state,
         start_x=x,
@@ -277,6 +291,13 @@ def changeover(
     )
 
     circuit = Circuit(elements=all_elements)
+
+    # Apply wire labels if provided
+    if wire_labels is not None:
+        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+
+        circuit = add_wire_labels_to_circuit(circuit, wire_labels)
+
     used_terminals = [tm_top_left, tm_top_right, tm_bot]
 
     return final_state, circuit, used_terminals
@@ -293,6 +314,7 @@ def power_distribution(
     spacing_single_pole: float = LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
     voltage_monitor_offset: float = LayoutDefaults.VOLTAGE_MONITOR_OFFSET,
     psu_offset: float = LayoutDefaults.PSU_LAYOUT_OFFSET,
+    count: int = 1,
     **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -309,6 +331,7 @@ def power_distribution(
         spacing_single_pole: Spacing for single-pole circuits
         voltage_monitor_offset: Offset after changeover circuits for voltage monitor
         psu_offset: Additional offset after voltage monitor for PSU
+        count: Number of changeover circuit instances.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
@@ -333,8 +356,6 @@ def power_distribution(
         missing_keys = [k for k in required_keys if k not in terminal_maps]
         if missing_keys:
             raise ValueError(f"terminal_maps missing required keys: {missing_keys}")
-
-    count = kwargs.get("count", 1)
 
     all_elements = []
     all_terminals = []

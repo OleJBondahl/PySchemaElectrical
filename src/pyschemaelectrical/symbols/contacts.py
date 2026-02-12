@@ -1,21 +1,22 @@
 from dataclasses import replace
 from typing import List
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style
-from pyschemaelectrical.model.primitives import Line, Element, Text
-from pyschemaelectrical.utils.transform import translate
+
+from pyschemaelectrical.model.constants import (
+    COLOR_BLACK,
+    DEFAULT_POLE_SPACING,
+    GRID_SIZE,
+    TEXT_FONT_FAMILY_AUX,
+    TEXT_SIZE_PIN,
+)
+from pyschemaelectrical.model.core import Point, Port, Style, Symbol, Vector
 from pyschemaelectrical.model.parts import (
-    standard_text,
-    standard_style,
     create_pin_labels,
+    standard_style,
+    standard_text,
     three_pole_factory,
 )
-from pyschemaelectrical.model.constants import (
-    GRID_SIZE,
-    DEFAULT_POLE_SPACING,
-    TEXT_SIZE_PIN,
-    TEXT_FONT_FAMILY_AUX,
-    COLOR_BLACK,
-)
+from pyschemaelectrical.model.primitives import Element, Line, Text
+from pyschemaelectrical.utils.transform import translate
 
 """
 IEC 60617 Contact Symbols.
@@ -189,7 +190,7 @@ def normally_closed_symbol(label: str = "", pins: tuple = ()) -> Symbol:
 def spdt_contact_symbol(
     label: str = "", pins: tuple = ("1", "2", "4"), inverted: bool = False
 ) -> Symbol:
-    """
+    r"""
     Create an IEC 60617 Single Pole Double Throw (SPDT) Contact (Changeover).
 
     Combined NO and NC contact.

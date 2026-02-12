@@ -1,9 +1,9 @@
-from typing import Tuple, Optional
 import math
-from pyschemaelectrical.model.core import Symbol, Point, Style, Element, Vector
-from pyschemaelectrical.model.primitives import Line, Polygon
+
 from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.model.core import Point, Symbol
 from pyschemaelectrical.model.parts import standard_style
+from pyschemaelectrical.model.primitives import Line, Polygon
 from pyschemaelectrical.utils.transform import rotate
 
 

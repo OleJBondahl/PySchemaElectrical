@@ -6,10 +6,12 @@ CircuitBuilder API with the turn_switch_assembly_symbol.
 """
 
 from pathlib import Path
+
 from pyschemaelectrical import create_autonumberer, render_system
 from pyschemaelectrical.builder import CircuitBuilder
 from pyschemaelectrical.symbols.assemblies import turn_switch_assembly_symbol
-from .constants import Terminals, Paths
+
+from .constants import Paths, Terminals
 
 
 def main():

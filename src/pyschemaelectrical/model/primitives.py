@@ -8,7 +8,9 @@ All primitives are immutable dataclasses that inherit from Element.
 
 from dataclasses import dataclass
 from typing import List, Optional
+
 from .core import Element, Point, Style
+
 
 @dataclass(frozen=True)
 class Line(Element):

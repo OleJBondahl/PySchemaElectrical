@@ -32,3 +32,29 @@ class ComponentNotFoundError(CircuitValidationError):
         super().__init__(
             f"Component index {index} is out of bounds. Valid indices: 0-{max_index}"
         )
+
+
+class TagReuseExhausted(CircuitValidationError):
+    """Raised when reuse_tags runs out of tags from the source result."""
+
+    def __init__(self, prefix: str, available_tags: list):
+        self.prefix = prefix
+        self.available_tags = available_tags
+        super().__init__(
+            f"reuse_tags exhausted for prefix '{prefix}'. "
+            f"Source only had {len(available_tags)} tags: {available_tags}. "
+            f"Ensure the source circuit was built with enough instances."
+        )
+
+
+class WireLabelCountMismatch(CircuitValidationError):
+    """Raised when wire label count doesn't match vertical wire count."""
+
+    def __init__(self, expected: int, actual: int, circuit_key: str = ""):
+        self.expected = expected
+        self.actual = actual
+        ctx = f" in circuit '{circuit_key}'" if circuit_key else ""
+        super().__init__(
+            f"Wire label count mismatch{ctx}: "
+            f"{actual} vertical wires found but {expected} labels provided."
+        )

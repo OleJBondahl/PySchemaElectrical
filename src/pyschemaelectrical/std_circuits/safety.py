@@ -6,14 +6,14 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, Tuple, List
+from typing import Any, List, Optional, Tuple
 
 from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.symbols.assemblies import emergency_stop_assembly_symbol
 from pyschemaelectrical.model.constants import (
     LayoutDefaults,
     StandardTags,
 )
+from pyschemaelectrical.symbols.assemblies import emergency_stop_assembly_symbol
 
 
 def emergency_stop(
@@ -28,6 +28,9 @@ def emergency_stop(
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.SWITCH,
+    # Multi-count and wire labels
+    count: int = 1,
+    wire_labels: Optional[List[str]] = None,
     **kwargs
 ) -> Tuple[Any, Any, List[Any]]:
     """
@@ -42,6 +45,8 @@ def emergency_stop(
         spacing: Horizontal spacing between circuit instances
         symbol_spacing: Vertical spacing between components
         tag_prefix: Tag prefix for emergency stop (default: "S")
+        count: Number of circuit instances.
+        wire_labels: Wire label strings to apply per instance.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
@@ -54,7 +59,7 @@ def emergency_stop(
 
     # 2. Emergency Stop Assembly
     builder.add_component(
-        emergency_stop_assembly_symbol, 
+        emergency_stop_assembly_symbol,
         tag_prefix=tag_prefix,
         pins=("1", "2") # Default pins for NC contact inside assembly
     )
@@ -62,5 +67,5 @@ def emergency_stop(
     # 3. Output Terminal
     builder.add_terminal(tm_bot, poles=1)
 
-    result = builder.build(count=kwargs.get("count", 1))
+    result = builder.build(count=count, wire_labels=wire_labels)
     return result.state, result.circuit, result.used_terminals

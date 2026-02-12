@@ -1,6 +1,5 @@
 """Unit tests for GenerationState."""
 
-import pytest
 from pyschemaelectrical.model.state import GenerationState, create_initial_state
 
 

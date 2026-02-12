@@ -1,8 +1,22 @@
 import xml.etree.ElementTree as ET
-from typing import List, Union, Tuple
-from pyschemaelectrical.model.core import Symbol, Point, Style
-from pyschemaelectrical.model.primitives import Element, Line, Circle, Text, Path, Group, Polygon
-from pyschemaelectrical.model.constants import COLOR_WHITE, DEFAULT_DOC_WIDTH, DEFAULT_DOC_HEIGHT
+from typing import List, Tuple, Union
+
+from pyschemaelectrical.model.constants import (
+    COLOR_WHITE,
+    DEFAULT_DOC_HEIGHT,
+    DEFAULT_DOC_WIDTH,
+)
+from pyschemaelectrical.model.core import Style, Symbol
+from pyschemaelectrical.model.primitives import (
+    Circle,
+    Element,
+    Group,
+    Line,
+    Path,
+    Polygon,
+    Text,
+)
+
 
 def _style_to_str(style: Style) -> str:
     """
@@ -37,14 +51,14 @@ def _render_element(elem: Element, parent: ET.Element):
         e.set("x2", str(elem.end.x))
         e.set("y2", str(elem.end.y))
         e.set("style", _style_to_str(elem.style))
-    
+
     elif isinstance(elem, Circle):
         e = ET.SubElement(parent, "circle")
         e.set("cx", str(elem.center.x))
         e.set("cy", str(elem.center.y))
         e.set("r", str(elem.radius))
         e.set("style", _style_to_str(elem.style))
-        
+
     elif isinstance(elem, Text):
         e = ET.SubElement(parent, "text")
         e.set("x", str(elem.position.x))
@@ -56,7 +70,7 @@ def _render_element(elem: Element, parent: ET.Element):
             e.set("transform", f"rotate({elem.rotation}, {elem.position.x}, {elem.position.y})")
         e.text = elem.content
         e.set("style", _style_to_str(elem.style)) # Fill usually needed for text
-        
+
     elif isinstance(elem, Path):
         e = ET.SubElement(parent, "path")
         e.set("d", elem.d)
@@ -68,13 +82,13 @@ def _render_element(elem: Element, parent: ET.Element):
             g.set("style", _style_to_str(elem.style))
         for child in elem.elements:
             _render_element(child, g)
-            
+
     elif isinstance(elem, Polygon):
         e = ET.SubElement(parent, "polygon")
         points_str = " ".join([f"{p.x},{p.y}" for p in elem.points])
         e.set("points", points_str)
         e.set("style", _style_to_str(elem.style))
-            
+
     elif isinstance(elem, Symbol):
         # Symbol is effectively a group
         g = ET.SubElement(parent, "g")
@@ -95,14 +109,14 @@ def calculate_bounds(elements: List[Element]) -> Tuple[float, float, float, floa
     """
     min_x, min_y = float('inf'), float('inf')
     max_x, max_y = float('-inf'), float('-inf')
-    
+
     def expand(x, y):
         nonlocal min_x, min_y, max_x, max_y
         if x < min_x: min_x = x
         if y < min_y: min_y = y
         if x > max_x: max_x = x
         if y > max_y: max_y = y
-        
+
     def process(elem):
         if isinstance(elem, Line):
             expand(elem.start.x, elem.start.y)
@@ -118,22 +132,22 @@ def calculate_bounds(elements: List[Element]) -> Tuple[float, float, float, floa
             # Assume anchor is roughly center/start.
             expand(elem.position.x, elem.position.y)
             # Add a bit of padding for text
-            expand(elem.position.x + 10, elem.position.y + 5) 
+            expand(elem.position.x + 10, elem.position.y + 5)
             expand(elem.position.x - 10, elem.position.y - 5)
         elif isinstance(elem, (Group, Symbol)):
             for child in elem.elements:
                 process(child)
-    
+
     if not elements:
         return 0, 0, 100, 100
-        
+
     for e in elements:
         process(e)
-        
+
     # Validation if nothing updated
     if min_x == float('inf'):
         return 0, 0, 100, 100
-        
+
     return min_x, min_y, max_x, max_y
 
 def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC_WIDTH, height: Union[int, str] = DEFAULT_DOC_HEIGHT) -> ET.Element:
@@ -150,7 +164,7 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC
     """
     root = ET.Element("svg")
     root.set("xmlns", "http://www.w3.org/2000/svg")
-    
+
     # Calculate bounds if auto
     min_x, min_y, max_x, max_y = 0, 0, 0, 0
     if width == "auto" or height == "auto":
@@ -161,12 +175,12 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC
         min_y -= padding
         max_x += padding
         max_y += padding
-        
+
         content_w = max_x - min_x
         content_h = max_y - min_y
-        
+
     # Determine Width/Height strings and ViewBox
-    
+
     # helper
     def _parse_dim(val, default):
         if val == "auto": return None
@@ -182,25 +196,25 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC
 
     doc_w = _parse_dim(width, 210)
     doc_h = _parse_dim(height, 297)
-    
+
     if width == "auto":
         doc_w = content_w
-        
+
     if height == "auto":
         doc_h = content_h
-    
+
     root.set("width", f"{doc_w}mm")
     root.set("height", f"{doc_h}mm")
-    
+
     # ViewBox
     # If using fixed size, viewbox defaults to standard mapping (0 0 width height)
     # If using auto, viewbox matches bounds
-    
+
     if width == "auto" or height == "auto":
         root.set("viewBox", f"{min_x} {min_y} {doc_w} {doc_h}")
     else:
         root.set("viewBox", f"0 0 {doc_w} {doc_h}")
-    
+
     # Background for visibility
     bg = ET.SubElement(root, "rect")
     # For auto size, bg needs to cover viewbox
@@ -212,15 +226,15 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC
     else:
         bg.set("width", "100%")
         bg.set("height", "100%")
-        
+
     bg.set("fill", COLOR_WHITE)
-    
+
     # Main group
     main_g = ET.SubElement(root, "g")
-    
+
     for elem in elements:
         _render_element(elem, main_g)
-        
+
     return root
 
 def save_svg(root: ET.Element, filename: str):

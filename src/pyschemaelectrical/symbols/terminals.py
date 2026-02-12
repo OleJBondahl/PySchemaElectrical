@@ -1,12 +1,13 @@
 from dataclasses import dataclass, replace
-from typing import Dict, Optional, List, Tuple
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Element
-from pyschemaelectrical.model.parts import (
-    terminal_circle,
-    standard_text,
-    create_pin_labels,
-)
+from typing import Dict, List, Optional, Tuple
+
 from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
+from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
+from pyschemaelectrical.model.parts import (
+    create_pin_labels,
+    standard_text,
+    terminal_circle,
+)
 from pyschemaelectrical.utils.transform import translate
 
 """

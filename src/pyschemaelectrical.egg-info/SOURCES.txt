@@ -3,6 +3,11 @@ README.md
 pyproject.toml
 src/pyschemaelectrical/__init__.py
 src/pyschemaelectrical/builder.py
+src/pyschemaelectrical/descriptors.py
+src/pyschemaelectrical/exceptions.py
+src/pyschemaelectrical/plc.py
+src/pyschemaelectrical/terminal.py
+src/pyschemaelectrical/wire.py
 src/pyschemaelectrical.egg-info/PKG-INFO
 src/pyschemaelectrical.egg-info/SOURCES.txt
 src/pyschemaelectrical.egg-info/dependency_links.txt
@@ -15,6 +20,7 @@ src/pyschemaelectrical/model/constants.py
 src/pyschemaelectrical/model/core.py
 src/pyschemaelectrical/model/parts.py
 src/pyschemaelectrical/model/primitives.py
+src/pyschemaelectrical/model/state.py
 src/pyschemaelectrical/std_circuits/__init__.py
 src/pyschemaelectrical/std_circuits/control.py
 src/pyschemaelectrical/std_circuits/motor.py

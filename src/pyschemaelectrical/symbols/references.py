@@ -1,14 +1,14 @@
-from typing import List, Tuple, Dict, Any
 from dataclasses import dataclass
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Element
-from pyschemaelectrical.model.parts import standard_style, standard_text
-from pyschemaelectrical.model.primitives import Line, Polygon
+from typing import Dict, List, Tuple
 
 from pyschemaelectrical.model.constants import (
-    REF_ARROW_LENGTH,
     REF_ARROW_HEAD_LENGTH,
     REF_ARROW_HEAD_WIDTH,
+    REF_ARROW_LENGTH,
 )
+from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
+from pyschemaelectrical.model.parts import standard_style, standard_text
+from pyschemaelectrical.model.primitives import Line, Polygon
 
 
 @dataclass(frozen=True)

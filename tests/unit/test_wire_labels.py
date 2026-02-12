@@ -1,15 +1,14 @@
-import pytest
-from pyschemaelectrical.model.core import Point, Style
+from pyschemaelectrical.layout.wire_labels import (
+    add_wire_labels_to_circuit,
+    calculate_wire_label_position,
+    create_labeled_wire,
+    create_wire_label_text,
+    find_vertical_wires,
+    format_wire_specification,
+)
+from pyschemaelectrical.model.core import Point
 from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.system.system import Circuit
-from pyschemaelectrical.layout.wire_labels import (
-    calculate_wire_label_position,
-    format_wire_specification,
-    create_wire_label_text,
-    create_labeled_wire,
-    find_vertical_wires,
-    add_wire_labels_to_circuit,
-)
 
 
 class TestWireLabels:
@@ -98,8 +97,8 @@ class TestWireLabels:
 
     def test_add_wire_labels_returns_new_circuit(self):
         """add_wire_labels_to_circuit should return new Circuit, not mutate."""
-        from pyschemaelectrical.system.system import Circuit
         from pyschemaelectrical.model.parts import standard_style
+        from pyschemaelectrical.system.system import Circuit
 
         # Create circuit with vertical wire
         wire = Line(Point(0, 0), Point(0, 20), standard_style())

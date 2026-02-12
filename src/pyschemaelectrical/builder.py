@@ -9,14 +9,14 @@ and multi-pole wiring.
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.symbols.terminals import (
     terminal_symbol,
     three_pole_terminal_symbol,
 )
-from pyschemaelectrical.utils.autonumbering import next_terminal_pins, next_tag
-from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.system.connection_registry import register_connection
+from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
 from pyschemaelectrical.utils.utils import set_tag_counter, set_terminal_counter
 
 
@@ -49,6 +49,9 @@ class ComponentSpec:
     # Connection control
     auto_connect_next: bool = True
 
+    # Horizontal placement reference (index of component this was placed_right of)
+    placed_right_of: Optional[int] = None
+
     def get_y_increment(self, default: float) -> float:
         return self.y_increment if self.y_increment is not None else default
 
@@ -63,6 +66,49 @@ class CircuitSpec:
         default_factory=list
     )
     terminal_map: Dict[str, Any] = field(default_factory=dict)
+    # Horizontal matching connections: (idx_a, idx_b, pin_filter, side_a, side_b)
+    matching_connections: List[Tuple[int, int, Optional[List[str]], str, str]] = field(
+        default_factory=list
+    )
+
+
+# ---------------------------------------------------------------------------
+# ComponentRef / PortRef — named component references (Task 9A)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class PortRef:
+    """Reference to a specific port on a component."""
+
+    component: "ComponentRef"
+    port: Union[str, int]  # Pin name ("L", "A1") or pole index (0, 1, 2)
+
+
+@dataclass
+class ComponentRef:
+    """
+    Reference to a component in a CircuitBuilder.
+
+    Supports tuple unpacking for backwards compatibility:
+        _, idx = builder.add_component(...)   # still works
+    """
+
+    _builder: "CircuitBuilder"
+    _index: int
+    tag_prefix: str = ""
+
+    def pin(self, pin_id: str) -> PortRef:
+        """Reference a specific port by pin name."""
+        return PortRef(self, pin_id)
+
+    def pole(self, pole_idx: int) -> PortRef:
+        """Reference a port by pole index (backwards compatibility)."""
+        return PortRef(self, pole_idx)
+
+    def __iter__(self):
+        """Support tuple unpacking: _, idx = builder.add_component(...)"""
+        return iter((self._builder, self._index))
 
 
 @dataclass
@@ -77,6 +123,25 @@ class BuildResult:
     def __iter__(self):
         return iter((self.state, self.circuit, self.used_terminals))
 
+    def reuse_tags(self, prefix: str) -> Callable:
+        """
+        Returns a tag generator that yields tags from this result's component_map.
+
+        Use with the reuse_tags parameter on build():
+            result_b = builder_b.build(reuse_tags={"K": result_a})
+        """
+        tags = iter(self.component_map.get(prefix, []))
+
+        def generator(state):
+            from pyschemaelectrical.exceptions import TagReuseExhausted
+
+            try:
+                return state, next(tags)
+            except StopIteration:
+                raise TagReuseExhausted(prefix, list(self.component_map.get(prefix, [])))
+
+        return generator
+
 
 class CircuitBuilder:
     """
@@ -87,6 +152,8 @@ class CircuitBuilder:
     def __init__(self, state: Any):
         self._initial_state = state
         self._spec = CircuitSpec()
+        # Fixed tag generators added by add_reference()
+        self._fixed_tag_generators: Dict[str, Callable] = {}
 
     def set_layout(
         self, x: float, y: float, spacing: float = 150, symbol_spacing: float = 50
@@ -108,10 +175,11 @@ class CircuitBuilder:
         y_increment: Optional[float] = None,
         auto_connect_next: bool = True,
         **kwargs,
-    ) -> Tuple["CircuitBuilder", int]:
+    ) -> "ComponentRef":
         """
         Add a terminal block.
-        Returns: (builder_instance, component_index)
+
+        Returns: ComponentRef (supports tuple unpacking: _, idx = builder.add_terminal(...))
         """
         if logical_name:
             self._spec.terminal_map[logical_name] = tm_id
@@ -132,7 +200,8 @@ class CircuitBuilder:
             },
         )
         self._spec.components.append(spec)
-        return self, len(self._spec.components) - 1
+        idx = len(self._spec.components) - 1
+        return ComponentRef(self, idx, str(tm_id))
 
     def add_component(
         self,
@@ -144,10 +213,11 @@ class CircuitBuilder:
         y_increment: Optional[float] = None,
         auto_connect_next: bool = True,
         **kwargs,
-    ) -> Tuple["CircuitBuilder", int]:
+    ) -> "ComponentRef":
         """
         Add a generic component/symbol.
-        Returns: (builder_instance, component_index)
+
+        Returns: ComponentRef (supports tuple unpacking: _, idx = builder.add_component(...))
         """
         spec = ComponentSpec(
             func=symbol_func,
@@ -161,7 +231,190 @@ class CircuitBuilder:
             kwargs=kwargs,
         )
         self._spec.components.append(spec)
-        return self, len(self._spec.components) - 1
+        idx = len(self._spec.components) - 1
+        return ComponentRef(self, idx, tag_prefix)
+
+    def add_reference(
+        self,
+        ref_id: str,
+        x_offset: float = 0.0,
+        y_increment: Optional[float] = None,
+        auto_connect_next: bool = True,
+        **kwargs,
+    ) -> "ComponentRef":
+        """
+        Add a reference symbol (e.g., PLC:DO, PLC:AI).
+
+        Reference symbols always use their ID as the tag (not auto-numbered).
+        No manual tag_generators setup needed.
+
+        Args:
+            ref_id: The reference identifier (e.g., "PLC:DO").
+            x_offset: Horizontal offset.
+            y_increment: Vertical spacing override.
+            auto_connect_next: Whether to auto-connect to next component.
+
+        Returns: ComponentRef
+        """
+        from pyschemaelectrical.symbols.references import ref_symbol
+
+        # Register a fixed tag generator for this reference ID
+        def fixed_gen(state):
+            return state, ref_id
+
+        self._fixed_tag_generators[ref_id] = fixed_gen
+
+        return self.add_component(
+            ref_symbol,
+            tag_prefix=ref_id,
+            x_offset=x_offset,
+            y_increment=y_increment,
+            auto_connect_next=auto_connect_next,
+            **kwargs,
+        )
+
+    def place_right(
+        self,
+        ref: "ComponentRef",
+        symbol_func: Callable,
+        tag_prefix: str,
+        pins: Optional[Union[List[str], Tuple[str, ...]]] = None,
+        spacing: float = 40.0,
+        poles: int = 1,
+        auto_connect_next: bool = False,
+        **kwargs,
+    ) -> "ComponentRef":
+        """
+        Place a component to the right of an existing one at the same Y position.
+
+        Does NOT advance the vertical stack pointer. The next add_component()
+        will be placed below the last vertically-added component, not below this one.
+
+        Args:
+            ref: ComponentRef of the component to place next to.
+            symbol_func: Symbol factory function.
+            tag_prefix: Tag prefix for autonumbering.
+            pins: Pin names.
+            spacing: Horizontal distance from ref component.
+            poles: Number of poles.
+            auto_connect_next: Whether to auto-connect to next component (default False).
+
+        Returns: ComponentRef for the new component.
+        """
+        ref_idx = ref._index
+
+        spec = ComponentSpec(
+            func=symbol_func,
+            tag_prefix=tag_prefix,
+            kind="symbol",
+            poles=poles,
+            pins=pins,
+            x_offset=spacing,  # x_offset relative to the reference component
+            y_increment=0,  # Don't advance vertical stack
+            auto_connect_next=auto_connect_next,
+            kwargs=kwargs,
+            placed_right_of=ref_idx,
+        )
+        self._spec.components.append(spec)
+        idx = len(self._spec.components) - 1
+        return ComponentRef(self, idx, tag_prefix)
+
+    def connect_matching(
+        self,
+        ref_a: "ComponentRef",
+        ref_b: "ComponentRef",
+        pins: Optional[List[str]] = None,
+        side_a: str = "right",
+        side_b: str = "left",
+    ) -> "CircuitBuilder":
+        """
+        Connect two components horizontally on pins that share the same name.
+
+        Draws horizontal wires between matching pin pairs. Only pins with
+        identical names on both components are connected.
+
+        Args:
+            ref_a: First component reference.
+            ref_b: Second component reference.
+            pins: Explicit pin filter. If None, connects all matching pins.
+            side_a: Connection side on ref_a (default "right").
+            side_b: Connection side on ref_b (default "left").
+
+        Returns: self for chaining.
+        """
+        self._spec.matching_connections.append(
+            (ref_a._index, ref_b._index, pins, side_a, side_b)
+        )
+        return self
+
+    def connect(
+        self,
+        a: PortRef,
+        b: PortRef,
+        side_a: Optional[str] = None,
+        side_b: Optional[str] = None,
+    ) -> "CircuitBuilder":
+        """
+        Connect two ports by pin name or pole index.
+
+        This is the pin-based connection API that coexists with add_connection().
+
+        Args:
+            a: Source port reference (e.g., tm.pin("1") or cb.pole(0)).
+            b: Target port reference (e.g., cb.pin("1") or psu.pin("L")).
+            side_a: Connection side on component a. If None, inferred.
+            side_b: Connection side on component b. If None, inferred.
+
+        Returns: self for chaining.
+        """
+        # Resolve pin names to pole indices
+        idx_a = a.component._index
+        idx_b = b.component._index
+        pole_a = self._resolve_port_ref_to_pole(a)
+        pole_b = self._resolve_port_ref_to_pole(b)
+
+        # Default sides
+        if side_a is None:
+            side_a = "bottom"
+        if side_b is None:
+            side_b = "top"
+
+        return self.add_connection(idx_a, pole_a, idx_b, pole_b, side_a, side_b)
+
+    def _resolve_port_ref_to_pole(self, port_ref: PortRef) -> int:
+        """Resolve a PortRef to a pole index."""
+        if isinstance(port_ref.port, int):
+            return port_ref.port
+
+        # It's a pin name — find the pole index
+        idx = port_ref.component._index
+        spec = self._spec.components[idx]
+
+        if spec.pins:
+            pins_list = list(spec.pins)
+            # Check for interleaved In/Out pairs (poles * 2 pins)
+            if len(pins_list) == spec.poles * 2:
+                # Find the pin in the interleaved list, convert to pole
+                for i, pin in enumerate(pins_list):
+                    if pin == port_ref.port:
+                        return i // 2 if spec.kind == "symbol" else i // 2
+                # Also check direct index
+                try:
+                    return pins_list.index(port_ref.port)
+                except ValueError:
+                    pass
+            else:
+                # Direct indexing
+                try:
+                    return pins_list.index(port_ref.port)
+                except ValueError:
+                    pass
+
+        from pyschemaelectrical.exceptions import PortNotFoundError
+
+        available = list(spec.pins) if spec.pins else []
+        tag = spec.tag_prefix or spec.kwargs.get("tm_id", "unknown")
+        raise PortNotFoundError(str(tag), str(port_ref.port), available)
 
     def add_connection(
         self,
@@ -206,8 +459,26 @@ class CircuitBuilder:
         terminal_start_indices: Optional[Dict[str, int]] = None,
         tag_generators: Optional[Dict[str, Callable]] = None,
         terminal_maps: Optional[Dict[str, Any]] = None,
+        reuse_tags: Optional[Dict[str, "BuildResult"]] = None,
+        wire_labels: Optional[List[str]] = None,
     ) -> BuildResult:
-        """Generate the circuits."""
+        """
+        Generate the circuits.
+
+        Args:
+            count: Number of circuit instances to create.
+            start_indices: Override tag counters (e.g., {"K": 3}).
+            terminal_start_indices: Override terminal pin counters.
+            tag_generators: Custom tag generator functions.
+            terminal_maps: Terminal ID overrides by logical name.
+            reuse_tags: Dict mapping tag prefix to BuildResult whose tags to reuse.
+                        e.g., {"K": coil_result} reuses K tags from coil_result.
+            wire_labels: Wire label strings to apply to vertical wires.
+                         Applied per instance (cycled if count > 1).
+
+        Returns:
+            BuildResult with state, circuit, used_terminals, and component_map.
+        """
         self._validate_connections()
         state = self._initial_state
 
@@ -218,6 +489,20 @@ class CircuitBuilder:
         if terminal_start_indices:
             for t_id, val in terminal_start_indices.items():
                 state = set_terminal_counter(state, t_id, val)
+
+        # Build effective tag_generators by merging fixed generators,
+        # reuse_tags generators, and explicit tag_generators.
+        effective_generators = self._fixed_tag_generators.copy()
+        if reuse_tags:
+            for prefix, source_result in reuse_tags.items():
+                if isinstance(source_result, BuildResult):
+                    effective_generators[prefix] = source_result.reuse_tags(prefix)
+                elif callable(source_result):
+                    effective_generators[prefix] = source_result
+        if tag_generators:
+            effective_generators.update(tag_generators)
+
+        final_tag_generators = effective_generators if effective_generators else None
 
         captured_tags: Dict[str, List[str]] = {}
 
@@ -245,11 +530,17 @@ class CircuitBuilder:
             tm,
             instance: single_instance_gen(s, x, y, gens, tm),
             default_tag_generators={},
-            tag_generators=tag_generators,
+            tag_generators=final_tag_generators,
             terminal_maps=terminal_maps,
         )
 
         c = Circuit(elements=elements)
+
+        # Apply wire labels if provided
+        if wire_labels is not None:
+            from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+
+            c = add_wire_labels_to_circuit(c, wire_labels)
 
         # Extract used terminals
         used_terminals = []
@@ -288,8 +579,11 @@ def _create_single_circuit_from_spec(
     realized_components = []
     current_y = y
 
+    # Track the last vertically-added component's Y for place_right support
+    last_vertical_y = y
+
     # --- Phase 1: State Mutation & Tagging ---
-    for component_spec in spec.components:
+    for comp_idx, component_spec in enumerate(spec.components):
         tag = None
         pins = []
 
@@ -325,12 +619,20 @@ def _create_single_circuit_from_spec(
             if component_spec.pins:
                 pins = list(component_spec.pins)
 
+        # Handle Y position for placed_right_of components
+        if component_spec.placed_right_of is not None:
+            # Use the Y of the reference component, not the current stack pointer
+            ref_rc = realized_components[component_spec.placed_right_of]
+            comp_y = ref_rc["y"]
+        else:
+            comp_y = current_y
+            # Only advance vertical stack for normally-placed components
+            y_inc = component_spec.get_y_increment(spec.layout.symbol_spacing)
+            current_y += y_inc
+
         realized_components.append(
-            {"spec": component_spec, "tag": tag, "pins": pins, "y": current_y}
+            {"spec": component_spec, "tag": tag, "pins": pins, "y": comp_y}
         )
-        # Increment Y
-        y_inc = component_spec.get_y_increment(spec.layout.symbol_spacing)
-        current_y += y_inc
 
     # --- Phase 2: Connection Registration ---
     # 1. Automatic Linear Connections
@@ -339,6 +641,10 @@ def _create_single_circuit_from_spec(
         next_comp = realized_components[i + 1]
 
         if not curr["spec"].auto_connect_next:
+            continue
+
+        # Skip auto-connect for place_right components
+        if next_comp["spec"].placed_right_of is not None:
             continue
 
         poles = min(curr["spec"].poles, next_comp["spec"].poles)
@@ -393,14 +699,24 @@ def _create_single_circuit_from_spec(
             )
 
     # --- Phase 3: Instantiation ---
-    from pyschemaelectrical.model.primitives import Line
     from pyschemaelectrical.model.parts import standard_style
+    from pyschemaelectrical.model.primitives import Line
 
-    for rc in realized_components:
+    for comp_idx, rc in enumerate(realized_components):
         component_spec = rc["spec"]
         tag = rc["tag"]
 
-        final_x = x + component_spec.x_offset
+        # Calculate X position
+        if component_spec.placed_right_of is not None:
+            ref_rc = realized_components[component_spec.placed_right_of]
+            ref_x_offset = ref_rc["spec"].x_offset
+            if ref_rc["spec"].placed_right_of is not None:
+                # Chain: this is placed right of something also placed right
+                # Walk back to get the absolute x offset
+                ref_x_offset = _get_absolute_x_offset(realized_components, component_spec.placed_right_of)
+            final_x = x + ref_x_offset + component_spec.x_offset
+        else:
+            final_x = x + component_spec.x_offset
 
         sym = None
         if component_spec.kind == "terminal":
@@ -421,13 +737,7 @@ def _create_single_circuit_from_spec(
         if sym:
             # Respect auto_connect configuration
             if not component_spec.auto_connect_next:
-                # We need to set this attribute on the symbol instance
-                # Since Symbol is frozen (dataclass), we might need to recreate or use object setattr if not frozen
-                # Symbol is frozen=True? Let's check.
-                # Actually, Symbol is frozen. But we can't easily modify it.
-                # However, system.auto_connect_circuit checks `s.skip_auto_connect`.
-                # We can't set it if it's frozen.
-                # Workaround: Symbol might not be frozen in all versions or we use replace.
+                # Since Symbol is frozen, use replace
                 from dataclasses import replace
 
                 sym = replace(sym, skip_auto_connect=True)
@@ -462,10 +772,49 @@ def _create_single_circuit_from_spec(
             line = Line(port_a.position, port_b.position, style)
             c.elements.append(line)
 
-    # 2. Auto Connections
+    # 2. Matching Connections Rendering (connect_matching)
+    for idx_a, idx_b, pin_filter, side_a, side_b in spec.matching_connections:
+        if idx_a >= len(realized_components) or idx_b >= len(realized_components):
+            continue
+
+        comp_a = realized_components[idx_a]
+        comp_b = realized_components[idx_b]
+
+        if "symbol" not in comp_a or "symbol" not in comp_b:
+            continue
+
+        sym_a = comp_a["symbol"]
+        sym_b = comp_b["symbol"]
+
+        # Find matching pin names
+        pins_a = set(comp_a["pins"]) if comp_a["pins"] else set()
+        pins_b = set(comp_b["pins"]) if comp_b["pins"] else set()
+        common_pins = pins_a & pins_b
+
+        if pin_filter is not None:
+            common_pins = common_pins & set(pin_filter)
+
+        # Draw horizontal wires for each matching pin
+        for pin_name in common_pins:
+            port_a = sym_a.ports.get(pin_name)
+            port_b = sym_b.ports.get(pin_name)
+            if port_a and port_b:
+                line = Line(port_a.position, port_b.position, style)
+                c.elements.append(line)
+
+    # 3. Auto Connections
     auto_connect_circuit(c)
 
     return state, c.elements, instance_tags
+
+
+def _get_absolute_x_offset(realized_components, comp_idx):
+    """Walk back through place_right chain to compute absolute x offset."""
+    rc = realized_components[comp_idx]
+    x_offset = rc["spec"].x_offset
+    if rc["spec"].placed_right_of is not None:
+        x_offset += _get_absolute_x_offset(realized_components, rc["spec"].placed_right_of)
+    return x_offset
 
 
 def _resolve_pin(component_data, pole_idx, is_input):

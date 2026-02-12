@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 from typing import List, Union
-from pyschemaelectrical.model.core import Symbol, Element
-from pyschemaelectrical.utils.transform import translate
+
 from pyschemaelectrical.layout.layout import auto_connect
+from pyschemaelectrical.model.core import Element, Symbol
 from pyschemaelectrical.utils.renderer import (
     render_to_svg,
 )
+from pyschemaelectrical.utils.transform import translate
 
 
 @dataclass

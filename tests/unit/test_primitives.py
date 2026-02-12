@@ -1,6 +1,6 @@
-import pytest
 from pyschemaelectrical.model.core import Point, Style
-from pyschemaelectrical.model.primitives import Line, Circle, Text, Path, Group, Polygon
+from pyschemaelectrical.model.primitives import Circle, Group, Line, Path, Polygon, Text
+
 
 class TestPrimitivesUnit:
     def test_line(self):

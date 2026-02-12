@@ -7,9 +7,9 @@ standard circuits library.
 
 from pathlib import Path
 
-from .constants import Paths, Terminals
-
 from pyschemaelectrical import create_autonumberer, render_system, std_circuits
+
+from .constants import Paths, Terminals
 
 
 def main():

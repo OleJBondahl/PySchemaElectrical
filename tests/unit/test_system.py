@@ -1,6 +1,5 @@
 """Unit tests for system module."""
 
-import pytest
 from pyschemaelectrical.system.system import Circuit, merge_circuits
 
 

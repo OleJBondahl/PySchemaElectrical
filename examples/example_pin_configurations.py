@@ -7,9 +7,9 @@ This example demonstrates three different ways to use the create_dol_starter fun
 3. Setting specific terminal and symbol pin numbers
 """
 
-from pyschemaelectrical.utils.autonumbering import create_autonumberer
 from pyschemaelectrical.std_circuits import dol_starter
 from pyschemaelectrical.system.system import render_system
+from pyschemaelectrical.utils.autonumbering import create_autonumberer
 
 
 def main():

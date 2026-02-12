@@ -1,10 +1,11 @@
-from dataclasses import replace
-from typing import Dict, List, Optional, Tuple
-from pyschemaelectrical.model.core import Point, Vector, Port, Symbol, Style
-from pyschemaelectrical.model.primitives import Line, Circle, Element, Text
-from pyschemaelectrical.model.parts import standard_style, standard_text
-from pyschemaelectrical.model.constants import GRID_SIZE, COLOR_BLACK
+from typing import Dict, List, Tuple
+
+from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.model.core import Point, Port, Symbol
+from pyschemaelectrical.model.parts import standard_style
+from pyschemaelectrical.model.primitives import Circle, Element, Line
 from pyschemaelectrical.utils.transform import translate
+
 from .blocks import terminal_box_symbol
 
 

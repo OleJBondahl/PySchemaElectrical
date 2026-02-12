@@ -1,12 +1,13 @@
 from typing import List
-from pyschemaelectrical.model.core import Symbol, Point, Vector, Port, Style, Element
-from pyschemaelectrical.model.primitives import Circle, Line, Text
+
+from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.model.core import Element, Point, Port, Style, Symbol, Vector
 from pyschemaelectrical.model.parts import (
+    create_pin_labels,
     standard_style,
     standard_text,
-    create_pin_labels,
 )
-from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.model.primitives import Circle, Line, Text
 
 """
 IEC 60617 Motor Symbols.
@@ -52,6 +53,7 @@ def three_pole_motor_symbol(
         Symbol: The 3-phase motor symbol.
     """
     import math
+
     from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
 
     style = standard_style()
@@ -75,8 +77,8 @@ def three_pole_motor_symbol(
     # Add component tag inside the circle - centered using standard label style
     if label:
         # Use anchor="middle" to truly center the label
+        from pyschemaelectrical.model.constants import COLOR_BLACK, TEXT_FONT_FAMILY
         from pyschemaelectrical.model.primitives import Text
-        from pyschemaelectrical.model.constants import TEXT_FONT_FAMILY, COLOR_BLACK
 
         label_text = Text(
             content=label,
@@ -147,11 +149,11 @@ def three_pole_motor_symbol(
         # Manually create labels to ensure they match the geometric order (Left -> Right)
         # create_pin_labels sorts by key, which scrambles semantic ordering (e.g. U, V, W)
         from pyschemaelectrical.model.parts import (
+            COLOR_BLACK,
             PIN_LABEL_OFFSET_X,
             PIN_LABEL_OFFSET_Y_ADJUST,
-            TEXT_SIZE_PIN,
             TEXT_FONT_FAMILY_AUX,
-            COLOR_BLACK,
+            TEXT_SIZE_PIN,
         )
 
         for i, pin_text in enumerate(pin_labels):
@@ -230,7 +232,7 @@ def motor_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     elements.append(circle)
 
     # Add "M" text
-    from pyschemaelectrical.model.constants import TEXT_FONT_FAMILY, COLOR_BLACK
+    from pyschemaelectrical.model.constants import COLOR_BLACK, TEXT_FONT_FAMILY
 
     m_text = Text(
         content="M",
