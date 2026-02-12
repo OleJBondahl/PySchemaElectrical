@@ -19,6 +19,7 @@ from pyschemaelectrical.utils.transform import translate
 from .constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
+    GRID_SIZE,
     LINE_WIDTH_THIN,
     PIN_LABEL_OFFSET_X,
     PIN_LABEL_OFFSET_Y_ADJUST,

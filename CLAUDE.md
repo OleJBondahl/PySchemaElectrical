@@ -29,7 +29,11 @@ $env:PYTEST_UPDATE_SNAPSHOTS="1"; pytest    # PowerShell
 PYTEST_UPDATE_SNAPSHOTS=1 pytest            # bash
 
 # Type checking
-mypy src/
+uv run ty check
+
+# code formatting and linting
+uv run ruff check
+uv run ruff format
 
 # Run an example
 python examples/example_dol_starter.py

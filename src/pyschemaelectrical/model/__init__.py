@@ -1,4 +1,4 @@
-from .constants import *
 from .core import *
-from .parts import *
 from .primitives import *
+from .parts import *
+from .constants import *
