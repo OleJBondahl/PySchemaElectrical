@@ -1,9 +1,9 @@
 """
 Unified Circuit Builder.
 
-This module provides a powerful, high-level API for constructing electrical circuits.
-It abstracts away the complexity of coordinate management, manual connection registration,
-and multi-pole wiring.
+This module provides a powerful, high-level API for constructing
+electrical circuits. It abstracts away the complexity of coordinate
+management, manual connection registration, and multi-pole wiring.
 """
 
 from dataclasses import dataclass, field
@@ -138,7 +138,9 @@ class BuildResult:
             try:
                 return state, next(tags)
             except StopIteration:
-                raise TagReuseExhausted(prefix, list(self.component_map.get(prefix, [])))
+                raise TagReuseExhausted(
+                    prefix, list(self.component_map.get(prefix, []))
+                ) from None
 
         return generator
 
@@ -179,7 +181,8 @@ class CircuitBuilder:
         """
         Add a terminal block.
 
-        Returns: ComponentRef (supports tuple unpacking: _, idx = builder.add_terminal(...))
+        Returns: ComponentRef (supports tuple unpacking:
+            _, idx = builder.add_terminal(...))
         """
         if logical_name:
             self._spec.terminal_map[logical_name] = tm_id
@@ -217,7 +220,8 @@ class CircuitBuilder:
         """
         Add a generic component/symbol.
 
-        Returns: ComponentRef (supports tuple unpacking: _, idx = builder.add_component(...))
+        Returns: ComponentRef (supports tuple unpacking:
+            _, idx = builder.add_component(...))
         """
         spec = ComponentSpec(
             func=symbol_func,
@@ -297,7 +301,8 @@ class CircuitBuilder:
             pins: Pin names.
             spacing: Horizontal distance from ref component.
             poles: Number of poles.
-            auto_connect_next: Whether to auto-connect to next component (default False).
+            auto_connect_next: Whether to auto-connect to next
+                component (default False).
 
         Returns: ComponentRef for the new component.
         """
@@ -446,7 +451,7 @@ class CircuitBuilder:
 
         max_idx = len(self._spec.components) - 1
 
-        for idx_a, p_a, idx_b, p_b, side_a, side_b in self._spec.manual_connections:
+        for idx_a, _p_a, idx_b, _p_b, _side_a, _side_b in self._spec.manual_connections:
             if idx_a > max_idx:
                 raise ComponentNotFoundError(idx_a, max_idx)
             if idx_b > max_idx:
@@ -523,12 +528,9 @@ class CircuitBuilder:
             start_y=self._spec.layout.start_y,
             count=count,
             spacing=self._spec.layout.spacing,
-            generator_func_single=lambda s,
-            x,
-            y,
-            gens,
-            tm,
-            instance: single_instance_gen(s, x, y, gens, tm),
+            generator_func_single=lambda s, x, y, gens, tm, instance: (
+                single_instance_gen(s, x, y, gens, tm)
+            ),
             default_tag_generators={},
             tag_generators=final_tag_generators,
             terminal_maps=terminal_maps,
@@ -579,11 +581,8 @@ def _create_single_circuit_from_spec(
     realized_components = []
     current_y = y
 
-    # Track the last vertically-added component's Y for place_right support
-    last_vertical_y = y
-
     # --- Phase 1: State Mutation & Tagging ---
-    for comp_idx, component_spec in enumerate(spec.components):
+    for _comp_idx, component_spec in enumerate(spec.components):
         tag = None
         pins = []
 
@@ -702,7 +701,7 @@ def _create_single_circuit_from_spec(
     from pyschemaelectrical.model.parts import standard_style
     from pyschemaelectrical.model.primitives import Line
 
-    for comp_idx, rc in enumerate(realized_components):
+    for _comp_idx, rc in enumerate(realized_components):
         component_spec = rc["spec"]
         tag = rc["tag"]
 
@@ -713,7 +712,9 @@ def _create_single_circuit_from_spec(
             if ref_rc["spec"].placed_right_of is not None:
                 # Chain: this is placed right of something also placed right
                 # Walk back to get the absolute x offset
-                ref_x_offset = _get_absolute_x_offset(realized_components, component_spec.placed_right_of)
+                ref_x_offset = _get_absolute_x_offset(
+                    realized_components, component_spec.placed_right_of
+                )
             final_x = x + ref_x_offset + component_spec.x_offset
         else:
             final_x = x + component_spec.x_offset
@@ -729,7 +730,8 @@ def _create_single_circuit_from_spec(
         elif component_spec.kind == "symbol":
             kwargs = component_spec.kwargs.copy()
             if rc["pins"]:
-                # Explicitly pass resolved pins to the symbol factory so it can render labels
+                # Pass resolved pins to the symbol factory
+                # so it can render labels
                 sym = component_spec.func(tag, pins=rc["pins"], **kwargs)
             else:
                 sym = component_spec.func(tag, **kwargs)
@@ -773,7 +775,7 @@ def _create_single_circuit_from_spec(
             c.elements.append(line)
 
     # 2. Matching Connections Rendering (connect_matching)
-    for idx_a, idx_b, pin_filter, side_a, side_b in spec.matching_connections:
+    for idx_a, idx_b, pin_filter, _side_a, _side_b in spec.matching_connections:
         if idx_a >= len(realized_components) or idx_b >= len(realized_components):
             continue
 
@@ -813,7 +815,9 @@ def _get_absolute_x_offset(realized_components, comp_idx):
     rc = realized_components[comp_idx]
     x_offset = rc["spec"].x_offset
     if rc["spec"].placed_right_of is not None:
-        x_offset += _get_absolute_x_offset(realized_components, rc["spec"].placed_right_of)
+        x_offset += _get_absolute_x_offset(
+            realized_components, rc["spec"].placed_right_of
+        )
     return x_offset
 
 
@@ -824,14 +828,16 @@ def _resolve_pin(component_data, pole_idx, is_input):
     This function uses several heuristics to determine the correct port ID:
 
     1. Terminals (kind="terminal"):
-       - Always use fixed port IDs based on pole index: (pole * 2) + (1 for input, 2 for output).
+       - Always use fixed port IDs based on pole index:
+         (pole * 2) + (1 for input, 2 for output).
        - Examples: Pole 0 -> In="1", Out="2". Pole 1 -> In="3", Out="4".
 
     2. Symbols (kind="symbol") with explicit 'pins' list:
        - If 'pins' length is exactly (poles * 2): Assumes interleaved In/Out pairs.
            - Pole 0 -> In=pins[0], Out=pins[1]
            - Pole 1 -> In=pins[2], Out=pins[3]
-       - Otherwise: Assumes 'pins' maps directly to poles, regardless of input/output (Direct Indexing).
+       - Otherwise: Assumes 'pins' maps directly to poles,
+         regardless of input/output (Direct Indexing).
            - Pole 0 -> pins[0]
            - Pole 1 -> pins[1]
            - This is used for components with named ports like ["L", "N", "PE"].
@@ -860,7 +866,8 @@ def _resolve_pin(component_data, pole_idx, is_input):
     # CASE 2: Symbols
     # Use explicit pins if provided (Mapping label to Port ID)
     if component_data["pins"]:
-        # Logic: If provided pins list is large enough to cover distinct In/Out pins per pole
+        # Logic: If provided pins list is large enough to cover
+        # distinct In/Out pins per pole
         # e.g. ["A1", "A2"] for 1 pole -> In=A1, Out=A2
         # e.g. ["1", "2", "3", "4"] for 2 pole -> In1=1, Out1=2, In2=3, Out2=4
         if len(component_data["pins"]) == spec.poles * 2:
@@ -868,7 +875,8 @@ def _resolve_pin(component_data, pole_idx, is_input):
             if idx < len(component_data["pins"]):
                 return component_data["pins"][idx]
 
-        # For symbols with custom named ports (e.g. PSU with ["L", "N", "PE", "24V", "GND"])
+        # For symbols with custom named ports
+        # (e.g. PSU with ["L", "N", "PE", "24V", "GND"])
         # Or short pins list - use pole_idx directly
         if pole_idx < len(component_data["pins"]):
             return component_data["pins"][pole_idx]
@@ -884,8 +892,10 @@ def _resolve_registry_pin(component_data, pole_idx):
     """
     Resolve the physical pin number (label) for the registry.
 
-    For Terminals: Returns the assigned terminal number (e.g. "42"), not the internal port ID.
-    For Symbols: Returns the pin label (e.g. "A1"), ensuring consistency with _resolve_pin.
+    For Terminals: Returns the assigned terminal number
+    (e.g. "42"), not the internal port ID.
+    For Symbols: Returns the pin label (e.g. "A1"),
+    ensuring consistency with _resolve_pin.
     """
     spec = component_data["spec"]
 
@@ -900,13 +910,16 @@ def _resolve_registry_pin(component_data, pole_idx):
         # But here we just want a logical ID.
         # For a 1-pole terminal without explicit pins, we might assume it is "1", "2"...
         # relative to the start of the block?
-        # Actually, standard behavior without pins is undefined for registry if we want accurate numbering.
+        # Actually, standard behavior without pins is
+        # undefined for registry if we want accurate
+        # numbering.
         # But let's fallback to returning a 1-based index based on pole.
         return str(pole_idx + 1)
 
     # CASE 2: Symbols
     # For symbols, the "Pin" in registry is usually the specific port label (e.g. "A1").
-    # Note: Registry doesn't strictly care about Input/Output distinction in the *name* of the pin,
+    # Note: Registry doesn't strictly care about
+    # Input/Output distinction in the *name* of the pin,
     # it cares about the *label* of the pin we connect to.
 
     # We must determine which pin (Input or Output side) we are talking about.
@@ -917,6 +930,7 @@ def _resolve_registry_pin(component_data, pole_idx):
 
     # So we can't implement this universally without knowing 'is_input'.
     # But wait, the problematic case is ONLY Terminals.
-    # For Symbols, `_resolve_pin` logic (returning "A1" or "A2") is exactly what we want.
+    # For Symbols, `_resolve_pin` logic (returning "A1" or
+    # "A2") is exactly what we want.
 
     return None  # Should use _resolve_pin for symbols

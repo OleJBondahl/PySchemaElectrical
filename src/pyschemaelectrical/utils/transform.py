@@ -9,6 +9,8 @@ from pyschemaelectrical.model.primitives import Circle, Group, Line, Polygon, Te
 
 T = TypeVar("T", bound=Union[Element, Point, Port, Vector])
 
+_ORIGIN = Point(0, 0)
+
 
 def translate(obj: T, dx: float, dy: float) -> T:
     """
@@ -57,17 +59,19 @@ def translate(obj: T, dx: float, dy: float) -> T:
         new_ports = {k: translate(p, dx, dy) for k, p in obj.ports.items()}
         return cast(T, replace(obj, elements=new_elements, ports=new_ports))
 
-    # TODO: Implement Path translation (requires parsing d string or simple regex shift if assuming absolute coords)
+    # TODO: Implement Path translation (requires parsing d
+    # string or simple regex shift if absolute coords)
     return obj
 
 
-def rotate_point(p: Point, angle_deg: float, center: Point = Point(0, 0)) -> Point:
+def rotate_point(p: Point, angle_deg: float, center: Point = _ORIGIN) -> Point:
     """
     Rotate a point around a center.
 
     Args:
         p (Point): The point to rotate.
-        angle_deg (float): Angle in degrees (clockwise generally in SVG coord system if Y is down).
+        angle_deg (float): Angle in degrees (clockwise in SVG
+            coord system where Y is down).
         center (Point): Center of rotation.
 
     Returns:
@@ -107,7 +111,7 @@ def rotate_vector(v: Vector, angle_deg: float) -> Vector:
 
 
 @singledispatch
-def rotate(obj: Any, angle: float, center: Point = Point(0, 0)) -> Any:
+def rotate(obj: Any, angle: float, center: Point = _ORIGIN) -> Any:
     """
     Pure function to rotate an object around a center point.
     Default handler returns the object as-is.
@@ -116,12 +120,12 @@ def rotate(obj: Any, angle: float, center: Point = Point(0, 0)) -> Any:
 
 
 @rotate.register
-def _(obj: Point, angle: float, center: Point = Point(0, 0)) -> Point:
+def _(obj: Point, angle: float, center: Point = _ORIGIN) -> Point:
     return rotate_point(obj, angle, center)
 
 
 @rotate.register
-def _(obj: Port, angle: float, center: Point = Point(0, 0)) -> Port:
+def _(obj: Port, angle: float, center: Point = _ORIGIN) -> Port:
     return replace(
         obj,
         position=rotate_point(obj.position, angle, center),
@@ -130,7 +134,7 @@ def _(obj: Port, angle: float, center: Point = Point(0, 0)) -> Port:
 
 
 @rotate.register
-def _(obj: Line, angle: float, center: Point = Point(0, 0)) -> Line:
+def _(obj: Line, angle: float, center: Point = _ORIGIN) -> Line:
     return replace(
         obj,
         start=rotate_point(obj.start, angle, center),
@@ -139,17 +143,17 @@ def _(obj: Line, angle: float, center: Point = Point(0, 0)) -> Line:
 
 
 @rotate.register
-def _(obj: Group, angle: float, center: Point = Point(0, 0)) -> Group:
+def _(obj: Group, angle: float, center: Point = _ORIGIN) -> Group:
     return replace(obj, elements=[rotate(e, angle, center) for e in obj.elements])
 
 
 @rotate.register
-def _(obj: Polygon, angle: float, center: Point = Point(0, 0)) -> Polygon:
+def _(obj: Polygon, angle: float, center: Point = _ORIGIN) -> Polygon:
     return replace(obj, points=[rotate_point(p, angle, center) for p in obj.points])
 
 
 @rotate.register
-def _(obj: Symbol, angle: float, center: Point = Point(0, 0)) -> Symbol:
+def _(obj: Symbol, angle: float, center: Point = _ORIGIN) -> Symbol:
     new_elements = []
     for e in obj.elements:
         rotated_e = rotate(e, angle, center)
@@ -171,12 +175,12 @@ def _(obj: Symbol, angle: float, center: Point = Point(0, 0)) -> Symbol:
 
 
 @rotate.register
-def _(obj: Circle, angle: float, center: Point = Point(0, 0)) -> Circle:
+def _(obj: Circle, angle: float, center: Point = _ORIGIN) -> Circle:
     return replace(obj, center=rotate_point(obj.center, angle, center))
 
 
 @rotate.register
-def _(obj: Text, angle: float, center: Point = Point(0, 0)) -> Text:
+def _(obj: Text, angle: float, center: Point = _ORIGIN) -> Text:
     new_pos = rotate_point(obj.position, angle, center)
     new_anchor = obj.anchor
 

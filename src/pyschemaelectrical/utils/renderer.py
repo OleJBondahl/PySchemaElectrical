@@ -21,25 +21,31 @@ from pyschemaelectrical.model.primitives import (
 def _style_to_str(style: Style) -> str:
     """
     Evaluate style object to SVG style string.
-    
+
     Args:
         style (Style): The style object to convert.
-        
+
     Returns:
         str: The CSS style string.
     """
     items = []
-    if style.stroke: items.append(f"stroke:{style.stroke}")
-    if style.stroke_width: items.append(f"stroke-width:{style.stroke_width}")
-    if style.fill: items.append(f"fill:{style.fill}")
-    if style.stroke_dasharray: items.append(f"stroke-dasharray:{style.stroke_dasharray}")
-    if style.font_family: items.append(f"font-family:{style.font_family}")
+    if style.stroke:
+        items.append(f"stroke:{style.stroke}")
+    if style.stroke_width:
+        items.append(f"stroke-width:{style.stroke_width}")
+    if style.fill:
+        items.append(f"fill:{style.fill}")
+    if style.stroke_dasharray:
+        items.append(f"stroke-dasharray:{style.stroke_dasharray}")
+    if style.font_family:
+        items.append(f"font-family:{style.font_family}")
     return ";".join(items)
+
 
 def _render_element(elem: Element, parent: ET.Element):
     """
     Recursively render elements to the XML tree.
-    
+
     Args:
         elem (Element): The element to render.
         parent (ET.Element): The parent XML element to append to.
@@ -67,9 +73,12 @@ def _render_element(elem: Element, parent: ET.Element):
         e.set("dominant-baseline", elem.dominant_baseline)
         e.set("font-size", str(elem.font_size))
         if elem.rotation != 0:
-            e.set("transform", f"rotate({elem.rotation}, {elem.position.x}, {elem.position.y})")
+            e.set(
+                "transform",
+                f"rotate({elem.rotation}, {elem.position.x}, {elem.position.y})",
+            )
         e.text = elem.content
-        e.set("style", _style_to_str(elem.style)) # Fill usually needed for text
+        e.set("style", _style_to_str(elem.style))  # Fill usually needed for text
 
     elif isinstance(elem, Path):
         e = ET.SubElement(parent, "path")
@@ -97,25 +106,30 @@ def _render_element(elem: Element, parent: ET.Element):
             _render_element(child, g)
         # We don't render ports visibly usually, maybe for debug?
 
+
 def calculate_bounds(elements: List[Element]) -> Tuple[float, float, float, float]:
     """
     Calculate the bounding box of a list of elements.
-    
+
     Args:
         elements: List of elements.
-        
+
     Returns:
         Tuple[min_x, min_y, max_x, max_y]
     """
-    min_x, min_y = float('inf'), float('inf')
-    max_x, max_y = float('-inf'), float('-inf')
+    min_x, min_y = float("inf"), float("inf")
+    max_x, max_y = float("-inf"), float("-inf")
 
     def expand(x, y):
         nonlocal min_x, min_y, max_x, max_y
-        if x < min_x: min_x = x
-        if y < min_y: min_y = y
-        if x > max_x: max_x = x
-        if y > max_y: max_y = y
+        if x < min_x:
+            min_x = x
+        if y < min_y:
+            min_y = y
+        if x > max_x:
+            max_x = x
+        if y > max_y:
+            max_y = y
 
     def process(elem):
         if isinstance(elem, Line):
@@ -145,20 +159,25 @@ def calculate_bounds(elements: List[Element]) -> Tuple[float, float, float, floa
         process(e)
 
     # Validation if nothing updated
-    if min_x == float('inf'):
+    if min_x == float("inf"):
         return 0, 0, 100, 100
 
     return min_x, min_y, max_x, max_y
 
-def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC_WIDTH, height: Union[int, str] = DEFAULT_DOC_HEIGHT) -> ET.Element:
+
+def to_xml_element(
+    elements: List[Element],
+    width: Union[int, str] = DEFAULT_DOC_WIDTH,
+    height: Union[int, str] = DEFAULT_DOC_HEIGHT,
+) -> ET.Element:
     """
     Convert a list of Elements into an SVG header/root ElementTree Element.
-    
+
     Args:
         elements (List[Element]): List of elements to render.
         width (Union[int, str]): document width. Pass "auto" for autosize.
         height (Union[int, str]): document height. Pass "auto" for autosize.
-        
+
     Returns:
         ET.Element: The root SVG element.
     """
@@ -183,7 +202,8 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC
 
     # helper
     def _parse_dim(val, default):
-        if val == "auto": return None
+        if val == "auto":
+            return None
         if isinstance(val, (int, float)):
             return val
         if isinstance(val, str):
@@ -237,10 +257,11 @@ def to_xml_element(elements: List[Element], width: Union[int, str] = DEFAULT_DOC
 
     return root
 
+
 def save_svg(root: ET.Element, filename: str):
     """
     Save an XML tree to a file.
-    
+
     Args:
         root (ET.Element): The root element.
         filename (str): The destination path.
@@ -248,10 +269,16 @@ def save_svg(root: ET.Element, filename: str):
     tree = ET.ElementTree(root)
     tree.write(filename, encoding="utf-8", xml_declaration=True)
 
-def render_to_svg(elements: List[Element], filename: str, width: Union[int, str] = DEFAULT_DOC_WIDTH, height: Union[int, str] = DEFAULT_DOC_HEIGHT):
+
+def render_to_svg(
+    elements: List[Element],
+    filename: str,
+    width: Union[int, str] = DEFAULT_DOC_WIDTH,
+    height: Union[int, str] = DEFAULT_DOC_HEIGHT,
+):
     """
     High-level function to render elements to an SVG file.
-    
+
     Args:
         elements (List[Element]): Elements to render.
         filename (str): Output filename.

@@ -23,7 +23,7 @@ def terminal_box_symbol(
     Create a Rectangular Terminal Box Symbol.
 
     Dimensions:
-        Height: Equalt to pin_spacing (default 10mm / 2 grids).
+        Height: Equal to pin_spacing (default 10mm / 2 grids).
         Width: Flexible (num_pins - 1) * spacing + 1 Grid (padding 0.5 grid each side).
         Pins: Pointing upwards.
         Pin Numbers: LEFT of the pins.
@@ -43,7 +43,7 @@ def terminal_box_symbol(
 
     style = standard_style()
 
-    # "box is to short in the height direction, increase to the same as pin spacing"
+    # Box is too short in the height direction, increase to the same as pin spacing
     # Pin Spacing default is 10.0 (2 Grid).
     box_height = pin_spacing
 
@@ -79,8 +79,8 @@ def terminal_box_symbol(
 
         # Pin Line
         # From box top (0) upwards to (-pin_length)
-        l = Line(Point(px, 0), Point(px, -pin_length), style)
-        elements.append(l)
+        line = Line(Point(px, 0), Point(px, -pin_length), style)
+        elements.append(line)
 
         # Port at tip
         ports[p_str] = Port(p_str, Point(px, -pin_length), Vector(0, -1))
@@ -148,7 +148,6 @@ def psu_symbol(label: str = "U1", **kwargs) -> Symbol:
 
     # Center of box
     center_x = span / 2
-    center_y = box_height / 2
 
     # Box edges relative to origin (0,0)
     # Left edge: center_x - box_width / 2
@@ -226,13 +225,19 @@ def dynamic_block_symbol(
 
     Args:
         label (str): Component tag.
-        top_pins (Tuple[str, ...]): Tuple of pin labels for top pins (e.g., ("L", "N", "PE")).
-        bottom_pins (Tuple[str, ...]): Tuple of pin labels for bottom pins (e.g., ("24V", "GND")).
+        top_pins (Tuple[str, ...]): Tuple of pin labels for
+            top pins (e.g., ("L", "N", "PE")).
+        bottom_pins (Tuple[str, ...]): Tuple of pin labels
+            for bottom pins (e.g., ("24V", "GND")).
         pin_spacing (float): Distance between pins when using uniform spacing.
-        top_pin_positions (Optional[Tuple[float, ...]]): Explicit x-coordinates for top pins.
-            If provided, must match length of top_pins. Overrides pin_spacing for top pins.
-        bottom_pin_positions (Optional[Tuple[float, ...]]): Explicit x-coordinates for bottom pins.
-            If provided, must match length of bottom_pins. Overrides pin_spacing for bottom pins.
+        top_pin_positions (Optional[Tuple[float, ...]]):
+            Explicit x-coordinates for top pins. If provided,
+            must match length of top_pins. Overrides
+            pin_spacing for top pins.
+        bottom_pin_positions (Optional[Tuple[float, ...]]):
+            Explicit x-coordinates for bottom pins.
+            If provided, must match length of bottom_pins.
+            Overrides pin_spacing for bottom pins.
 
     Returns:
         Symbol: The dynamic block symbol.
@@ -353,9 +358,11 @@ def dynamic_block_symbol(
             pin_label, Point(px, box_height + pin_length), Vector(0, 1)
         )
 
-        # Pin label to the left of the pin, positioned below to avoid collision with box
+        # Pin label to the left of the pin, positioned below
+        # to avoid collision with box
         text_x = px - 1.0  # 1mm to the LEFT of pin
-        text_y = box_height + pin_length  # At the end of the pin line (below box)
+        # At the end of the pin line (below box)
+        text_y = box_height + pin_length
 
         text = Text(
             content=pin_label,

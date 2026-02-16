@@ -19,7 +19,6 @@ from pyschemaelectrical.utils.transform import translate
 from .constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
-    GRID_SIZE,
     LINE_WIDTH_THIN,
     PIN_LABEL_OFFSET_X,
     PIN_LABEL_OFFSET_Y_ADJUST,
@@ -64,22 +63,9 @@ def standard_text(content: str, parent_origin: Point, label_pos: str = "left") -
         Text: The configured text element.
     """
     if label_pos == "right":
-        pos = Point(
-            parent_origin.x - TEXT_OFFSET_X, parent_origin.y
-        )  # Use negative offset but move to right?
-        # TEXT_OFFSET_X is -5.0 usually? No, let's check constants.
-        # Assuming TEXT_OFFSET_X is negative (e.g. -5).
-        # To move right, we want +5 (or abs(TEXT_OFFSET_X)).
-        # Let's assume user wants symmetric positioning.
-
-        # Actually checking standard_text implementation:
-        # pos = Point(parent_origin.x + TEXT_OFFSET_X, parent_origin.y)
-        # If TEXT_OFFSET_X is negative (left), then 'right' should be -TEXT_OFFSET_X.
-
         pos = Point(parent_origin.x - TEXT_OFFSET_X, parent_origin.y)
         anchor = "start"
     else:
-        # Default Left
         pos = Point(parent_origin.x + TEXT_OFFSET_X, parent_origin.y)
         anchor = "end"
 
@@ -92,17 +78,20 @@ def standard_text(content: str, parent_origin: Point, label_pos: str = "left") -
     )
 
 
-def terminal_circle(center: Point = Point(0, 0), filled: bool = False) -> Element:
+def terminal_circle(center: Point = None, filled: bool = False) -> Element:
     """
     Create a standard connection terminal circle.
 
     Args:
         center (Point): Center of the terminal.
-        filled (bool): Whether it is filled (e.g. for potential connection points vs loose ends).
+        filled (bool): Whether it is filled (e.g. for
+            potential connection points vs loose ends).
 
     Returns:
         Element: The circle element.
     """
+    if center is None:
+        center = Point(0, 0)
     return Circle(center, TERMINAL_RADIUS, standard_style(filled))
 
 

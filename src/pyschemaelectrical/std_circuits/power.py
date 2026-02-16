@@ -35,7 +35,8 @@ def psu(
     # Layout parameters (with defaults from constants)
     spacing: float = LayoutDefaults.CIRCUIT_SPACING_POWER,
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
-    terminal_offset: float = LayoutDefaults.PSU_TERMINAL_OFFSET,  # Kept for back-compat but ignored
+    # Kept for back-compat but ignored
+    terminal_offset: float = LayoutDefaults.PSU_TERMINAL_OFFSET,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.POWER_SUPPLY,
     # Multi-count and wire labels
@@ -71,7 +72,7 @@ def psu(
     # Iterate based on count
     current_x = x
 
-    for i in range(count):
+    for _i in range(count):
         # Calculate pins for this iteration first (updates state counters)
         state, tm_top_pins = next_terminal_pins(state, tm_top, poles=3)
         state, tm_b_left_pins = next_terminal_pins(state, tm_bot_left, poles=1)
@@ -174,7 +175,7 @@ def changeover(
     # Layout parameters (with defaults from constants)
     spacing: float = LayoutDefaults.CIRCUIT_SPACING_POWER,
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
-    terminal_offset: float = LayoutDefaults.CHANGEOVER_TERMINAL_OFFSET,
+    terminal_offset: float = (LayoutDefaults.CHANGEOVER_TERMINAL_OFFSET),
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.RELAY,
     # Multi-count and wire labels
@@ -194,7 +195,8 @@ def changeover(
         tm_bot: Output terminal ID
         spacing: Horizontal spacing between circuit instances
         symbol_spacing: Vertical spacing between components
-        terminal_offset: Horizontal offset for input terminals (±offset from center)
+        terminal_offset: Horizontal offset for input
+            terminals (plus/minus offset from center)
         tag_prefix: Tag prefix for changeover switch (default: "K")
         count: Number of circuit instances.
         wire_labels: Wire label strings to apply per instance.
@@ -324,9 +326,10 @@ def power_distribution(
         state: Autonumbering state
         x: X position
         y: Y position
-        terminal_maps: Dict mapping logical keys to physical terminal IDs.
-                       Required keys: 'INPUT_1', 'INPUT_2', 'OUTPUT',
-                                     'PSU_INPUT', 'PSU_OUTPUT_1', 'PSU_OUTPUT_2'
+        terminal_maps: Dict mapping logical keys to physical
+            terminal IDs. Required keys: 'INPUT_1',
+            'INPUT_2', 'OUTPUT', 'PSU_INPUT',
+            'PSU_OUTPUT_1', 'PSU_OUTPUT_2'
         spacing: Horizontal spacing between changeover circuits
         spacing_single_pole: Spacing for single-pole circuits
         voltage_monitor_offset: Offset after changeover circuits for voltage monitor

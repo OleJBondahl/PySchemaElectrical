@@ -33,7 +33,12 @@ class TestModuleAllocation:
     def test_module_allocation_mA(self, mapper):
         """4 mA sensors should fill exactly 1 AI_mA module (capacity=4)."""
         for i in range(4):
-            mapper.sensor(f"PT-{i:02d}", type="2Wire-mA", cable=f"W{i:04d}", terminal="X007")
+            mapper.sensor(
+                f"PT-{i:02d}",
+                type="2Wire-mA",
+                cable=f"W{i:04d}",
+                terminal="X007",
+            )
 
         counts = mapper.module_count
         assert counts["AI_mA"] == 1
@@ -41,7 +46,12 @@ class TestModuleAllocation:
     def test_module_allocation_mA_overflow(self, mapper):
         """5 mA sensors should need 2 AI_mA modules."""
         for i in range(5):
-            mapper.sensor(f"PT-{i:02d}", type="2Wire-mA", cable=f"W{i:04d}", terminal="X007")
+            mapper.sensor(
+                f"PT-{i:02d}",
+                type="2Wire-mA",
+                cable=f"W{i:04d}",
+                terminal="X007",
+            )
 
         counts = mapper.module_count
         assert counts["AI_mA"] == 2
@@ -225,7 +235,7 @@ class TestGenerateConnections:
         # Verify module allocation
         counts = mapper.module_count
         assert counts["AI_RTD"] == 2  # 4 RTD, capacity 2
-        assert counts["AI_mA"] == 1   # 3 mA, capacity 4
+        assert counts["AI_mA"] == 1  # 3 mA, capacity 4
 
 
 class TestValidation:

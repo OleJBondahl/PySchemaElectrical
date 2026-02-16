@@ -35,7 +35,8 @@ def get_connection_ports(symbol: Symbol, direction: Vector) -> List[Port]:
         dx = abs(p.direction.dx - direction.dx)
         dy = abs(p.direction.dy - direction.dy)
         if dx < 1e-6 and dy < 1e-6:
-            # Check for spatial duplicates (e.g. aliased ports pointing to same location)
+            # Check for spatial duplicates
+            # (e.g. aliased ports pointing to same location)
             pos_key = (round(p.position.x, 4), round(p.position.y, 4))
 
             if pos_key not in seen_positions:
@@ -145,7 +146,8 @@ def auto_connect_labeled(
     up_ports = get_connection_ports(sym2, Vector(0, -1))
 
     # Match ports
-    # Note: Matching logic implies we iterate down_ports in sorted order and find 'up' match
+    # Note: Matching logic implies we iterate down_ports
+    # in sorted order and find 'up' match
     port_pairs = _find_matching_ports(down_ports, up_ports)
 
     for i, (dp, matched_up) in enumerate(port_pairs):
@@ -182,11 +184,7 @@ def layout_vertical_chain(
     current_y = start.y
 
     for sym in symbols:
-        # Place symbol
-        # Assuming sym is at (0,0), we translate it.
-        # If sym is already placed (not at 0,0), this might be wrong.
-        # We assume library returns fresh symbols at 0,0.
-        placed = translate(sym, current_x - 0, current_y - 0)  # Assuming origin is 0,0
+        placed = translate(sym, current_x, current_y)
 
         placed_symbols.append(placed)
         elements.append(placed)
@@ -226,9 +224,11 @@ def layout_horizontal(
         start_y: Y position for all circuits.
         spacing: Horizontal distance between circuits.
         count: Number of copies to create.
-        generate_func: Function that takes (state, x, y) and returns (new_state, elements).
-                       Expected signature:
-                       f(state: Dict, x: float, y: float) -> (Dict, List[Element])
+        generate_func: Function that takes (state, x, y) and
+                       returns (new_state, elements).
+                       Expected signature: f(state: Dict,
+                       x: float, y: float) ->
+                       (Dict, List[Element])
 
     Returns:
         Tuple[Dict[str, Any], List[Element]]: Final state and list of all elements.

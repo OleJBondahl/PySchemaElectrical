@@ -90,13 +90,8 @@ def generate_frame(font_family="Times New Roman"):
 
         label = str(i + 1)
 
-        if i < COLS:
-            circuit.elements.append(
-                Line(Point(x_end, outer_y1), Point(x_end, iy1), style)
-            )
-            circuit.elements.append(
-                Line(Point(x_end, iy2), Point(x_end, outer_y2), style)
-            )
+        circuit.elements.append(Line(Point(x_end, outer_y1), Point(x_end, iy1), style))
+        circuit.elements.append(Line(Point(x_end, iy2), Point(x_end, outer_y2), style))
 
         circuit.elements.append(
             Text(
@@ -125,13 +120,8 @@ def generate_frame(font_family="Times New Roman"):
 
         label = chr(ord("A") + i)
 
-        if i < ROWS:
-            circuit.elements.append(
-                Line(Point(outer_x1, y_end), Point(ix1, y_end), style)
-            )
-            circuit.elements.append(
-                Line(Point(ix2, y_end), Point(outer_x2, y_end), style)
-            )
+        circuit.elements.append(Line(Point(outer_x1, y_end), Point(ix1, y_end), style))
+        circuit.elements.append(Line(Point(ix2, y_end), Point(outer_x2, y_end), style))
 
         circuit.elements.append(
             Text(

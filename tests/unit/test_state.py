@@ -23,7 +23,8 @@ def test_generation_state_to_dict_round_trip():
     assert gs2.tags == {"K": 1}
     assert gs2.terminal_counters == {"X1": 5}
     assert gs2.contact_channels == {}
-    # terminal_registry defaults to TerminalRegistry() which is comparable to another empty instance
+    # terminal_registry defaults to TerminalRegistry()
+    # which is comparable to another empty instance
     from pyschemaelectrical.system.connection_registry import TerminalRegistry
 
     assert gs2.terminal_registry == TerminalRegistry()

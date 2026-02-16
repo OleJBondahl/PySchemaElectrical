@@ -81,7 +81,8 @@ def current_transducer_assembly_symbol(
     num_pins = len(pins)
     # Using generic default params for spacing if not passed
     # Assuming start_pin_number is not critical here or parsed from string
-    # We'll just pass the pins logic inside terminal_box if it supported passing pins directly
+    # We'll just pass the pins logic inside terminal_box
+    # if it supported passing pins directly
     # But currently terminal_box takes (start_pin_number, num_pins).
     # Let's parse start pin from first pin string if it's digit
     start_num = 1

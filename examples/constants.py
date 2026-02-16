@@ -70,7 +70,7 @@ class Pins:
 
     # DC power
     V24_PLUS = "1"  # 24V positive
-    GND = "1"  # Ground/0V
+    GND = "2"  # Ground/0V
 
     # Voltage monitor
     VM_INPUT = ("L1", "L2", "L3")

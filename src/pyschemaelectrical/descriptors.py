@@ -54,7 +54,9 @@ def comp(symbol_fn: Any, tag_prefix: str, pins: Tuple[str, ...] = ()) -> CompDes
     return CompDescriptor(symbol_fn, tag_prefix, pins)
 
 
-def term(terminal_id: str, poles: int = 1, pins: Optional[Tuple[str, ...]] = None) -> TermDescriptor:
+def term(
+    terminal_id: str, poles: int = 1, pins: Optional[Tuple[str, ...]] = None
+) -> TermDescriptor:
     """Create a terminal descriptor."""
     return TermDescriptor(terminal_id, poles, pins)
 

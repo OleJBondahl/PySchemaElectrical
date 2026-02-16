@@ -31,7 +31,7 @@ def emergency_stop(
     # Multi-count and wire labels
     count: int = 1,
     wire_labels: Optional[List[str]] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
     Create an Emergency Stop circuit.
@@ -61,7 +61,7 @@ def emergency_stop(
     builder.add_component(
         emergency_stop_assembly_symbol,
         tag_prefix=tag_prefix,
-        pins=("1", "2") # Default pins for NC contact inside assembly
+        pins=("1", "2"),  # Default pins for NC contact inside assembly
     )
 
     # 3. Output Terminal

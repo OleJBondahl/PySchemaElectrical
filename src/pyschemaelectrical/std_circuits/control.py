@@ -94,8 +94,10 @@ def spdt(
     # Build tag generators for relay_tag
     effective_tag_generators = dict(kwargs.get("tag_generators") or {})
     if relay_tag:
+
         def _fixed_contact_gen(s):
             return s, relay_tag
+
         effective_tag_generators[contact_tag_prefix] = _fixed_contact_gen
 
     def create_single_control(s, start_x, start_y, tag_gens, t_maps, instance):
@@ -142,9 +144,8 @@ def spdt(
             p_left = tm_bot_left_pins
 
         if tm_bot_right_pins is None:
-            s, p_right = next_terminal_pins(s, tm_bot_right, 1)
-        else:
-            p_right = tm_bot_right_pins
+            s, _ = next_terminal_pins(s, tm_bot_right, 1)
+        # tm_bot_right pins consumed for state advancement only
 
         # --- Coordinates ---
         # Vertical Stack
@@ -176,10 +177,10 @@ def spdt(
         add_symbol(c, spdt_sym, start_x - spdt_offset, y_r3)
 
         # 4. Double Terminal / Ref (Underneath SPDT)
-        # We create a composite symbol for the 2 output locations to allow auto-connect branching
+        # We create a composite symbol for the 2 output
+        # locations to allow auto-connect branching
         t_left = terminal_symbol(tm_bot_left, pins=p_left, label_pos="left")
 
-        # CHANGED: Use ref_symbol for the right branch instead of a terminal
         t_right = ref_symbol(
             tag=tm_bot_right, label=tm_bot_right, direction="down", label_pos="right"
         )
@@ -187,8 +188,10 @@ def spdt(
         # Alignment Correction for Terminals:
         # SPDT Center is now at (start_x - 2.5).
         # SPDT Pins relative to its center:
-        #   NC Pin: -2.5 (Local). Global Alignment X = (start_x - 2.5) - 2.5 = start_x - 5.0.
-        #   NO Pin: +2.5 (Local). Global Alignment X = (start_x - 2.5) + 2.5 = start_x.
+        #   NC Pin: -2.5 (Local). Global X =
+        #     (start_x - 2.5) - 2.5 = start_x - 5.0.
+        #   NO Pin: +2.5 (Local). Global X =
+        #     (start_x - 2.5) + 2.5 = start_x.
 
         # Terminal positioning:
         # We place the composite symbol at start_x.
@@ -251,7 +254,9 @@ def spdt(
         spacing=spacing,
         generator_func_single=create_single_control,
         default_tag_generators={},
-        tag_generators=effective_tag_generators if effective_tag_generators else kwargs.get("tag_generators"),
+        tag_generators=effective_tag_generators
+        if effective_tag_generators
+        else kwargs.get("tag_generators"),
         terminal_maps=terminal_maps,
     )
 

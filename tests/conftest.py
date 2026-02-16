@@ -19,8 +19,10 @@ def snapshot_svg(request):
     snapshot_dir.mkdir(exist_ok=True)
 
     def _compare(content: str, snapshot_name: str):
-        # Normalize the content (optional: strip dynamic dates/ids if strictly necessary)
-        # For now, we assume the generator is deterministic or mocked.
+        # Normalize the content (optional: strip dynamic
+        # dates/ids if strictly necessary).
+        # For now, we assume the generator is deterministic
+        # or mocked.
         # But we do trip whitespace from ends.
         content = content.strip()
 
@@ -43,11 +45,14 @@ def snapshot_svg(request):
         expected_content = snapshot_file.read_text(encoding="utf-8").strip()
 
         # Simple string equality
-        # In a real scenario, XML parsing comparison might be more robust to ignore attribute order,
-        # but string equality is stricter and strictly requested ("consistency").
+        # In a real scenario, XML parsing comparison might
+        # be more robust to ignore attribute order, but
+        # string equality is stricter and strictly requested
+        # ("consistency").
         assert content == expected_content, (
             f"Snapshot mismatch for {snapshot_name}. \n"
-            f"Run with PYTEST_UPDATE_SNAPSHOTS=1 to update if this change is intentional."
+            "Run with PYTEST_UPDATE_SNAPSHOTS=1 to update "
+            "if this change is intentional."
         )
 
     return _compare

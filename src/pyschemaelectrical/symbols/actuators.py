@@ -71,7 +71,8 @@ def turn_switch_symbol(label: str = "", rotation: float = 0.0) -> Symbol:
     - MID: vertical from (0, -1.25) to (0, 1.25) [at x=0]
     - BOT: horizontal from (0, 1.25) to (1.25, 1.25)
 
-    When rotated 180° for assembly: flips to create proper visual connection to the linkage.
+    When rotated 180 for assembly: flips to create proper
+    visual connection to the linkage.
 
     Args:
         label: Component label (typically empty for actuator).

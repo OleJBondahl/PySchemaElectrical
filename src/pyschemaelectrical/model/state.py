@@ -35,7 +35,8 @@ class GenerationState:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for backward compatibility."""
-        # For terminal_registry, if it's a TerminalRegistry object (immutable), we just pass reference.
+        # For terminal_registry, if it's a TerminalRegistry
+        # object (immutable), we just pass reference.
         # If it's a dict (legacy fallback/empty), we copy it.
         tr = self.terminal_registry
         if isinstance(tr, dict):
@@ -57,11 +58,13 @@ class GenerationState:
         if tr is None:
             tr = TerminalRegistry()
         elif isinstance(tr, dict):
-            # If it's a dict, keep it as dict or try to convert?
-            # For now keep as is if it's legacy dict state, but ideally it should be TerminalRegistry.
-            # Note: pure dict won't have add_connection unless we convert it.
-            # But from_dict is used when reloading state? Or creating from legacy dict?
-            # If legacy dict has {terminal_registry: {}}, we probably want TerminalRegistry.
+            # If it's a dict, keep it as dict or try to
+            # convert? For now keep as is if it's legacy
+            # dict state, but ideally it should be
+            # TerminalRegistry. Note: pure dict won't have
+            # add_connection unless we convert it.
+            # If legacy dict has {terminal_registry: {}},
+            # we probably want TerminalRegistry.
             if not tr:  # Empty dict
                 tr = TerminalRegistry()
             else:

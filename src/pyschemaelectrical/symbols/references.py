@@ -31,7 +31,8 @@ def ref_symbol(
         tag (str): Auto-generated tag (usually ignored if label is present).
         label (str): The text to display (e.g. "F1:1"). If empty, uses tag.
         pins (tuple): Ignored, present for builder compatibility.
-        direction (str): "up" (points up, connects from below) or "down" (points down, connects from above).
+        direction (str): "up" (points up, connects from below)
+            or "down" (points down, connects from above).
         label_pos (str): Position of the label ("left" or "right"). Default is "left".
         **kwargs: Extra arguments for compatibility.
     """

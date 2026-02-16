@@ -77,25 +77,33 @@ def dol_starter(
         x: X position
         y: Y position
         tm_top: Top terminal ID (Input)
-        tm_bot: Bottom terminal ID (Output). Can be a list for per-instance terminals.
+        tm_bot: Bottom terminal ID (Output). Can be a list
+            for per-instance terminals.
         spacing: Horizontal spacing between circuit instances
         symbol_spacing: Vertical spacing between components
         breaker_tag_prefix: Tag prefix for circuit breaker (default: "F")
         thermal_tag_prefix: Tag prefix for thermal overload (default: "FT")
         contactor_tag_prefix: Tag prefix for contactor (default: "Q")
         ct_tag_prefix: Tag prefix for current transducer (default: "CT")
-        breaker_pins: Pin labels for circuit breaker (default: ("1", "2", "3", "4", "5", "6"))
-        thermal_pins: Pin labels for thermal overload (default: ("", "T1", "", "T2", "", "T3"))
-        contactor_pins: Pin labels for contactor (default: ("1", "2", "3", "4", "5", "6"))
-        ct_pins: Pin labels for current transducer (default: ("1", "2", "3", "4"))
+        breaker_pins: Pin labels for circuit breaker
+            (default: ("1", "2", "3", "4", "5", "6"))
+        thermal_pins: Pin labels for thermal overload
+            (default: ("", "T1", "", "T2", "", "T3"))
+        contactor_pins: Pin labels for contactor
+            (default: ("1", "2", "3", "4", "5", "6"))
+        ct_pins: Pin labels for current transducer
+            (default: ("1", "2", "3", "4"))
         tm_top_pins: Pin labels for top terminal (None = auto-number)
         tm_bot_pins: Pin labels for bottom terminal (None = auto-number)
-        tm_bot_right: Terminal ID for the single pole terminal at the bottom right (PE)
-        tm_bot_right_pins: Pin labels for the bottom right terminal (None = auto-number)
+        tm_bot_right: Terminal ID for the single pole
+            terminal at the bottom right (PE)
+        tm_bot_right_pins: Pin labels for the bottom right
+            terminal (None = auto-number)
         tm_aux_1: Optional terminal ID for 24V aux connection
         tm_aux_2: Optional terminal ID for GND aux connection
         count: Number of circuit instances to create.
-        wire_labels: Wire label strings to apply to vertical wires per instance.
+        wire_labels: Wire label strings to apply to vertical
+            wires per instance.
 
     Returns:
         Tuple of (state, circuit, used_terminals)
@@ -118,8 +126,9 @@ def dol_starter(
 
         # Resolve per-instance bottom terminals
         instance_tm_bot = tm_bot_list[instance] if tm_bot_list else tm_bot
-        instance_tm_bot_right = tm_bot_right_list[instance] if tm_bot_right_list else tm_bot_right
-        used_terminals_list = [tm_top, instance_tm_bot, instance_tm_bot_right]
+        instance_tm_bot_right = (
+            tm_bot_right_list[instance] if tm_bot_right_list else tm_bot_right
+        )
 
         # Get terminal pins (auto-number if not provided)
         if tm_top_pins is None:
@@ -157,24 +166,31 @@ def dol_starter(
         # 3. Contactor
         sym = contactor_symbol(cont_tag, contact_pins=contactor_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing / 3  # Reduced spacing: thermal connects directly to contactor
+        current_y += (
+            symbol_spacing / 3
+        )  # Reduced spacing: thermal connects directly to contactor
 
         # 4. Thermal Overload (top pins hidden)
         sym = three_pole_thermal_overload_symbol(thermal_tag, pins=thermal_pins)
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing * 2 / 3  # Full spacing to CT area
 
-        # 5. Current Transducer (inline with connection) - placed close to bottom terminal
+        # 5. Current Transducer (inline with connection)
+        # placed close to bottom terminal
         sym = current_transducer_assembly_symbol(ct_tag, pins=ct_pins)
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing / 3  # Reduced spacing to bottom terminal
 
         # 6. Output Terminal
-        sym = three_pole_terminal_symbol(instance_tm_bot, pins=output_pins, label_pos="left")
+        sym = three_pole_terminal_symbol(
+            instance_tm_bot, pins=output_pins, label_pos="left"
+        )
         tm_bot_sym = add_symbol(c, sym, start_x, current_y)
 
         # 6b. PE Terminal (tm_bot_right) - same Y level
-        sym = terminal_symbol(instance_tm_bot_right, pins=output_right_pins, label_pos="right")
+        sym = terminal_symbol(
+            instance_tm_bot_right, pins=output_right_pins, label_pos="right"
+        )
         add_symbol(c, sym, start_x + 3 * DEFAULT_POLE_SPACING, current_y)
 
         # 7. Motor - Below terminals
@@ -186,7 +202,8 @@ def dol_starter(
         # Connect all symbols sequentially
         auto_connect_circuit(c)
 
-        # Manually connect Main Terminals -> Motor (because PE terminal breaks sequential chain)
+        # Manually connect Main Terminals -> Motor
+        # (because PE terminal breaks sequential chain)
         c.elements.extend(auto_connect(tm_bot_sym, motor_sym))
 
         # --- Explicit Registry Registration ---
@@ -212,7 +229,8 @@ def dol_starter(
         # contactor pins: [1, 2, 3, 4, 5, 6] -> Outputs: 2, 4, 6 (indices 1, 3, 5)
         # Note: CT is inline but we register contactor to terminal for clarity
         for i in range(3):
-            # Terminal pins are sequential: output_pins[0], output_pins[1], output_pins[2]
+            # Terminal pins are sequential:
+            # output_pins[0], output_pins[1], output_pins[2]
             if i < len(output_pins):
                 term_pin = output_pins[i]
 

@@ -4,7 +4,6 @@ import os
 import tempfile
 
 from pyschemaelectrical import Project, Terminal
-from pyschemaelectrical.builder import BuildResult
 
 
 def test_project_creation():
@@ -118,7 +117,7 @@ def test_front_page_registration():
 
 def test_circuit_descriptor_registration():
     """circuit() with descriptors should register correctly."""
-    from pyschemaelectrical import ref, comp, term
+    from pyschemaelectrical import comp, ref, term
     from pyschemaelectrical.symbols.coils import coil_symbol
 
     p = Project()

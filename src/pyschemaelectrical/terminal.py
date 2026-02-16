@@ -28,9 +28,7 @@ class Terminal(str):
                    Reference terminals are excluded from terminal reports.
     """
 
-    description: str
-    bridge: BridgeDef
-    reference: bool
+    __slots__ = ("description", "bridge", "reference")
 
     def __new__(
         cls,
@@ -40,13 +38,16 @@ class Terminal(str):
         reference: bool = False,
     ) -> "Terminal":
         instance = super().__new__(cls, id)
-        instance.description = description
-        instance.bridge = bridge
-        instance.reference = reference
+        object.__setattr__(instance, "description", description)
+        object.__setattr__(instance, "bridge", bridge)
+        object.__setattr__(instance, "reference", reference)
         return instance
+
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError(f"Terminal is immutable, cannot set '{name}'")
 
     def __hash__(self) -> int:
         return str.__hash__(self)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         return str.__eq__(self, str(other))

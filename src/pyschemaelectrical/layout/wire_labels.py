@@ -59,7 +59,8 @@ def create_wire_label_text(
         content=text_content,
         position=position,
         anchor="middle",  # Center horizontally (relative to rotated text)
-        dominant_baseline="middle",  # Center vertically (relative to rotated text, i.e., on the wire)
+        # Center vertically (relative to rotated text)
+        dominant_baseline="middle",
         font_size=font_size,
         rotation=90.0,  # Text runs downwards
         style=Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY_AUX),
@@ -214,7 +215,9 @@ def add_wire_labels_to_circuit(
     vertical_wires = find_vertical_wires(circuit.elements)
 
     if not vertical_wires:
-        print("Warning: No vertical wires found in circuit")
+        import warnings
+
+        warnings.warn("No vertical wires found in circuit", stacklevel=2)
         return circuit
 
     # If no wire labels are provided, do not add any labels

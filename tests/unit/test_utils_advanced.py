@@ -1,4 +1,3 @@
-
 from pyschemaelectrical.utils.autonumbering import (
     auto_coil_pins,
     auto_contact_pins,
@@ -74,9 +73,9 @@ class TestAutonumberingAdvanced:
         assert pins5 == ("2",)
 
         # Verify independent counters
-        assert state['terminal_counters']['X1'] == 6
-        assert state['terminal_counters']['X2'] == 3
-        assert state['terminal_counters']['X10'] == 2
+        assert state["terminal_counters"]["X1"] == 6
+        assert state["terminal_counters"]["X2"] == 3
+        assert state["terminal_counters"]["X10"] == 2
 
     def test_generate_pin_range_variations(self):
         """Test pin range generation with various parameters."""
@@ -132,11 +131,11 @@ class TestAutonumberingAdvanced:
         state = create_autonumberer()
 
         # Verify initial state structure
-        assert 'tags' in state
-        assert 'terminal_counters' in state
+        assert "tags" in state
+        assert "terminal_counters" in state
 
-        assert isinstance(state['tags'], dict)
-        assert isinstance(state['terminal_counters'], dict)
+        assert isinstance(state["tags"], dict)
+        assert isinstance(state["terminal_counters"], dict)
 
     def test_zero_poles(self):
         """Test terminal pins with zero poles (edge case)."""
@@ -144,7 +143,7 @@ class TestAutonumberingAdvanced:
         state, pins = next_terminal_pins(state, "X1", poles=0)
 
         assert pins == ()
-        assert state['terminal_counters']['X1'] == 0
+        assert state["terminal_counters"]["X1"] == 0
 
     def test_large_number_of_poles(self):
         """Test terminal pins with large number of poles."""
@@ -153,7 +152,7 @@ class TestAutonumberingAdvanced:
 
         assert len(pins) == 10
         assert pins == ("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
-        assert state['terminal_counters']['X1'] == 10
+        assert state["terminal_counters"]["X1"] == 10
 
     def test_sequential_workflow(self):
         """Test a realistic sequential workflow like in pump_example.py."""

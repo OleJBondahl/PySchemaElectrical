@@ -145,7 +145,8 @@ def main():
     print("\nGenerated files:")
     print("  1. examples/output/dol_pins_example1_auto.svg - Default auto-numbering")
     print(
-        "  2. examples/output/dol_pins_example2_shared_state.svg - Shared state across circuits"
+        "  2. examples/output/dol_pins_example2_shared_state.svg"
+        " - Shared state across circuits"
     )
     print("  3. examples/output/dol_pins_example3_custom_pins.svg - Fully custom pins")
     print("  4. examples/output/dol_pins_example4_mixed.svg - Mixed approach")

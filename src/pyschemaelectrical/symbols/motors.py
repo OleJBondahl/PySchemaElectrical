@@ -94,8 +94,9 @@ def three_pole_motor_symbol(
 
     terminal_length = pin_spacing  # 5mm lead length
 
-    # Three phase terminals (U, V, W) - on top arc with DEFAULT_POLE_SPACING
-    # This matches the three-pole terminal symbol spacing
+    # Three phase terminals (U, V, W) on top arc
+    # with DEFAULT_POLE_SPACING. Matches the
+    # three-pole terminal symbol spacing.
     # U at x = -DEFAULT_POLE_SPACING (-5mm) - LEFTMOST
     # V at x = 0 (center)
     # W at x = +DEFAULT_POLE_SPACING (+5mm)
@@ -146,8 +147,10 @@ def three_pole_motor_symbol(
 
     # Add pin labels if provided
     if pins:
-        # Manually create labels to ensure they match the geometric order (Left -> Right)
-        # create_pin_labels sorts by key, which scrambles semantic ordering (e.g. U, V, W)
+        # Manually create labels to ensure they match the
+        # geometric order (Left -> Right).
+        # create_pin_labels sorts by key, which scrambles
+        # semantic ordering (e.g. U, V, W)
         from pyschemaelectrical.model.parts import (
             COLOR_BLACK,
             PIN_LABEL_OFFSET_X,

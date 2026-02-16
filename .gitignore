@@ -1,4 +1,4 @@
-/.quarto/
+.quarto/
 **/*.quarto_ipynb
 *.pyc
 __pycache__/
@@ -8,12 +8,21 @@ __pycache__/
 !examples/output/*.svg
 !examples/output/*.csv
 /pyschemaelectrical.egg-info
+*.egg-info/
 .coverage
 .coverage.*
 .venv/
 .pytest_cache/
 .complexipy_cache/
+.mypy_cache/
+.ruff_cache/
 uv.lock
 dist/
 
-/.claude
+# Temporary build artifacts
+*.typ
+examples/output/project_temp/
+examples/output/project_svgs/*.csv
+
+# IDE and tool config
+.claude/

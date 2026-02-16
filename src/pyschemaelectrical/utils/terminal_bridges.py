@@ -54,9 +54,7 @@ def expand_range_to_pins(start: int, end: int) -> List[int]:
 
 
 def get_connection_groups_for_terminal(
-    tag: str,
-    pins: List[int],
-    internal_connections: Dict[str, ConnectionDef]
+    tag: str, pins: List[int], internal_connections: Dict[str, ConnectionDef]
 ) -> List[List[int]]:
     """
     Get the internal connection groups for a specific terminal.
@@ -103,8 +101,7 @@ def get_connection_groups_for_terminal(
 
 
 def generate_internal_connections_data(
-    terminal_pins: Dict[str, List[int]],
-    internal_connections: Dict[str, ConnectionDef]
+    terminal_pins: Dict[str, List[int]], internal_connections: Dict[str, ConnectionDef]
 ) -> Dict[str, List[List[int]]]:
     """
     Generate internal connections data for all terminals.
@@ -159,7 +156,7 @@ def parse_terminal_pins_from_csv(csv_path: str) -> Dict[str, List[int]]:
     if not csv_file.exists():
         return terminal_pins
 
-    with open(csv_path, 'r', newline='') as f:
+    with open(csv_path, "r", newline="") as f:
         reader = csv.reader(f)
         try:
             header = next(reader)
@@ -198,8 +195,7 @@ def parse_terminal_pins_from_csv(csv_path: str) -> Dict[str, List[int]]:
 
 
 def update_csv_with_internal_connections(
-    csv_path: str,
-    internal_connections: Dict[str, ConnectionDef]
+    csv_path: str, internal_connections: Dict[str, ConnectionDef]
 ) -> None:
     """
     Update system_terminals.csv with an 'Internal Bridge' column.
@@ -227,10 +223,10 @@ def update_csv_with_internal_connections(
     )
 
     # 2. Read and rewrite CSV
-    temp_file = NamedTemporaryFile(mode='w', newline='', delete=False)
+    temp_file = NamedTemporaryFile(mode="w", newline="", delete=False)
 
     try:
-        with open(csv_path, 'r', newline='') as infile, temp_file as outfile:
+        with open(csv_path, "r", newline="") as infile, temp_file as outfile:
             reader = csv.reader(infile)
             writer = csv.writer(outfile)
 

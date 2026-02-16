@@ -6,26 +6,25 @@ This directory contains example usage of all standard circuits in the PySchemaEl
 
 ```
 examples/
-├── constants.py                      # Project-specific constants
-├── example_all_circuits.py           # Run all examples at once
-├── example_dol_starter.py            # DOL motor starter example
-├── example_emergency_stop.py         # Emergency stop circuit example
-├── example_psu.py                    # Power supply unit example
-├── example_changeover.py             # Changeover switch example
-├── example_voltage_monitor.py        # Voltage monitor example
-├── example_power_distribution.py     # Complete power distribution system
-├── example_motor_control.py          # Motor control circuit example
-├── example_switch.py                 # Simple switch circuit example
-├── example_dynamic_block.py          # Dynamic block with 5 terminals example
-└── output/                           # Generated SVG files
-    ├── dol_starter.svg
-    ├── emergency_stop.svg
-    ├── psu.svg
-    ├── changeover.svg
-    ├── voltage_monitor.svg
-    ├── power_distribution.svg
-    ├── motor_control.svg
-    └── switch.svg
+├── constants.py                            # Project-specific constants
+├── example_all_circuits.py                 # Run all examples at once
+├── example_changeover.py                   # Changeover switch example
+├── example_dol_starter.py                  # DOL motor starter example
+├── example_dynamic_block.py                # Dynamic block with 5 terminals
+├── example_dynamic_block_nonuniform.py     # Non-uniform dynamic block
+├── example_emergency_stop.py               # Emergency stop circuit example
+├── example_motor_control.py                # Motor control circuit example
+├── example_motor_symbol.py                 # Motor symbol example
+├── example_pin_configurations.py           # Pin configuration examples
+├── example_power_distribution.py           # Complete power distribution system
+├── example_project.py                      # Project API example
+├── example_psu.py                          # Power supply unit example
+├── example_switch.py                       # Simple switch circuit example
+├── example_turn_switch.py                  # Turn switch example
+├── example_two_coils.py                    # Two coils example
+├── example_voltage_monitor.py              # Voltage monitor example
+├── example_wire_labels.py                  # Wire labels example
+└── output/                                 # Generated SVG files
 ```
 
 ## Constants File
@@ -100,16 +99,17 @@ AC to DC power supply with:
 **Use case**: Switching between main and backup power sources
 
 ### 5. Voltage Monitor (`voltage_monitor`)
-3-phase voltage monitoring with:
-- Voltage monitor block
-- Configurable input/output pins
+Coil-based voltage monitoring circuit with:
 
-**Use case**: Monitoring three-phase voltage levels
+- Coil circuit used as voltage monitor model
+- Configurable terminal connections
+
+**Use case**: Monitoring voltage levels via relay coil
 
 ### 6. Power Distribution (`power_distribution`)
 Complete power distribution system combining:
+
 - Changeover switch
-- Voltage monitor
 - Power supply unit
 
 **Use case**: Complete power management system
@@ -169,13 +169,11 @@ To integrate these examples into your project:
 3. **Import** and use the standard circuits in your code:
 
 ```python
-from pyschemaelectrical.utils.autonumbering import create_autonumberer
-from pyschemaelectrical.std_circuits import dol_starter
-from pyschemaelectrical.system import render_system
+from pyschemaelectrical import create_autonumberer, render_system, std_circuits
 from constants import Terminals
 
 state = create_autonumberer()
-state, circuit, terminals = dol_starter(
+state, circuit, terminals = std_circuits.dol_starter(
     state=state,
     x=0,
     y=0,

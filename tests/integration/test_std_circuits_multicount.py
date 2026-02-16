@@ -98,9 +98,7 @@ class TestMultiCountStdCircuits:
 
     def test_coil_count_2(self):
         state = create_autonumberer()
-        state, circuit, used = coil(
-            state, 0, 0, tm_top="X1", count=2
-        )
+        state, circuit, used = coil(state, 0, 0, tm_top="X1", count=2)
         assert len(circuit.elements) > 0
 
 
@@ -154,9 +152,7 @@ class TestDefaultCountBackwardsCompat:
 
     def test_psu_default_count(self):
         state1 = create_autonumberer()
-        _, c1, _ = psu(
-            state1, 0, 0, tm_top="X1", tm_bot_left="X2", tm_bot_right="X3"
-        )
+        _, c1, _ = psu(state1, 0, 0, tm_top="X1", tm_bot_left="X2", tm_bot_right="X3")
 
         state2 = create_autonumberer()
         _, c2, _ = psu(

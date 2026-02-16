@@ -23,7 +23,7 @@ class TestPrimitivesUnit:
         assert txt.content == "Hello"
         assert txt.position == pos
         assert txt.anchor == "middle"  # default
-        assert txt.font_size == 12.0   # default
+        assert txt.font_size == 12.0  # default
 
     def test_path(self):
         d = "M 0 0 L 10 10"
@@ -31,13 +31,13 @@ class TestPrimitivesUnit:
         assert path.d == d
 
     def test_polygon(self):
-        points = [Point(0,0), Point(10,0), Point(5,10)]
+        points = [Point(0, 0), Point(10, 0), Point(5, 10)]
         poly = Polygon(points=points)
         assert poly.points == points
 
     def test_group(self):
-        l = Line(Point(0,0), Point(1,1))
-        c = Circle(Point(2,2), 5)
-        g = Group(elements=[l, c])
+        line = Line(Point(0, 0), Point(1, 1))
+        c = Circle(Point(2, 2), 5)
+        g = Group(elements=[line, c])
         assert len(g.elements) == 2
-        assert g.elements[0] == l
+        assert g.elements[0] == line

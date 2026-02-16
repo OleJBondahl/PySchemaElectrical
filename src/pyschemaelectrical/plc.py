@@ -25,8 +25,12 @@ class SensorTypeDef:
 
     name: str
     module: str  # Module type name
-    pins: Tuple[str, ...]  # Pin names per channel, e.g. ("Signal", "GND") or ("R+", "RL", "R-")
-    polarity: Optional[Dict[int, str]] = None  # Pin index -> polarity suffix, e.g. {0: "+", 1: "-"}
+    pins: Tuple[
+        str, ...
+    ]  # Pin names per channel, e.g. ("Signal", "GND") or ("R+", "RL", "R-")
+    polarity: Optional[Dict[int, str]] = (
+        None  # Pin index -> polarity suffix, e.g. {0: "+", 1: "-"}
+    )
 
 
 @dataclass
@@ -64,7 +68,11 @@ class PlcMapper:
         plc = PlcMapper()
         plc.module_type("AI_mA", capacity=4, pin_format="CH{ch}{polarity}")
         plc.module_type("AI_RTD", capacity=2, pin_format="CH{ch}_{pin}")
-        plc.sensor_type("2Wire-mA", module="AI_mA", pins=["Signal", "GND"], polarity={0: "+", 1: "-"})
+        plc.sensor_type(
+            "2Wire-mA", module="AI_mA",
+            pins=["Signal", "GND"],
+            polarity={0: "+", 1: "-"},
+        )
         plc.sensor_type("RTD", module="AI_RTD", pins=["R+", "RL", "R-"])
         plc.sensor("TT-01-CX", type="RTD", cable="W0102", terminal="X007")
         connections = plc.generate_connections()
@@ -76,9 +84,7 @@ class PlcMapper:
         self._sensors: List[SensorInstance] = []
         self._terminal_pin_counters: Dict[str, int] = {}
 
-    def module_type(
-        self, name: str, capacity: int, pin_format: str
-    ) -> "PlcMapper":
+    def module_type(self, name: str, capacity: int, pin_format: str) -> "PlcMapper":
         """
         Register a PLC module type.
 
@@ -128,9 +134,7 @@ class PlcMapper:
         )
         return self
 
-    def sensor(
-        self, tag: str, type: str, cable: str, terminal: str
-    ) -> "PlcMapper":
+    def sensor(self, tag: str, type: str, cable: str, terminal: str) -> "PlcMapper":
         """
         Add a sensor instance.
 
@@ -183,7 +187,11 @@ class PlcMapper:
     ) -> str:
         """Format a module pin name using the module's pin_format template."""
         fmt = module_type.pin_format
-        pin_name = sensor_type_def.pins[pin_index] if pin_index < len(sensor_type_def.pins) else ""
+        pin_name = (
+            sensor_type_def.pins[pin_index]
+            if pin_index < len(sensor_type_def.pins)
+            else ""
+        )
         polarity = ""
         if sensor_type_def.polarity and pin_index in sensor_type_def.polarity:
             polarity = sensor_type_def.polarity[pin_index]
@@ -214,7 +222,6 @@ class PlcMapper:
 
         for mod_type_name, sensors in sensors_by_module.items():
             mod_type = self._module_types[mod_type_name]
-            num_modules = math.ceil(len(sensors) / mod_type.capacity)
 
             for sensor_idx, sensor in enumerate(sensors):
                 module_num = (sensor_idx // mod_type.capacity) + 1
@@ -225,9 +232,7 @@ class PlcMapper:
 
                 # Generate one connection per pin/wire
                 for pin_idx, pin_name in enumerate(st.pins):
-                    module_pin = self._format_module_pin(
-                        mod_type, channel, st, pin_idx
-                    )
+                    module_pin = self._format_module_pin(mod_type, channel, st, pin_idx)
                     terminal_pin = self._next_terminal_pin(sensor.terminal)
 
                     connections.append(

@@ -300,7 +300,6 @@ class Project:
         # 2. Generate SVGs and terminal CSVs
         svg_paths = {}
         csv_paths = {}
-        all_used_terminals = []
 
         for key, result in self._results.items():
             svg_path = os.path.join(temp_dir, f"{key}.svg")
@@ -311,7 +310,6 @@ class Project:
                 csv_path = os.path.join(temp_dir, f"{key}_terminals.csv")
                 export_terminal_list(csv_path, result.used_terminals)
                 csv_paths[key] = csv_path
-                all_used_terminals.extend(result.used_terminals)
 
         # 3. Generate system terminal CSV with bridge info
         system_csv_path = os.path.join(temp_dir, "system_terminals.csv")

@@ -37,7 +37,8 @@ class TestUpdateCsvWithInternalConnections:
             assert "Internal Bridge" in rows[0].keys()
 
             # Verify the bridge values
-            # Both pins 1 and 2 are in the same bridge group, so they should get index "1"
+            # Both pins 1 and 2 are in the same bridge group,
+            # so they should get index "1"
             assert rows[0]["Internal Bridge"] == "1"
             assert rows[1]["Internal Bridge"] == "1"
 

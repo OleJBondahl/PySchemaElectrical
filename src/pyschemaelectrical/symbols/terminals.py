@@ -19,7 +19,8 @@ IEC 60617 Terminal Symbols.
 class Terminal(Symbol):
     """
     Specific symbol type for Terminals.
-    Distinct from generic Symbols to allow for specialized system-level processing (e.g., CSV export).
+    Distinct from generic Symbols to allow for specialized
+    system-level processing (e.g., CSV export).
 
     Attributes:
         terminal_number (Optional[str]): The specifically assigned terminal number.
@@ -35,7 +36,8 @@ class TerminalBlock(Symbol):
     Contains mapping of ports to terminal numbers.
 
     Attributes:
-        channel_map (Dict[Tuple[str, str], str]): Map of (up_port_id, down_port_id) -> terminal_number.
+        channel_map (Dict[Tuple[str, str], str]): Map of
+            (up_port_id, down_port_id) -> terminal_number.
     """
 
     # Map of (up_port_id, down_port_id) -> terminal_number
@@ -53,7 +55,8 @@ def terminal_symbol(
 
     Args:
         label (str): The tag of the terminal strip (e.g. "X1").
-        pins (tuple): Tuple of pin numbers. Only the first one is used as the terminal number.
+        pins (tuple): Tuple of pin numbers. Only the first
+                      one is used as the terminal number.
                       It is displayed at the bottom port.
         label_pos (str): Position of label ('left' or 'right').
 

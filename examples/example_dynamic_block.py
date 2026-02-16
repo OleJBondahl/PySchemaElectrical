@@ -2,7 +2,8 @@
 Example: Dynamic Block with 5 Pins Connected to 5 Single Pole Terminals.
 
 This example demonstrates how to use the library's dynamic block symbol
-to create a custom block with 5 pins and connect each pin to a separate single pole terminal.
+to create a custom block with 5 pins and connect each pin
+to a separate single pole terminal.
 """
 
 from pyschemaelectrical import Circuit, add_symbol, create_autonumberer, render_system

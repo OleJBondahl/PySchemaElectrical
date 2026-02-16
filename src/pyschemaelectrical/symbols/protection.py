@@ -9,7 +9,7 @@ from pyschemaelectrical.model.parts import (
     standard_text,
     three_pole_factory,
 )
-from pyschemaelectrical.model.primitives import Element, Line
+from pyschemaelectrical.model.primitives import Line
 
 
 def thermal_overload_symbol(label: str = "", pins: tuple = ()) -> Symbol:

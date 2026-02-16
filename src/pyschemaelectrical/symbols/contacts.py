@@ -296,12 +296,7 @@ def spdt_contact_symbol(
     blade_end = Point(blade_start.x + dx * scale, blade_start.y + dy * scale)
     blade = Line(blade_start, blade_end, style)
 
-    # Assemble standard elements
-    if not inverted:
-        elements.extend([l_com, l_no, l_nc, seat_nc, blade])
-    else:
-        # Assuming vars are defined in scope from the block
-        elements.extend([l_com, l_no, l_nc, seat_nc, blade])
+    elements.extend([l_com, l_no, l_nc, seat_nc, blade])
 
     if label:
         elements.append(standard_text(label, Point(0, 0)))

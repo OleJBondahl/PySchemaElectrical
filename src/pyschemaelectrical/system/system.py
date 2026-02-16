@@ -32,7 +32,8 @@ def add_symbol(circuit: Circuit, symbol: Symbol, x: float, y: float) -> Symbol:
 
     Args:
         circuit (Circuit): The circuit to add to.
-        symbol (Symbol): The symbol instance to add (usually created from symbols library).
+        symbol (Symbol): The symbol instance to add
+            (usually created from symbols library).
         x (float): The x-coordinate.
         y (float): The y-coordinate.
 

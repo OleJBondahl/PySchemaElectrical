@@ -174,7 +174,8 @@ def next_terminal_pins(
     new_counters = counters.copy()
     new_counters[terminal_tag] = current_pin + poles - 1
 
-    # Create new state dictionary (shallow copy of parent, deep copy of mutable parts we touch)
+    # Create new state dictionary (shallow copy of parent,
+    # deep copy of mutable parts we touch)
     new_state = state.copy()
     new_state["terminal_counters"] = new_counters
 

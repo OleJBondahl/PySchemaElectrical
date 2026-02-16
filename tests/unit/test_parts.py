@@ -116,5 +116,6 @@ class TestPartsUnit:
         # If correct: x_live < x_aux (0 < 10)
         # If bug: x_live > x_aux (10 > 0)
         assert x_live < x_aux, (
-            f"Expected LIVE (at L) to be left of AUX (at A1). Got x_live={x_live}, x_aux={x_aux}"
+            f"Expected LIVE (at L) to be left of AUX (at A1). "
+            f"Got x_live={x_live}, x_aux={x_aux}"
         )

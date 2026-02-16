@@ -34,7 +34,8 @@ def contactor_symbol(
 
     Args:
         label (str): The device label (e.g. "-K1").
-        coil_pins (Optional[Tuple[str, str]]): Pins for the coil (A1, A2). If None, coil terminals are hidden.
+        coil_pins (Optional[Tuple[str, str]]): Pins for the
+            coil (A1, A2). If None, coil terminals are hidden.
         contact_pins (Tuple[str, ...]): Pins for the 3-pole contact (1..6).
 
     Returns:
@@ -42,7 +43,8 @@ def contactor_symbol(
     """
 
     # 1. Create the contacts
-    # The contacts are centered at (0,0), (10,0), (20,0) by default in three_pole_normally_open
+    # The contacts are centered at (0,0), (10,0), (20,0)
+    # by default in three_pole_normally_open
     # (assuming DEFAULT_POLE_SPACING is 10mm)
     contacts_sym = three_pole_normally_open_symbol(label="", pins=contact_pins)
 
@@ -159,7 +161,8 @@ def turn_switch_assembly_symbol(
         ),
     )
 
-    # 3. Turn Switch actuator (rotated 180° so attachment is on right, facing the contact)
+    # 3. Turn Switch actuator (rotated 180 degrees so
+    # attachment is on right, facing the contact)
     actuator_sym = turn_switch_symbol(rotation=180)
     actuator_sym = translate(actuator_sym, actuator_x, 0)
 

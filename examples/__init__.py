@@ -6,5 +6,5 @@ Run example_all_circuits.py to generate all examples.
 """
 
 __all__ = [
-    'constants',
+    "constants",
 ]
