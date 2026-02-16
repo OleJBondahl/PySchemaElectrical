@@ -6,7 +6,7 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 from pyschemaelectrical.layout.layout import auto_connect, create_horizontal_layout
 from pyschemaelectrical.model.constants import (
@@ -34,8 +34,8 @@ def dol_starter(
     y: float,
     # Required terminal parameters
     tm_top: str,
-    tm_bot: str,
-    tm_bot_right: str,
+    tm_bot: Union[str, List[str]],
+    tm_bot_right: Union[str, List[str]],
     # Layout parameters (with defaults from constants)
     spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
@@ -107,17 +107,19 @@ def dol_starter(
     if not tm_aux_2:
         tm_aux_2 = terminal_maps.get("GND")
 
-    # Resolve per-instance terminal: tm_bot can be a list
+    # Resolve per-instance terminal: tm_bot and tm_bot_right can be lists
     tm_bot_list = tm_bot if isinstance(tm_bot, list) else None
+    tm_bot_right_list = tm_bot_right if isinstance(tm_bot_right, list) else None
 
     def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single DOL starter instance."""
         c = Circuit()
         current_y = start_y
 
-        # Resolve per-instance bottom terminal
+        # Resolve per-instance bottom terminals
         instance_tm_bot = tm_bot_list[instance] if tm_bot_list else tm_bot
-        used_terminals_list = [tm_top, instance_tm_bot, tm_bot_right]
+        instance_tm_bot_right = tm_bot_right_list[instance] if tm_bot_right_list else tm_bot_right
+        used_terminals_list = [tm_top, instance_tm_bot, instance_tm_bot_right]
 
         # Get terminal pins (auto-number if not provided)
         if tm_top_pins is None:
@@ -131,7 +133,7 @@ def dol_starter(
             output_pins = tm_bot_pins
 
         if tm_bot_right_pins is None:
-            s, output_right_pins = next_terminal_pins(s, tm_bot_right, 1)
+            s, output_right_pins = next_terminal_pins(s, instance_tm_bot_right, 1)
         else:
             output_right_pins = tm_bot_right_pins
 
@@ -150,15 +152,15 @@ def dol_starter(
         # 2. Circuit Breaker
         sym = three_pole_circuit_breaker_symbol(breaker_tag, pins=breaker_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing / 3  # Half spacing to thermal overload
-
-        # 3. Thermal Overload (top pins hidden)
-        sym = three_pole_thermal_overload_symbol(thermal_tag, pins=thermal_pins)
-        add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing * 2 / 3
 
-        # 4. Contactor
+        # 3. Contactor
         sym = contactor_symbol(cont_tag, contact_pins=contactor_pins)
+        add_symbol(c, sym, start_x, current_y)
+        current_y += symbol_spacing / 3  # Reduced spacing: thermal connects directly to contactor
+
+        # 4. Thermal Overload (top pins hidden)
+        sym = three_pole_thermal_overload_symbol(thermal_tag, pins=thermal_pins)
         add_symbol(c, sym, start_x, current_y)
         current_y += symbol_spacing * 2 / 3  # Full spacing to CT area
 
@@ -172,7 +174,7 @@ def dol_starter(
         tm_bot_sym = add_symbol(c, sym, start_x, current_y)
 
         # 6b. PE Terminal (tm_bot_right) - same Y level
-        sym = terminal_symbol(tm_bot_right, pins=output_right_pins, label_pos="right")
+        sym = terminal_symbol(instance_tm_bot_right, pins=output_right_pins, label_pos="right")
         add_symbol(c, sym, start_x + 3 * DEFAULT_POLE_SPACING, current_y)
 
         # 7. Motor - Below terminals
@@ -236,7 +238,7 @@ def dol_starter(
         if len(output_right_pins) > 0:
             pe_pin = output_right_pins[0]
             s = register_connection(
-                s, tm_bot_right, pe_pin, motor_tag, "PE", side="bottom"
+                s, instance_tm_bot_right, pe_pin, motor_tag, "PE", side="bottom"
             )
 
         return s, c.elements
@@ -263,9 +265,8 @@ def dol_starter(
         circuit = add_wire_labels_to_circuit(circuit, wire_labels)
 
     # Collect used terminals
-    if tm_bot_list:
-        used_terminals = [tm_top] + tm_bot_list + [tm_bot_right]
-    else:
-        used_terminals = [tm_top, tm_bot, tm_bot_right]
+    bot_list = tm_bot_list if tm_bot_list else [tm_bot]
+    right_list = tm_bot_right_list if tm_bot_right_list else [tm_bot_right]
+    used_terminals = [tm_top] + bot_list + right_list
 
     return final_state, circuit, used_terminals

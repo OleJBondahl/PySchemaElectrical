@@ -28,6 +28,9 @@ classifiers = [
 # Add any runtime dependencies here
 dependencies = []
 
+[project.optional-dependencies]
+pdf = ["typst"]
+
 [project.urls]
 Homepage = "https://github.com/OleJBondahl/PySchemaElectrical"
 Repository = "https://github.com/OleJBondahl/PySchemaElectrical"
@@ -41,6 +44,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["pyschemaelectrical*"]
+
+[tool.setuptools.package-data]
+pyschemaelectrical = ["rendering/typst/templates/*.typ"]
 
 
 [tool.pytest.ini_options]
@@ -78,5 +84,7 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+# Inline Typst code in string literals has long lines
+"src/pyschemaelectrical/rendering/typst/compiler.py" = ["E501"]
 
 

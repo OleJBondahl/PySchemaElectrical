@@ -1,24 +1,23 @@
 """
 Terminal type for PySchemaElectrical.
 
-Provides a first-class `Terminal` dataclass that replaces the string-based
+Provides a first-class `Terminal` type that replaces the string-based
 terminal ID hack. Terminals carry metadata (description, bridge info,
-reference flag) while remaining backwards-compatible with string comparisons.
+reference flag) while being fully compatible with string operations
+by inheriting from `str`.
 """
 
-from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 BridgeDef = Optional[Union[str, List[Tuple[int, int]]]]
 
 
-@dataclass(frozen=True)
-class Terminal:
+class Terminal(str):
     """
     A terminal block definition with metadata.
 
-    Terminals act as strings (via __str__, __eq__, __hash__) for backwards
-    compatibility with existing code that uses terminal IDs as plain strings.
+    Terminals ARE strings (via inheritance) for full backwards compatibility
+    with existing code that uses terminal IDs as plain strings.
 
     Args:
         id: Terminal identifier (e.g., "X001").
@@ -29,16 +28,25 @@ class Terminal:
                    Reference terminals are excluded from terminal reports.
     """
 
-    id: str
-    description: str = ""
-    bridge: BridgeDef = None
-    reference: bool = False
+    description: str
+    bridge: BridgeDef
+    reference: bool
 
-    def __str__(self) -> str:
-        return self.id
+    def __new__(
+        cls,
+        id: str,
+        description: str = "",
+        bridge: BridgeDef = None,
+        reference: bool = False,
+    ) -> "Terminal":
+        instance = super().__new__(cls, id)
+        instance.description = description
+        instance.bridge = bridge
+        instance.reference = reference
+        return instance
 
     def __hash__(self) -> int:
-        return hash(self.id)
+        return str.__hash__(self)
 
     def __eq__(self, other) -> bool:
-        return str(self) == str(other)
+        return str.__eq__(self, str(other))

@@ -6,11 +6,13 @@ src/pyschemaelectrical/builder.py
 src/pyschemaelectrical/descriptors.py
 src/pyschemaelectrical/exceptions.py
 src/pyschemaelectrical/plc.py
+src/pyschemaelectrical/project.py
 src/pyschemaelectrical/terminal.py
 src/pyschemaelectrical/wire.py
 src/pyschemaelectrical.egg-info/PKG-INFO
 src/pyschemaelectrical.egg-info/SOURCES.txt
 src/pyschemaelectrical.egg-info/dependency_links.txt
+src/pyschemaelectrical.egg-info/requires.txt
 src/pyschemaelectrical.egg-info/top_level.txt
 src/pyschemaelectrical/layout/__init__.py
 src/pyschemaelectrical/layout/layout.py
@@ -21,6 +23,12 @@ src/pyschemaelectrical/model/core.py
 src/pyschemaelectrical/model/parts.py
 src/pyschemaelectrical/model/primitives.py
 src/pyschemaelectrical/model/state.py
+src/pyschemaelectrical/rendering/__init__.py
+src/pyschemaelectrical/rendering/typst/__init__.py
+src/pyschemaelectrical/rendering/typst/compiler.py
+src/pyschemaelectrical/rendering/typst/frame_generator.py
+src/pyschemaelectrical/rendering/typst/markdown_converter.py
+src/pyschemaelectrical/rendering/typst/templates/a3_drawing.typ
 src/pyschemaelectrical/std_circuits/__init__.py
 src/pyschemaelectrical/std_circuits/control.py
 src/pyschemaelectrical/std_circuits/motor.py

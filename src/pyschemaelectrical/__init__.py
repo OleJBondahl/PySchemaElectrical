@@ -40,4 +40,5 @@ from .terminal import Terminal
 from .wire import wire
 from .descriptors import ref, comp, term, build_from_descriptors
 from .plc import PlcMapper
+from .project import Project
 from . import std_circuits  # must be last to avoid circular imports

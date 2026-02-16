@@ -112,6 +112,7 @@ class Paths:
     TURN_SWITCH = f"{OUTPUT_DIR}/turn_switch.svg"
     DYNAMIC_BLOCK = f"{OUTPUT_DIR}/dynamic_block_5_terminals.svg"
     WIRE_LABELS = f"{OUTPUT_DIR}/wire_labels.svg"
+    TWO_COILS = f"{OUTPUT_DIR}/two_coils.svg"
     THREE_PHASE_MOTOR = f"{OUTPUT_DIR}/three_phase_motor.svg"
 
     # Combined examples

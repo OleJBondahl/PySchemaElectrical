@@ -9,6 +9,7 @@ demonstration SVGs.
 from .example_changeover import main as changeover_main
 from .example_dol_starter import main as dol_main
 from .example_dynamic_block import main as dynamic_block_main
+from .example_two_coils import main as two_coils_main
 from .example_emergency_stop import main as estop_main
 from .example_motor_control import main as motor_control_main
 from .example_motor_symbol import main as motor_symbol_main
@@ -19,6 +20,7 @@ from .example_switch import main as switch_main
 from .example_turn_switch import main as turn_switch_main
 from .example_voltage_monitor import main as voltage_monitor_main
 from .example_wire_labels import main as wire_labels_main
+from .example_project import main as project_main
 
 
 def create_all_examples():
@@ -65,6 +67,12 @@ def create_all_examples():
 
     print("\n--- 13. Motor Symbol Test ---")
     motor_symbol_main()
+
+    print("\n--- 14. Two Coils Example ---")
+    two_coils_main()
+
+    print("\n--- 15. Project Example ---")
+    project_main()
 
     print("\n" + "=" * 80)
     print("All Examples Complete!")
