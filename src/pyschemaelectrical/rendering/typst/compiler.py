@@ -380,20 +380,18 @@ _PLC_REPORT_TYPST = r"""
                  #text(size: 10pt, fill: gray.darken(20%))[#mpn]
                  #v(2pt)
                  #table(
-                    columns: (0.4fr, 0.5fr, 0.3fr, 0.6fr),
-                    align: (center, left, center, left),
+                    columns: (0.4fr, 0.5fr, 0.6fr),
+                    align: (center, left, left),
                     fill: (x, y) => if y == 0 { gray.lighten(85%) } else { none },
                     inset: 4pt,
                     stroke: 0.25pt + gray,
                     text(size: 9pt, weight: "bold")[PLC Pin],
-                    text(size: 9pt, weight: "bold")[Component],
-                    text(size: 9pt, weight: "bold")[Pin],
                     text(size: 9pt, weight: "bold")[Terminal],
+                    text(size: 9pt, weight: "bold")[Component],
                     ..group_rows.map(r => (
                         text(size: 9pt, weight: "bold")[#r.at(2)],
-                        text(size: 9pt)[#r.at(3)],
-                        text(size: 9pt)[#r.at(4)],
-                        text(size: 9pt)[#r.at(5)]
+                        text(size: 9pt)[#r.at(5)],
+                        text(size: 9pt)[#r.at(3):#r.at(4)]
                     )).flatten()
                  )
                  #v(1em)
@@ -462,7 +460,7 @@ __DESC_MAP__
         return none
     }
 
-    columns(5, gutter: 4em)[
+    columns(3, gutter: 5em)[
         #let keys = groups.keys().sorted()
         #for tag in keys [
              #let group_rows = groups.at(tag)

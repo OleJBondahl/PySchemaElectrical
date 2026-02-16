@@ -15,8 +15,13 @@ Usage:
     ]
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.builder import BuildResult
 
 
 @dataclass(frozen=True)

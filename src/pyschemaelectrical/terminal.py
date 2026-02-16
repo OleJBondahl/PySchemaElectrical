@@ -30,6 +30,10 @@ class Terminal(str):
 
     __slots__ = ("description", "bridge", "reference")
 
+    description: str
+    bridge: BridgeDef
+    reference: bool
+
     def __new__(
         cls,
         id: str,

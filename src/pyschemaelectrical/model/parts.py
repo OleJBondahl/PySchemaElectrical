@@ -12,7 +12,7 @@ All constants are imported from the constants module.
 """
 
 from dataclasses import replace
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from pyschemaelectrical.utils.transform import translate
 
@@ -78,7 +78,9 @@ def standard_text(content: str, parent_origin: Point, label_pos: str = "left") -
     )
 
 
-def terminal_circle(center: Point = None, filled: bool = False) -> Element:
+def terminal_circle(
+    center: Optional[Point] = None, filled: bool = False
+) -> Element:
     """
     Create a standard connection terminal circle.
 

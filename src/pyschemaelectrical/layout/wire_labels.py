@@ -5,8 +5,13 @@ This module provides functional abstractions for adding wire specification label
 (color, size, etc.) to connection lines in electrical schematics.
 """
 
+from __future__ import annotations
+
 from itertools import cycle, islice
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.system.system import Circuit
 
 from pyschemaelectrical.model.constants import TEXT_FONT_FAMILY_AUX, TEXT_SIZE_PIN
 from pyschemaelectrical.model.core import Element, Point
