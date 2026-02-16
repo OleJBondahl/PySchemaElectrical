@@ -81,7 +81,6 @@ def main():
         count=2,
         tm_top="X1",
         tm_bot=["X10", "X11"],
-        tm_bot_right="PE",
         tm_aux_1="X3",
         tm_aux_2="X4",
         wire_labels=motor_wires,

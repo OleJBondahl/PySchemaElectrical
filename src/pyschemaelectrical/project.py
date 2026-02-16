@@ -83,7 +83,7 @@ class Project:
             Terminal("X4", "Ground", bridge="all"),
         )
         project.dol_starter("motors", count=3, tm_top="X1",
-                            tm_bot=["X10","X11","X12"], tm_bot_right="X4")
+                            tm_bot=["X10","X11","X12"])
         project.page("Motor Circuits", "motors")
         project.terminal_report()
         project.build("output.pdf")

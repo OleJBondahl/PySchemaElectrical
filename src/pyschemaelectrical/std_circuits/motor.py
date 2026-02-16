@@ -10,17 +10,20 @@ from typing import Any, List, Optional, Tuple, Union
 
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.model.constants import (
-    DEFAULT_POLE_SPACING,
     LayoutDefaults,
+    REF_ARROW_LENGTH,
     StandardTags,
 )
+from pyschemaelectrical.model.core import Point
+from pyschemaelectrical.model.parts import standard_style
+from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.symbols.assemblies import contactor_symbol
 from pyschemaelectrical.symbols.breakers import three_pole_circuit_breaker_symbol
 from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
 from pyschemaelectrical.symbols.references import ref_symbol
 from pyschemaelectrical.symbols.terminals import (
+    multi_pole_terminal_symbol,
     terminal_symbol,
-    three_pole_terminal_symbol,
 )
 from pyschemaelectrical.symbols.transducers import current_transducer_assembly_symbol
 from pyschemaelectrical.system.connection_registry import register_connection
@@ -35,7 +38,6 @@ def dol_starter(
     # Required terminal parameters
     tm_top: str,
     tm_bot: Union[str, List[str]],
-    tm_bot_right: Union[str, List[str]],
     # Layout parameters (with defaults from constants)
     spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
@@ -60,7 +62,8 @@ def dol_starter(
     # Pin parameters for terminals (None = auto-number)
     tm_top_pins: Optional[Tuple[str, ...]] = None,
     tm_bot_pins: Optional[Tuple[str, ...]] = None,
-    tm_bot_right_pins: Optional[Tuple[str, ...]] = None,
+    # Terminal poles (default 3 for three-phase)
+    poles: int = 3,
     # Optional aux terminals
     tm_aux_1: Optional[str] = None,
     tm_aux_2: Optional[str] = None,
@@ -87,10 +90,7 @@ def dol_starter(
         ct_tag_prefix: Tag prefix for current transducer (default: "CT")
         tm_top_pins: Pin labels for top terminal (None = auto-number)
         tm_bot_pins: Pin labels for bottom terminal (None = auto-number)
-        tm_bot_right: Terminal ID for the single pole
-            terminal at the bottom right (PE)
-        tm_bot_right_pins: Pin labels for the bottom right
-            terminal (None = auto-number)
+        poles: Number of terminal poles (default 3 for three-phase)
         tm_aux_1: Optional terminal ID for 24V aux connection
         tm_aux_2: Optional terminal ID for GND aux connection
         count: Number of circuit instances to create.
@@ -107,36 +107,27 @@ def dol_starter(
     if not tm_aux_2:
         tm_aux_2 = terminal_maps.get("GND")
 
-    # Resolve per-instance terminal: tm_bot and tm_bot_right can be lists
+    # Resolve per-instance terminal: tm_bot can be a list
     tm_bot_list = tm_bot if isinstance(tm_bot, list) else None
-    tm_bot_right_list = tm_bot_right if isinstance(tm_bot_right, list) else None
 
     def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single DOL starter instance."""
         c = Circuit()
         current_y = start_y
 
-        # Resolve per-instance bottom terminals
+        # Resolve per-instance bottom terminal
         instance_tm_bot = tm_bot_list[instance] if tm_bot_list else tm_bot
-        instance_tm_bot_right = (
-            tm_bot_right_list[instance] if tm_bot_right_list else tm_bot_right
-        )
 
         # Get terminal pins (auto-number if not provided)
         if tm_top_pins is None:
-            s, input_pins = next_terminal_pins(s, tm_top, 3)
+            s, input_pins = next_terminal_pins(s, tm_top, poles)
         else:
             input_pins = tm_top_pins
 
         if tm_bot_pins is None:
-            s, output_pins = next_terminal_pins(s, instance_tm_bot, 3)
+            s, output_pins = next_terminal_pins(s, instance_tm_bot, poles)
         else:
             output_pins = tm_bot_pins
-
-        if tm_bot_right_pins is None:
-            s, output_right_pins = next_terminal_pins(s, instance_tm_bot_right, 1)
-        else:
-            output_right_pins = tm_bot_right_pins
 
         # Get component tags
         s, breaker_tag = next_tag(s, breaker_tag_prefix)
@@ -145,34 +136,47 @@ def dol_starter(
         s, ct_tag = next_tag(s, ct_tag_prefix)
 
         # 1. Input Terminal
-        sym = three_pole_terminal_symbol(tm_top, pins=input_pins, label_pos="left")
+        sym = multi_pole_terminal_symbol(
+            tm_top, pins=input_pins, poles=poles, label_pos="left"
+        )
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing * 2 / 3
+        current_y += symbol_spacing
 
         # 2. Circuit Breaker
         sym = three_pole_circuit_breaker_symbol(breaker_tag, pins=breaker_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing * 2 / 3
+        current_y += symbol_spacing
 
         # 3. Contactor
         sym = contactor_symbol(cont_tag, contact_pins=contactor_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += (
-            symbol_spacing / 3
-        )  # Reduced spacing: thermal connects directly to contactor
+        current_y += symbol_spacing/2
 
         # 4. Thermal Overload (top pins hidden)
         sym = three_pole_thermal_overload_symbol(thermal_tag, pins=thermal_pins)
         add_symbol(c, sym, start_x, current_y)
-        current_y += symbol_spacing * 2 / 3  # Full spacing to CT area
+        current_y += symbol_spacing
 
         # 5. Current Transducer (inline with connection)
-        # placed close to bottom terminal
         sym = current_transducer_assembly_symbol(ct_tag, pins=ct_pins)
         ct_placed = add_symbol(c, sym, start_x, current_y)
 
-        # 5b. Terminals/References above CT pins
+        current_y += symbol_spacing
+
+        # 6. Output Terminal
+        sym = multi_pole_terminal_symbol(
+            instance_tm_bot, pins=output_pins, poles=poles, label_pos="left"
+        )
+        add_symbol(c, sym, start_x, current_y)
+
+        # Connect all symbols sequentially
+        auto_connect_circuit(c)
+
+        # 7. Terminals/References above CT pins (after auto_connect to
+        # avoid interfering with the main sequential wiring chain)
         if ct_terminals:
+            wire_style = standard_style()
+            ct_offset_y = symbol_spacing / 2
             for i, tid in enumerate(ct_terminals):
                 if i >= len(ct_pins):
                     break
@@ -181,42 +185,40 @@ def dol_starter(
                     continue
                 port = ct_placed.ports[port_id]
                 px, py = port.position.x, port.position.y
+                target_y = py - ct_offset_y
+                # Within each CT pair, right pin labels face right
+                lpos = "right" if i % 2 == 1 else "left"
 
                 is_ref = getattr(tid, "reference", False)
                 if is_ref:
-                    sym = ref_symbol(tag=str(tid), direction="down")
-                    add_symbol(c, sym, px, py)
+                    # Place reference higher so tail aligns with terminal level
+                    ref_y = target_y - REF_ARROW_LENGTH
+                    sym = ref_symbol(
+                        tag=str(tid), direction="up", label_pos=lpos
+                    )
+                    placed = add_symbol(c, sym, px, ref_y)
+                    wire_end_y = placed.ports["2"].position.y
                 else:
                     s, ct_tm_pins = next_terminal_pins(s, str(tid), 1)
-                    sym = terminal_symbol(str(tid), pins=ct_tm_pins)
-                    add_symbol(c, sym, px, py)
+                    sym = terminal_symbol(
+                        str(tid), pins=ct_tm_pins, label_pos=lpos
+                    )
+                    placed = add_symbol(c, sym, px, target_y)
+                    wire_end_y = placed.ports["2"].position.y
                     s = register_connection(
                         s, str(tid), ct_tm_pins[0], ct_tag, port_id, side="bottom"
                     )
 
-        current_y += symbol_spacing / 3  # Reduced spacing to bottom terminal
-
-        # 6. Output Terminal
-        sym = three_pole_terminal_symbol(
-            instance_tm_bot, pins=output_pins, label_pos="left"
-        )
-        add_symbol(c, sym, start_x, current_y)
-
-        # 6b. PE Terminal (tm_bot_right) - same Y level
-        sym = terminal_symbol(
-            instance_tm_bot_right, pins=output_right_pins, label_pos="right"
-        )
-        add_symbol(c, sym, start_x + 3 * DEFAULT_POLE_SPACING, current_y)
-
-        # Connect all symbols sequentially
-        auto_connect_circuit(c)
+                # Wire from CT port up to terminal/reference
+                c.elements.append(
+                    Line(Point(px, py), Point(px, wire_end_y), wire_style)
+                )
 
         # --- Explicit Registry Registration ---
         # 1. Top Terminal (Output Side/Bottom) -> Circuit Breaker (Input Side/Top)
         # input_pins: sequential pins from next_terminal_pins, e.g. ("1", "2", "3")
         # breaker pins: [1, 2, 3, 4, 5, 6] -> Inputs: 1, 3, 5 (indices 0, 2, 4)
-        for i in range(3):
-            # Terminal pins are sequential: input_pins[0], input_pins[1], input_pins[2]
+        for i in range(poles):
             if i < len(input_pins):
                 term_pin = input_pins[i]
 
@@ -232,10 +234,7 @@ def dol_starter(
         # 2. Contactor (Output Side/Bottom) -> Bottom Terminal (Input Side/Top)
         # output_pins: sequential pins from next_terminal_pins, e.g. ("4", "5", "6")
         # contactor pins: [1, 2, 3, 4, 5, 6] -> Outputs: 2, 4, 6 (indices 1, 3, 5)
-        # Note: CT is inline but we register contactor to terminal for clarity
-        for i in range(3):
-            # Terminal pins are sequential:
-            # output_pins[0], output_pins[1], output_pins[2]
+        for i in range(poles):
             if i < len(output_pins):
                 term_pin = output_pins[i]
 
@@ -272,8 +271,7 @@ def dol_starter(
 
     # Collect used terminals
     bot_list = tm_bot_list if tm_bot_list else [tm_bot]
-    right_list = tm_bot_right_list if tm_bot_right_list else [tm_bot_right]
-    used_terminals = [tm_top] + bot_list + right_list
+    used_terminals = [tm_top] + bot_list
     if ct_terminals:
         for tid in ct_terminals:
             if not getattr(tid, "reference", False) and tid not in used_terminals:

@@ -18,6 +18,7 @@ def terminal_box_symbol(
     num_pins: int = 1,
     start_pin_number: int = 1,
     pin_spacing: float = DEFAULT_POLE_SPACING,
+    pins: Optional[Tuple[str, ...]] = None,
 ) -> Symbol:
     """
     Create a Rectangular Terminal Box Symbol.
@@ -33,10 +34,13 @@ def terminal_box_symbol(
         num_pins (int): Number of pins/terminals.
         start_pin_number (int): Starting number for pin labels.
         pin_spacing (float): distance between pins.
+        pins: Explicit pin labels. Overrides start_pin_number when provided.
 
     Returns:
         Symbol: The symbol.
     """
+    if pins:
+        num_pins = len(pins)
 
     if num_pins < 1:
         num_pins = 1
@@ -72,8 +76,7 @@ def terminal_box_symbol(
     ports = {}
 
     for i in range(num_pins):
-        p_num = start_pin_number + i
-        p_str = str(p_num)
+        p_str = pins[i] if pins else str(start_pin_number + i)
 
         px = i * pin_spacing
 

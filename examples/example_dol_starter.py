@@ -36,7 +36,6 @@ def main():
         y=0,
         tm_top=Terminals.MAIN_POWER,
         tm_bot=Terminals.MOTOR_1,
-        tm_bot_right=Terminals.PE,
         tm_aux_1=Terminals.FUSED_24V,
         tm_aux_2=Terminals.GND,
     )
@@ -55,7 +54,6 @@ def main():
         y=0,
         tm_top=Terminals.MAIN_POWER,
         tm_bot=Terminals.MOTOR_1,
-        tm_bot_right=Terminals.PE,
         tm_aux_1=Terminals.FUSED_24V,
         tm_aux_2=Terminals.GND,
         count=2,

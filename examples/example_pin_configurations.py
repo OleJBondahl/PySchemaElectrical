@@ -22,7 +22,7 @@ def main():
 
     state1 = create_autonumberer()
     state1, circuit1, terminals1 = dol_starter(
-        state=state1, x=0, y=0, tm_top="X1", tm_bot="X10", tm_bot_right="PE"
+        state=state1, x=0, y=0, tm_top="X1", tm_bot="X10"
     )
 
     render_system(circuit1, "examples/output/dol_pins_example1_auto.svg")
@@ -47,7 +47,6 @@ def main():
         y=0,
         tm_top="X1",
         tm_bot="X10",
-        tm_bot_right="PE",
     )
 
     # Second circuit - continues numbering from where first circuit left off
@@ -57,7 +56,6 @@ def main():
         y=0,
         tm_top="X1",  # Same terminal ID but will get next available pins
         tm_bot="X10",
-        tm_bot_right="PE",
     )
 
     # Combine circuits
@@ -87,7 +85,6 @@ def main():
         y=0,
         tm_top="X1",
         tm_bot="X10",
-        tm_bot_right="PE",
         # Custom terminal pins (instead of auto-numbering)
         tm_top_pins=("L1", "L2", "L3"),
         tm_bot_pins=("U", "V", "W"),
@@ -123,7 +120,6 @@ def main():
         y=0,
         tm_top="X1",
         tm_bot="X10",
-        tm_bot_right="PE",
         # Leave terminal pins as None (auto-number)
         tm_top_pins=None,
         tm_bot_pins=None,

@@ -56,7 +56,7 @@ class TestMultiCountStdCircuits:
     def test_dol_starter_count_2(self):
         state = create_autonumberer()
         state, circuit, used = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2", tm_bot_right="X3", count=2
+            state, 0, 0, tm_top="X1", tm_bot="X2", count=2
         )
         assert len(circuit.elements) > 0
 
@@ -69,7 +69,6 @@ class TestMultiCountStdCircuits:
             0,
             tm_top="X1",
             tm_bot=["X010", "X011"],
-            tm_bot_right="X3",
             count=2,
         )
         assert len(circuit.elements) > 0

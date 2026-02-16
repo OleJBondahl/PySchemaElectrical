@@ -101,7 +101,7 @@ from pyschemaelectrical import create_autonumberer, render_system, std_circuits
 state = create_autonumberer()
 state, circuit, used_terminals = std_circuits.dol_starter(
     state, x=0, y=0,
-    tm_top="X1", tm_bot="X2", tm_bot_right="X3",
+    tm_top="X1", tm_bot="X2",
     tm_aux_1="X4", tm_aux_2="X5",
     count=3,
 )
@@ -305,9 +305,8 @@ def factory(state, x, y, tm_..., ..., count=1, wire_labels=None, **kwargs) -> Tu
 std_circuits.dol_starter(
     state, x, y,
     # Required terminal IDs
-    tm_top="X1",               # 3-pole power input
-    tm_bot="X2",               # 3-pole motor terminal
-    tm_bot_right="X3",         # PE terminal
+    tm_top="X1",               # N-pole power input
+    tm_bot="X2",               # N-pole motor terminal
     # Optional auxiliary terminals (for coil circuit)
     tm_aux_1=None,             # Auxiliary input (e.g., fused 24V)
     tm_aux_2=None,             # Auxiliary output (e.g., GND)
@@ -319,17 +318,18 @@ std_circuits.dol_starter(
     thermal_tag_prefix="FT",
     contactor_tag_prefix="Q",
     ct_tag_prefix="CT",
-    motor_tag_prefix="M",
     # Pin configurations (all have defaults)
     breaker_pins, thermal_pins, contactor_pins, ct_pins,
-    tm_top_pins, tm_bot_pins, tm_bot_right_pins,
+    tm_top_pins=None, tm_bot_pins=None,  # None = auto-number
+    # Terminal poles
+    poles=3,                   # Number of poles (default 3 for three-phase)
     # Multi-count
     count=1,
     wire_labels=None,
 )
 ```
 
-**Components created**: 3-pole circuit breaker, 3-pole thermal overload, contactor assembly (coil + 3-pole contacts), current transducer, 3-pole motor, and all connecting terminals.
+**Components created**: N-pole circuit breaker, N-pole thermal overload, contactor assembly (coil + N-pole contacts), current transducer, and N-pole input/output terminals.
 
 ### 4.2. `psu` — Power Supply Unit
 

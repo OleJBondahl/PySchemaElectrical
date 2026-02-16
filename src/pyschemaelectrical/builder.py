@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.symbols.terminals import (
+    multi_pole_terminal_symbol,
     terminal_symbol,
     three_pole_terminal_symbol,
 )
@@ -158,7 +159,7 @@ class CircuitBuilder:
         self._fixed_tag_generators: Dict[str, Callable] = {}
 
     def set_layout(
-        self, x: float, y: float, spacing: float = 150, symbol_spacing: float = 50
+        self, x: float = 0, y: float = 0, spacing: float = 150, symbol_spacing: float = 50
     ) -> "CircuitBuilder":
         """Configure the layout settings."""
         self._spec.layout = LayoutConfig(
@@ -722,8 +723,8 @@ def _create_single_circuit_from_spec(
         sym = None
         if component_spec.kind == "terminal":
             lpos = component_spec.kwargs.get("label_pos")
-            if component_spec.poles == 3:
-                sym = three_pole_terminal_symbol(tag, pins=rc["pins"], label_pos=lpos)
+            if component_spec.poles >= 2:
+                sym = multi_pole_terminal_symbol(tag, pins=rc["pins"], poles=component_spec.poles, label_pos=lpos)
             else:
                 sym = terminal_symbol(tag, pins=rc["pins"], label_pos=lpos)
 

@@ -22,5 +22,5 @@ from .protection import (
     three_pole_thermal_overload_symbol,
 )
 from .references import ref_symbol
-from .terminals import terminal_symbol, three_pole_terminal_symbol
+from .terminals import multi_pole_terminal_symbol, terminal_symbol, three_pole_terminal_symbol
 from .transducers import current_transducer_assembly_symbol, current_transducer_symbol

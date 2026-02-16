@@ -52,7 +52,7 @@ def test_set_pin_start():
 def test_dol_starter_registration():
     """dol_starter should register a circuit definition."""
     p = Project()
-    p.dol_starter("motors", count=2, tm_top="X1", tm_bot="X2", tm_bot_right="PE")
+    p.dol_starter("motors", count=2, tm_top="X1", tm_bot="X2")
     assert len(p._circuit_defs) == 1
     assert p._circuit_defs[0].key == "motors"
     assert p._circuit_defs[0].factory == "dol_starter"

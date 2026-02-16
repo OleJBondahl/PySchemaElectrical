@@ -32,7 +32,7 @@ class TestStandardCircuitsSnapshot:
         # DOL Starter is usually built via helper or builder.
         # Ideally we test the `create_dol_starter` function if it returns a circuit.
         state, circuit, _ = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2", tm_bot_right="X3"
+            state, 0, 0, tm_top="X1", tm_bot="X2"
         )
 
         svg_content = render_circuit_to_string(circuit)

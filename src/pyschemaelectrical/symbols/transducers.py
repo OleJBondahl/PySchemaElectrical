@@ -76,22 +76,7 @@ def current_transducer_assembly_symbol(
     # Box Right Edge needs to be at (-7.5, 0).
     # Box Vertical Center should be at Y=0.
 
-    # Create the box
-    # Defaulting to 2 pins if not specified enough, or just use input
-    num_pins = len(pins)
-    # Using generic default params for spacing if not passed
-    # Assuming start_pin_number is not critical here or parsed from string
-    # We'll just pass the pins logic inside terminal_box
-    # if it supported passing pins directly
-    # But currently terminal_box takes (start_pin_number, num_pins).
-    # Let's parse start pin from first pin string if it's digit
-    start_num = 1
-    if pins and pins[0].isdigit():
-        start_num = int(pins[0])
-
-    box_sym = terminal_box_symbol(
-        label=label, num_pins=num_pins, start_pin_number=start_num
-    )
+    box_sym = terminal_box_symbol(label=label, pins=pins)
 
     # Calculate Box Dimensions to determine offset
     # Box Origin is at Top-Left Pin (0,0 of box local coords).
@@ -103,7 +88,7 @@ def current_transducer_assembly_symbol(
     # padding = 2.5
     from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
 
-    span = (num_pins - 1) * DEFAULT_POLE_SPACING
+    span = (len(pins) - 1) * DEFAULT_POLE_SPACING
     box_right_edge_x_local = span + (GRID_SIZE / 2)
 
     # We want Global X of Right Edge to be -7.5 (Transducer Line End)

@@ -95,6 +95,55 @@ def terminal_symbol(
     )
 
 
+def multi_pole_terminal_symbol(
+    label: str = "",
+    pins: tuple = (),
+    poles: int = 2,
+    label_pos: str = "left",
+) -> TerminalBlock:
+    """
+    Create an N-pole terminal block.
+
+    Args:
+        label: The tag of the terminal strip (e.g. "X1").
+        pins: Tuple of terminal numbers, one per pole.
+              Padded with empty strings if shorter than poles.
+        poles: Number of poles (must be >= 2).
+        label_pos: Position of label ('left' or 'right').
+
+    Returns:
+        TerminalBlock: The N-pole terminal block.
+    """
+    p_safe = list(pins)
+    while len(p_safe) < poles:
+        p_safe.append("")
+
+    all_elements: List[Element] = []
+    new_ports = {}
+    channel_map = {}
+
+    for i in range(poles):
+        pole_label = label if i == 0 else ""
+        pole_lpos = label_pos if i == 0 else "left"
+        pole = terminal_symbol(label=pole_label, pins=(p_safe[i],), label_pos=pole_lpos)
+        if i > 0:
+            pole = translate(pole, DEFAULT_POLE_SPACING * i, 0)
+
+        all_elements += pole.elements
+
+        in_id = str(i * 2 + 1)
+        out_id = str(i * 2 + 2)
+        if "1" in pole.ports:
+            new_ports[in_id] = replace(pole.ports["1"], id=in_id)
+        if "2" in pole.ports:
+            new_ports[out_id] = replace(pole.ports["2"], id=out_id)
+        channel_map[(in_id, out_id)] = pole.terminal_number
+
+    return TerminalBlock(
+        elements=tuple(all_elements), ports=new_ports, label=label, channel_map=channel_map
+    )
+
+
 def three_pole_terminal_symbol(
     label: str = "", pins: tuple = ("1", "2", "3"), label_pos: str = "left"
 ) -> TerminalBlock:
@@ -102,58 +151,11 @@ def three_pole_terminal_symbol(
     Create a 3-pole terminal block.
 
     Args:
-        label (str): The tag of the terminal strip.
-        pins (tuple): A tuple of 3 terminal numbers (e.g. ("1", "2", "3")).
-                      Each pole gets one terminal number.
-        label_pos (str): Position of label ('left' or 'right').
+        label: The tag of the terminal strip.
+        pins: A tuple of 3 terminal numbers (e.g. ("1", "2", "3")).
+        label_pos: Position of label ('left' or 'right').
 
     Returns:
         TerminalBlock: The 3-pole terminal block.
     """
-
-    # Pad pins if necessary
-    p_safe = list(pins)
-    while len(p_safe) < 3:
-        p_safe.append("")
-
-    # Create poles
-    # Pole 1
-    p1 = terminal_symbol(label=label, pins=(p_safe[0],), label_pos=label_pos)
-    # Pole 2
-    p2 = terminal_symbol(label="", pins=(p_safe[1],))
-    p2 = translate(p2, DEFAULT_POLE_SPACING, 0)
-    # Pole 3
-    p3 = terminal_symbol(label="", pins=(p_safe[2],))
-    p3 = translate(p3, DEFAULT_POLE_SPACING * 2, 0)
-
-    all_elements = p1.elements + p2.elements + p3.elements
-
-    new_ports = {}
-    channel_map = {}
-
-    # Remap ports.
-    # Note: Terminal returns ports "1" and "2".
-    # Pole 1: 1, 2 -> 1, 2
-    if "1" in p1.ports:
-        new_ports["1"] = replace(p1.ports["1"], id="1")
-    if "2" in p1.ports:
-        new_ports["2"] = replace(p1.ports["2"], id="2")
-    channel_map[("1", "2")] = p1.terminal_number
-
-    # Pole 2: 1, 2 -> 3, 4
-    if "1" in p2.ports:
-        new_ports["3"] = replace(p2.ports["1"], id="3")
-    if "2" in p2.ports:
-        new_ports["4"] = replace(p2.ports["2"], id="4")
-    channel_map[("3", "4")] = p2.terminal_number
-
-    # Pole 3: 1, 2 -> 5, 6
-    if "1" in p3.ports:
-        new_ports["5"] = replace(p3.ports["1"], id="5")
-    if "2" in p3.ports:
-        new_ports["6"] = replace(p3.ports["2"], id="6")
-    channel_map[("5", "6")] = p3.terminal_number
-
-    return TerminalBlock(
-        elements=all_elements, ports=new_ports, label=label, channel_map=channel_map
-    )
+    return multi_pole_terminal_symbol(label, pins, poles=3, label_pos=label_pos)
