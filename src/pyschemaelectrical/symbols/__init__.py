@@ -8,6 +8,7 @@ from .blocks import dynamic_block_symbol, psu_symbol, terminal_box_symbol
 from .breakers import circuit_breaker_symbol, three_pole_circuit_breaker_symbol
 from .coils import coil_symbol
 from .contacts import (
+    multi_pole_spdt_symbol,
     normally_closed_symbol,
     normally_open_symbol,
     spdt_contact_symbol,

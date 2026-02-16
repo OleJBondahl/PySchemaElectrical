@@ -198,6 +198,11 @@ def dol_starter(
                     )
                     placed = add_symbol(c, sym, px, ref_y)
                     wire_end_y = placed.ports["2"].position.y
+                    # Register PLC reference in the connection registry
+                    s, ref_pins = next_terminal_pins(s, str(tid), 1)
+                    s = register_connection(
+                        s, str(tid), ref_pins[0], ct_tag, port_id, side="bottom"
+                    )
                 else:
                     s, ct_tm_pins = next_terminal_pins(s, str(tid), 1)
                     sym = terminal_symbol(

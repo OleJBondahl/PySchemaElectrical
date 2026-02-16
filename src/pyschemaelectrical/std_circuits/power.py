@@ -17,7 +17,7 @@ from pyschemaelectrical.model.constants import (
 )
 from pyschemaelectrical.symbols.blocks import psu_symbol
 from pyschemaelectrical.symbols.breakers import two_pole_circuit_breaker_symbol
-from pyschemaelectrical.symbols.contacts import three_pole_spdt_symbol
+from pyschemaelectrical.symbols.contacts import multi_pole_spdt_symbol, three_pole_spdt_symbol
 from pyschemaelectrical.system.system import Circuit
 from pyschemaelectrical.utils.autonumbering import next_terminal_pins
 
@@ -178,13 +178,18 @@ def changeover(
     terminal_offset: float = (LayoutDefaults.CHANGEOVER_TERMINAL_OFFSET),
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.RELAY,
+    poles: int = 3,
+    # Optional terminal pin tuples (auto-generated if not provided)
+    tm_top_left_pins: Optional[tuple] = None,
+    tm_top_right_pins: Optional[tuple] = None,
+    tm_bot_pins: Optional[tuple] = None,
     # Multi-count and wire labels
     count: int = 1,
     wire_labels: Optional[List[str]] = None,
     **kwargs,
 ) -> Tuple[Any, Any, List[Any]]:
     """
-    Creates a manual changeover switch circuit (3-pole) using single terminals.
+    Creates a manual changeover switch circuit using single terminals.
 
     Args:
         state: Autonumbering state
@@ -198,6 +203,10 @@ def changeover(
         terminal_offset: Horizontal offset for input
             terminals (plus/minus offset from center)
         tag_prefix: Tag prefix for changeover switch (default: "K")
+        poles: Number of SPDT poles (default: 3)
+        tm_top_left_pins: Optional tuple of pin numbers for top-left terminals.
+        tm_top_right_pins: Optional tuple of pin numbers for top-right terminals.
+        tm_bot_pins: Optional tuple of pin numbers for bottom terminals.
         count: Number of circuit instances.
         wire_labels: Wire label strings to apply per instance.
 
@@ -214,67 +223,64 @@ def changeover(
     # - Port "4" (NO): at (2.5, -5.0) relative to pole center
     # - Port "1" (COM): at (2.5, 5.0) relative to pole center
 
-    # Three-pole spacing is 40mm between poles
-    pole_spacing = GRID_SIZE * 8  # 40mm
+    pole_spacing = GRID_SIZE * 8  # 40mm between poles
 
     def create_single_changeover(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single changeover instance with single terminals."""
         c = Circuit()
 
-        # Get terminal pins - 3 pins for each terminal
-        s, input1_pins = next_terminal_pins(s, tm_top_left, 3)
-        s, input2_pins = next_terminal_pins(s, tm_top_right, 3)
-        s, output_pins = next_terminal_pins(s, tm_bot, 3)
+        # Use provided pins or auto-generate
+        if tm_top_left_pins is not None:
+            input1_pins = tm_top_left_pins
+        else:
+            s, input1_pins = next_terminal_pins(s, tm_top_left, poles)
+        if tm_top_right_pins is not None:
+            input2_pins = tm_top_right_pins
+        else:
+            s, input2_pins = next_terminal_pins(s, tm_top_right, poles)
+        if tm_bot_pins is not None:
+            output_pins = tm_bot_pins
+        else:
+            s, output_pins = next_terminal_pins(s, tm_bot, poles)
 
         # Get switch tag
         s, switch_tag = next_tag(s, tag_prefix)
 
-        # Position the switch first (middle)
+        # Position the switch (middle)
         switch_y = start_y + symbol_spacing
-        switch_sym = three_pole_spdt_symbol(switch_tag)
+        switch_sym = multi_pole_spdt_symbol(poles=poles, label=switch_tag)
         switch_sym = add_symbol(c, switch_sym, start_x, switch_y)
 
-        # Now add terminals and connect them to the switch
-        # For each of the 3 poles:
-        for i in range(3):
+        for i in range(poles):
             pole_x = start_x + (i * pole_spacing)
 
             # Top Left: NC terminal for input_1
-            # Switch NC port is at pole_x + (-2.5), switch_y + (-5)
             nc_x = pole_x - 2.5
             nc_y = switch_y - symbol_spacing
             nc_sym = terminal_symbol(
                 tm_top_left, pins=(input1_pins[i],), label_pos="left" if i == 0 else ""
             )
             nc_sym = add_symbol(c, nc_sym, nc_x, nc_y)
-
-            # Connect NC terminal to switch
             lines = auto_connect(nc_sym, switch_sym)
             c.elements.extend(lines)
 
             # Top Right: NO terminal for input_2
-            # Switch NO port is at pole_x + (2.5), switch_y + (-5)
             no_x = pole_x + 2.5
             no_y = switch_y - symbol_spacing
             no_sym = terminal_symbol(
                 tm_top_right, pins=(input2_pins[i],), label_pos="right"
             )
             no_sym = add_symbol(c, no_sym, no_x, no_y)
-
-            # Connect NO terminal to switch
             lines = auto_connect(no_sym, switch_sym)
             c.elements.extend(lines)
 
             # Bottom: Common terminal for output
-            # Switch COM port is at pole_x + (2.5), switch_y + (5)
             com_x = pole_x + 2.5
             com_y = switch_y + symbol_spacing
             com_sym = terminal_symbol(
                 tm_bot, pins=(output_pins[i],), label_pos="left" if i == 0 else ""
             )
             com_sym = add_symbol(c, com_sym, com_x, com_y)
-
-            # Connect switch to output terminal
             lines = auto_connect(switch_sym, com_sym)
             c.elements.extend(lines)
 

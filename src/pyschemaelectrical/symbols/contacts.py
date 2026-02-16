@@ -365,6 +365,63 @@ def spdt_contact_symbol(
     return Symbol(elements, ports, label=label)
 
 
+def multi_pole_spdt_symbol(
+    poles: int = 3,
+    label: str = "",
+    pins: tuple = (),
+) -> Symbol:
+    """
+    Create an IEC 60617 Multi-Pole SPDT Contact.
+
+    Composed of N single SPDT contacts arranged horizontally.
+
+    Args:
+        poles: Number of poles.
+        label: The component tag.
+        pins: Pin numbers, 3 per pole (Common, NC, NO).
+              Defaults to standard IEC numbering (11,12,14, 21,22,24, ...).
+
+    Returns:
+        Symbol with ports keyed as "{pole_index}_{type}":
+        "1_com", "1_nc", "1_no", "2_com", etc.
+    """
+    expected = poles * 3
+    if not pins:
+        pins = tuple(
+            f"{p}{s}" for p in range(1, poles + 1) for s in ("1", "2", "4")
+        )
+    if len(pins) < expected:
+        pins = tuple(list(pins) + [""] * (expected - len(pins)))
+
+    spacing = DEFAULT_POLE_SPACING * 4.0
+
+    pole_syms = []
+    all_elements = []
+    for i in range(poles):
+        p = spdt_contact_symbol(
+            label=label if i == 0 else "", pins=pins[i * 3 : i * 3 + 3]
+        )
+        if i > 0:
+            p = translate(p, spacing * i, 0)
+        pole_syms.append(p)
+        all_elements.extend(p.elements)
+
+    new_ports = {}
+    for i, p in enumerate(pole_syms):
+        pole_id = str(i + 1)
+        if "1" in p.ports:
+            new_key = f"{pole_id}_com"
+            new_ports[new_key] = replace(p.ports["1"], id=new_key)
+        if "2" in p.ports:
+            new_key = f"{pole_id}_nc"
+            new_ports[new_key] = replace(p.ports["2"], id=new_key)
+        if "4" in p.ports:
+            new_key = f"{pole_id}_no"
+            new_ports[new_key] = replace(p.ports["4"], id=new_key)
+
+    return Symbol(all_elements, new_ports, label=label)
+
+
 def three_pole_spdt_symbol(
     label: str = "",
     pins: tuple = ("11", "12", "14", "21", "22", "24", "31", "32", "34"),
@@ -372,62 +429,13 @@ def three_pole_spdt_symbol(
     """
     Create an IEC 60617 Three Pole SPDT Contact.
 
-    Composed of 3 single SPDT contacts.
+    Convenience wrapper around multi_pole_spdt_symbol for 3-pole contacts.
 
     Args:
-        label (str): The component tag.
-        pins (tuple): A tuple of 9 pin numbers.
-                      Format per pole: (Common, NC, NO).
-                      Total: (P1_Com, P1_NC, P1_NO, P2_Com, ..., P3_NO)
+        label: The component tag.
+        pins: A tuple of 9 pin numbers (Common, NC, NO per pole).
 
     Returns:
         Symbol: The 3-pole symbol.
-        Ports are keys as: "{pole_index}_{type}"
-        - "1_com", "1_nc", "1_no"
-        - "2_com", "2_nc", "2_no"
-        - "3_com", "3_nc", "3_no"
     """
-    if len(pins) < 9:
-        # Pad with empty strings if not enough pins provided
-        pins = tuple(list(pins) + [""] * (9 - len(pins)))
-
-    # Spacing needs to be wider for SPDT because each pole is wider (has 2 top pins)
-    # Standard pole spacing is 10mm (2 grids). SPDT occupies +/- 0.5 grids.
-    # To maintain ample clear gap between poles, we use 20mm (4 grids) center-to-center.
-    spacing = DEFAULT_POLE_SPACING * 4.0
-
-    # Pole 1
-    p1 = spdt_contact_symbol(label=label, pins=pins[0:3])
-
-    # Pole 2
-    p2 = spdt_contact_symbol(label="", pins=pins[3:6])
-    p2 = translate(p2, spacing, 0)
-
-    # Pole 3
-    p3 = spdt_contact_symbol(label="", pins=pins[6:9])
-    p3 = translate(p3, spacing * 2, 0)
-
-    # Combine elements
-    all_elements = p1.elements + p2.elements + p3.elements
-
-    # Remap ports to unique IDs
-    new_ports = {}
-
-    poles = [p1, p2, p3]
-    for i, p in enumerate(poles):
-        pole_id = str(i + 1)
-        # spdt_contact ports: "1" (Com), "2" (NC), "4" (NO)
-
-        if "1" in p.ports:
-            new_key = f"{pole_id}_com"
-            new_ports[new_key] = replace(p.ports["1"], id=new_key)
-
-        if "2" in p.ports:
-            new_key = f"{pole_id}_nc"
-            new_ports[new_key] = replace(p.ports["2"], id=new_key)
-
-        if "4" in p.ports:
-            new_key = f"{pole_id}_no"
-            new_ports[new_key] = replace(p.ports["4"], id=new_key)
-
-    return Symbol(all_elements, new_ports, label=label)
+    return multi_pole_spdt_symbol(poles=3, label=label, pins=pins)

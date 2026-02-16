@@ -375,19 +375,22 @@ _PLC_REPORT_TYPST = r"""
         #for (mod, group_rows) in groups.pairs() [
              #block(breakable: true)[
                  #let mpn = mpns.at(mod, default: "")
-                 #text(weight: "bold", size: 12pt, fill: blue.darken(30%))[#mod]
-                 #h(0.5em)
-                 #text(size: 10pt, fill: gray.darken(20%))[#mpn]
-                 #v(2pt)
                  #table(
                     columns: (0.4fr, 0.5fr, 0.6fr),
                     align: (center, left, left),
-                    fill: (x, y) => if y == 0 { gray.lighten(85%) } else { none },
+                    fill: (x, y) => if y == 1 { gray.lighten(85%) } else { none },
                     inset: 4pt,
                     stroke: 0.25pt + gray,
-                    text(size: 9pt, weight: "bold")[PLC Pin],
-                    text(size: 9pt, weight: "bold")[Terminal],
-                    text(size: 9pt, weight: "bold")[Component],
+                    table.header(
+                        table.cell(colspan: 3, fill: none, stroke: none, inset: (left: 0pt, bottom: 2pt, top: 0pt, right: 0pt))[
+                            #text(weight: "bold", size: 12pt, fill: blue.darken(30%))[#mod]
+                            #h(0.5em)
+                            #text(size: 10pt, fill: gray.darken(20%))[#mpn]
+                        ],
+                        text(size: 9pt, weight: "bold")[PLC Pin],
+                        text(size: 9pt, weight: "bold")[Terminal],
+                        text(size: 9pt, weight: "bold")[Component],
+                    ),
                     ..group_rows.map(r => (
                         text(size: 9pt, weight: "bold")[#r.at(2)],
                         text(size: 9pt)[#r.at(5)],
@@ -466,8 +469,6 @@ __DESC_MAP__
              #let group_rows = groups.at(tag)
              #block(breakable: true)[
                  #let description = terminal_descriptions.at(tag, default: "")
-                 #text(weight: "bold", size: 12pt, fill: blue.darken(30%))[#tag - #description]
-                 #v(2pt)
                  #{
                      let bridge_groups = ()
                      let bridge_map = (:)
@@ -491,15 +492,20 @@ __DESC_MAP__
                      table(
                         columns: (0.35fr, 0.35fr, 0.35fr, 0.35fr, 0.35fr, 0.15fr),
                         align: (left, center, center, left, center, center),
-                        fill: (x, y) => if y == 0 { gray.lighten(85%) } else { none },
+                        fill: (x, y) => if y == 1 { gray.lighten(85%) } else { none },
                         inset: 3pt,
                         stroke: 0.25pt + gray,
-                        text(size: 9pt, weight: "bold")[From],
-                        text(size: 9pt, weight: "bold")[Pin],
-                        text(size: 9pt, weight: "bold")[#tag],
-                        text(size: 9pt, weight: "bold")[To],
-                        text(size: 9pt, weight: "bold")[Pin],
-                        text(size: 9pt, weight: "bold")[Int],
+                        table.header(
+                            table.cell(colspan: 6, fill: none, stroke: none, inset: (left: 0pt, bottom: 2pt, top: 0pt, right: 0pt))[
+                                #text(weight: "bold", size: 12pt, fill: blue.darken(30%))[#tag - #description]
+                            ],
+                            text(size: 9pt, weight: "bold")[From],
+                            text(size: 9pt, weight: "bold")[Pin],
+                            text(size: 9pt, weight: "bold")[#tag],
+                            text(size: 9pt, weight: "bold")[To],
+                            text(size: 9pt, weight: "bold")[Pin],
+                            text(size: 9pt, weight: "bold")[Int],
+                        ),
                         ..group_rows.enumerate().map(((idx, r)) => {
                             let bridge = get_bridge_indicator(tag, r.at(3), idx, all_pins, bridge_groups)
                             (

@@ -269,14 +269,18 @@ class CircuitBuilder:
 
         self._fixed_tag_generators[ref_id] = fixed_gen
 
-        return self.add_component(
-            ref_symbol,
+        spec = ComponentSpec(
+            func=ref_symbol,
             tag_prefix=ref_id,
+            kind="reference",
             x_offset=x_offset,
             y_increment=y_increment,
             auto_connect_next=auto_connect_next,
-            **kwargs,
+            kwargs=kwargs,
         )
+        self._spec.components.append(spec)
+        idx = len(self._spec.components) - 1
+        return ComponentRef(self, idx, ref_id)
 
     def place_right(
         self,
@@ -605,7 +609,7 @@ def _create_single_circuit_from_spec(
                 state, pins = next_terminal_pins(state, tid, component_spec.poles)
             tag = str(tid)
 
-        elif component_spec.kind == "symbol":
+        elif component_spec.kind in ("symbol", "reference"):
             # Tag generation
             # 1. Check tag_generators
             prefix = component_spec.tag_prefix
@@ -653,7 +657,7 @@ def _create_single_circuit_from_spec(
             curr_pin = _resolve_pin(curr, p, is_input=False)
             next_pin = _resolve_pin(next_comp, p, is_input=True)
 
-            if curr["spec"].kind == "terminal" and next_comp["spec"].kind == "symbol":
+            if curr["spec"].kind == "terminal" and next_comp["spec"].kind in ("symbol", "reference"):
                 # Current is Terminal: Use registry pin for Terminal
                 reg_pin_curr = _resolve_registry_pin(curr, p)
                 state = register_connection(
@@ -664,13 +668,33 @@ def _create_single_circuit_from_spec(
                     next_pin,
                     side="bottom",
                 )
-            elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "terminal":
+            elif curr["spec"].kind in ("symbol", "reference") and next_comp["spec"].kind == "terminal":
                 # Next is Terminal: Use registry pin for Terminal
                 reg_pin_next = _resolve_registry_pin(next_comp, p)
                 state = register_connection(
                     state,
                     next_comp["tag"],
                     reg_pin_next,
+                    curr["tag"],
+                    curr_pin,
+                    side="top",
+                )
+            elif curr["spec"].kind == "reference" and next_comp["spec"].kind == "symbol":
+                # Current is Reference (e.g. PLC:DO): register as terminal-like
+                state = register_connection(
+                    state,
+                    curr["tag"],
+                    str(p + 1),
+                    next_comp["tag"],
+                    next_pin,
+                    side="bottom",
+                )
+            elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "reference":
+                # Next is Reference (e.g. PLC:DI): register as terminal-like
+                state = register_connection(
+                    state,
+                    next_comp["tag"],
+                    str(p + 1),
                     curr["tag"],
                     curr_pin,
                     side="top",
@@ -687,15 +711,23 @@ def _create_single_circuit_from_spec(
         pin_a = _resolve_pin(comp_a, p_a, is_input=(side_a == "top"))
         pin_b = _resolve_pin(comp_b, p_b, is_input=(side_b == "top"))
 
-        if comp_a["spec"].kind == "terminal" and comp_b["spec"].kind == "symbol":
+        if comp_a["spec"].kind == "terminal" and comp_b["spec"].kind in ("symbol", "reference"):
             reg_pin_a = _resolve_registry_pin(comp_a, p_a)
             state = register_connection(
                 state, comp_a["tag"], reg_pin_a, comp_b["tag"], pin_b, side=side_a
             )
-        elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "terminal":
+        elif comp_a["spec"].kind in ("symbol", "reference") and comp_b["spec"].kind == "terminal":
             reg_pin_b = _resolve_registry_pin(comp_b, p_b)
             state = register_connection(
                 state, comp_b["tag"], reg_pin_b, comp_a["tag"], pin_a, side=side_b
+            )
+        elif comp_a["spec"].kind == "reference" and comp_b["spec"].kind == "symbol":
+            state = register_connection(
+                state, comp_a["tag"], str(p_a + 1), comp_b["tag"], pin_b, side=side_a
+            )
+        elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "reference":
+            state = register_connection(
+                state, comp_b["tag"], str(p_b + 1), comp_a["tag"], pin_a, side=side_b
             )
 
     # --- Phase 3: Instantiation ---
@@ -728,7 +760,7 @@ def _create_single_circuit_from_spec(
             else:
                 sym = terminal_symbol(tag, pins=rc["pins"], label_pos=lpos)
 
-        elif component_spec.kind == "symbol":
+        elif component_spec.kind in ("symbol", "reference"):
             kwargs = component_spec.kwargs.copy()
             if rc["pins"]:
                 # Pass resolved pins to the symbol factory
