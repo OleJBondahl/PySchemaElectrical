@@ -1,13 +1,15 @@
 import math
+import re
+import warnings
 from dataclasses import replace
 from functools import singledispatch
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from pyschemaelectrical.model.constants import TEXT_OFFSET_X
 from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
-from pyschemaelectrical.model.primitives import Circle, Group, Line, Polygon, Text
+from pyschemaelectrical.model.primitives import Circle, Group, Line, Path, Polygon, Text
 
-T = TypeVar("T", bound=Union[Element, Point, Port, Vector])
+T = TypeVar("T", bound=Element | Point | Port | Vector)
 
 _ORIGIN = Point(0, 0)
 
@@ -52,6 +54,10 @@ def translate(obj: T, dx: float, dy: float) -> T:
     elif isinstance(obj, Polygon):
         return cast(T, replace(obj, points=[translate(p, dx, dy) for p in obj.points]))
 
+    elif isinstance(obj, Path):
+        new_d = _translate_path_d(obj.d, dx, dy)
+        return cast(T, replace(obj, d=new_d))
+
     elif isinstance(obj, Symbol):
         # Symbol is a subclass of Element, so it can be handled here if T covers Element
         # logic for Symbol
@@ -59,8 +65,11 @@ def translate(obj: T, dx: float, dy: float) -> T:
         new_ports = {k: translate(p, dx, dy) for k, p in obj.ports.items()}
         return cast(T, replace(obj, elements=new_elements, ports=new_ports))
 
-    # TODO: Implement Path translation (requires parsing d
-    # string or simple regex shift if absolute coords)
+    warnings.warn(
+        f"translate() has no handler for {type(obj).__name__}, returning unchanged",
+        RuntimeWarning,
+        stacklevel=2,
+    )
     return obj
 
 
@@ -110,12 +119,78 @@ def rotate_vector(v: Vector, angle_deg: float) -> Vector:
     return Vector(v.dx * cos_a - v.dy * sin_a, v.dx * sin_a + v.dy * cos_a)
 
 
+def _translate_path_d(d: str, dx: float, dy: float) -> str:
+    """
+    Translate absolute coordinates in an SVG path `d` string by (dx, dy).
+
+    Handles absolute commands (M, L, H, V, C, S, Q, T, Z).
+    Relative commands (lowercase) are left unchanged since they are
+    relative offsets that don't need translation.
+    """
+    # Tokenize: split into commands and numbers
+    tokens = re.findall(r"[a-zA-Z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", d)
+    result = []
+    i = 0
+    cmd = ""
+    while i < len(tokens):
+        token = tokens[i]
+        if token.isalpha():
+            cmd = token
+            result.append(cmd)
+            i += 1
+            continue
+
+        # Parse numbers based on current command
+        if cmd in ("M", "L", "T"):
+            # x,y pairs
+            if i + 1 < len(tokens) and not tokens[i + 1].isalpha():
+                result.append(str(float(token) + dx))
+                result.append(str(float(tokens[i + 1]) + dy))
+                i += 2
+            else:
+                result.append(token)
+                i += 1
+        elif cmd == "H":
+            # Horizontal: single x
+            result.append(str(float(token) + dx))
+            i += 1
+        elif cmd == "V":
+            # Vertical: single y
+            result.append(str(float(token) + dy))
+            i += 1
+        elif cmd in ("C", "S", "Q"):
+            # C: 3 pairs, S: 2 pairs, Q: 2 pairs
+            pair_count = {"C": 3, "S": 2, "Q": 2}[cmd]
+            for _ in range(pair_count):
+                if i + 1 < len(tokens) and not tokens[i + 1].isalpha():
+                    result.append(str(float(tokens[i]) + dx))
+                    result.append(str(float(tokens[i + 1]) + dy))
+                    i += 2
+                else:
+                    result.append(tokens[i])
+                    i += 1
+                    break
+        elif cmd in ("z", "Z"):
+            i += 1
+        else:
+            # Relative commands or unknown — pass through
+            result.append(token)
+            i += 1
+
+    return " ".join(result)
+
+
 @singledispatch
 def rotate(obj: Any, angle: float, center: Point = _ORIGIN) -> Any:
     """
     Pure function to rotate an object around a center point.
-    Default handler returns the object as-is.
+    Default handler emits a warning and returns the object as-is.
     """
+    warnings.warn(
+        f"rotate() has no handler for {type(obj).__name__}, returning unchanged",
+        RuntimeWarning,
+        stacklevel=2,
+    )
     return obj
 
 
@@ -193,3 +268,90 @@ def _(obj: Text, angle: float, center: Point = _ORIGIN) -> Text:
             new_anchor = "start"
 
     return replace(obj, position=new_pos, anchor=new_anchor)
+
+
+@rotate.register
+def _(obj: Path, angle: float, center: Point = _ORIGIN) -> Path:
+    new_d = _rotate_path_d(obj.d, angle, center)
+    return replace(obj, d=new_d)
+
+
+def _rotate_path_d(d: str, angle_deg: float, center: Point) -> str:
+    """
+    Rotate absolute coordinates in an SVG path `d` string.
+
+    Handles absolute commands (M, L, H, V, C, S, Q, T, Z).
+    Relative commands (lowercase) are left unchanged.
+    H/V absolute commands are converted to L after rotation since
+    horizontal/vertical lines may no longer be axis-aligned.
+    """
+    angle_rad = math.radians(angle_deg)
+    cos_a = math.cos(angle_rad)
+    sin_a = math.sin(angle_rad)
+
+    def rot(x: float, y: float) -> tuple[float, float]:
+        tx = x - center.x
+        ty = y - center.y
+        rx = tx * cos_a - ty * sin_a
+        ry = tx * sin_a + ty * cos_a
+        return rx + center.x, ry + center.y
+
+    tokens = re.findall(r"[a-zA-Z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", d)
+    result: list[str] = []
+    i = 0
+    cmd = ""
+    last_x, last_y = 0.0, 0.0
+
+    while i < len(tokens):
+        token = tokens[i]
+        if token.isalpha():
+            cmd = token
+            if cmd not in ("H", "V"):
+                result.append(cmd)
+            i += 1
+            continue
+
+        if cmd in ("M", "L", "T"):
+            if i + 1 < len(tokens) and not tokens[i + 1].isalpha():
+                x, y = float(token), float(tokens[i + 1])
+                rx, ry = rot(x, y)
+                result.append(f"{rx} {ry}")
+                last_x, last_y = x, y
+                i += 2
+            else:
+                result.append(token)
+                i += 1
+        elif cmd == "H":
+            x = float(token)
+            result.append("L")
+            rx, ry = rot(x, last_y)
+            result.append(f"{rx} {ry}")
+            last_x = x
+            i += 1
+        elif cmd == "V":
+            y = float(token)
+            result.append("L")
+            rx, ry = rot(last_x, y)
+            result.append(f"{rx} {ry}")
+            last_y = y
+            i += 1
+        elif cmd in ("C", "S", "Q"):
+            pair_count = {"C": 3, "S": 2, "Q": 2}[cmd]
+            for _ in range(pair_count):
+                if i + 1 < len(tokens) and not tokens[i + 1].isalpha():
+                    x, y = float(tokens[i]), float(tokens[i + 1])
+                    rx, ry = rot(x, y)
+                    result.append(f"{rx} {ry}")
+                    last_x, last_y = x, y
+                    i += 2
+                else:
+                    result.append(tokens[i])
+                    i += 1
+                    break
+        elif cmd in ("z", "Z"):
+            i += 1
+        else:
+            result.append(token)
+            i += 1
+
+    return " ".join(result)

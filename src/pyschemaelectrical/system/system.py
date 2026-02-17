@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import List, Union
 
 from pyschemaelectrical.layout.layout import auto_connect
 from pyschemaelectrical.model.core import Element, Symbol
@@ -12,15 +11,34 @@ from pyschemaelectrical.utils.transform import translate
 @dataclass
 class Circuit:
     """
-    A container for electrical symbols and their connections.
+    A mutable container for electrical symbols and their connections.
+
+    Unlike the frozen dataclasses in ``model/core.py``, Circuit is intentionally
+    mutable — it serves as an accumulator/builder that collects symbols and
+    connection wires during circuit construction. Once building is finished the
+    elements list is consumed by the renderer and never mutated again.
 
     Attributes:
-        symbols (List[Symbol]): Ordered list of main components.
-        elements (List[Element]): All graphical elements (symbols + wires).
+        symbols (list[Symbol]): Ordered list of main components.
+        elements (list[Element]): All graphical elements (symbols + wires).
     """
 
-    symbols: List[Symbol] = field(default_factory=list)
-    elements: List[Element] = field(default_factory=list)
+    symbols: list[Symbol] = field(default_factory=list)
+    elements: list[Element] = field(default_factory=list)
+
+    def get_symbol_by_tag(self, tag: str) -> Symbol | None:
+        """Look up a placed symbol by its label/tag.
+
+        Args:
+            tag: The symbol label to search for (e.g. "Q1", "F1").
+
+        Returns:
+            The matching Symbol, or None if not found.
+        """
+        for sym in self.symbols:
+            if sym.label == tag:
+                return sym
+        return None
 
 
 def add_symbol(circuit: Circuit, symbol: Symbol, x: float, y: float) -> Symbol:
@@ -46,7 +64,7 @@ def add_symbol(circuit: Circuit, symbol: Symbol, x: float, y: float) -> Symbol:
     return placed_symbol
 
 
-def auto_connect_circuit(circuit: Circuit):
+def auto_connect_circuit(circuit: Circuit) -> None:
     """
     Automatically connect all adjacent connectable symbols in the circuit.
 
@@ -67,16 +85,16 @@ def auto_connect_circuit(circuit: Circuit):
 
 
 def render_system(
-    circuits: Union[Circuit, List[Circuit]],
+    circuits: Circuit | list[Circuit],
     filename: str,
-    width: Union[str, int] = "auto",
-    height: Union[str, int] = "auto",
-):
+    width: str | int = "auto",
+    height: str | int = "auto",
+) -> None:
     """
     Render one or more circuits to an SVG file.
 
     Args:
-        circuits (Union[Circuit, List[Circuit]]): A single Circuit or list of Circuits.
+        circuits (Circuit | list[Circuit]): A single Circuit or list of Circuits.
         filename (str): The output file path.
         width (str|int): Document width.
         height (str|int): Document height.
@@ -84,7 +102,7 @@ def render_system(
     all_elements = []
 
     # Normalize to list
-    circuit_list: List[Circuit]
+    circuit_list: list[Circuit]
     if isinstance(circuits, list):
         circuit_list = circuits
     else:

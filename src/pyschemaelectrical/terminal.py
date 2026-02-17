@@ -7,9 +7,9 @@ reference flag) while being fully compatible with string operations
 by inheriting from `str`.
 """
 
-from typing import List, Optional, Tuple, Union
+from pyschemaelectrical.utils.terminal_bridges import ConnectionDef
 
-BridgeDef = Optional[Union[str, List[Tuple[int, int]]]]
+BridgeDef = ConnectionDef | None
 
 
 class Terminal(str):
@@ -26,13 +26,17 @@ class Terminal(str):
                 list of (start, end) tuples for specific ranges, or None.
         reference: True for non-physical terminals (e.g., "PLC:DO").
                    Reference terminals are excluded from terminal reports.
+        pin_prefixes: Optional tuple of prefix strings for auto-numbered pins.
+                      When set, ``next_terminal_pins()`` generates pins like
+                      ``"L1:1", "L2:1", "L3:1"`` using group-based counting.
     """
 
-    __slots__ = ("description", "bridge", "reference")
+    __slots__ = ("description", "bridge", "reference", "pin_prefixes")
 
     description: str
     bridge: BridgeDef
     reference: bool
+    pin_prefixes: tuple[str, ...] | None
 
     def __new__(
         cls,
@@ -40,11 +44,13 @@ class Terminal(str):
         description: str = "",
         bridge: BridgeDef = None,
         reference: bool = False,
+        pin_prefixes: tuple[str, ...] | None = None,
     ) -> "Terminal":
         instance = super().__new__(cls, id)
         object.__setattr__(instance, "description", description)
         object.__setattr__(instance, "bridge", bridge)
         object.__setattr__(instance, "reference", reference)
+        object.__setattr__(instance, "pin_prefixes", pin_prefixes)
         return instance
 
     def __setattr__(self, name: str, value: object) -> None:

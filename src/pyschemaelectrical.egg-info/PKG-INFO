@@ -34,12 +34,9 @@ Classifier: Intended Audience :: Developers
 Classifier: Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.8
-Classifier: Programming Language :: Python :: 3.9
-Classifier: Programming Language :: Python :: 3.10
-Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
-Requires-Python: >=3.8
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.12
 License-File: LICENSE
 Provides-Extra: pdf
 Requires-Dist: typst; extra == "pdf"

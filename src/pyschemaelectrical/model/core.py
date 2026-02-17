@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
 
 
 @dataclass(frozen=True)
@@ -39,7 +38,7 @@ class Point:
     x: float
     y: float
 
-    def __add__(self, other: Union["Point", "Vector"]) -> "Point":
+    def __add__(self, other: "Point | Vector") -> "Point":
         """
         Add a Vector to a Point to get a new Point.
 
@@ -83,17 +82,17 @@ class Style:
         stroke (str): Stroke color (CSS color string). Default "black".
         stroke_width (float): Stroke width in user units. Default 1.0.
         fill (str): Fill color (CSS color string). Default "none".
-        stroke_dasharray (Optional[str]): Dash array pattern. Default None.
+        stroke_dasharray (str | None): Dash array pattern. Default None.
         opacity (float): Opacity value (0.0 to 1.0). Default 1.0.
-        font_family (Optional[str]): Font family for text. Default None.
+        font_family (str | None): Font family for text. Default None.
     """
 
     stroke: str = "black"
     stroke_width: float = 1.0
     fill: str = "none"
-    stroke_dasharray: Optional[str] = None
+    stroke_dasharray: str | None = None
     opacity: float = 1.0
-    font_family: Optional[str] = None
+    font_family: str | None = None
 
 
 @dataclass(frozen=True)
@@ -126,12 +125,12 @@ class Symbol(Element):
     A reusable component composed of primitives and ports.
 
     Attributes:
-        elements (List[Element]): Geometric primitives making up the symbol.
-        ports (Dict[str, Port]): Connection points, keyed by port ID.
-        label (Optional[str]): Component label/tag (e.g., "-K1").
+        elements (list[Element]): Geometric primitives making up the symbol.
+        ports (dict[str, Port]): Connection points, keyed by port ID.
+        label (str | None): Component label/tag (e.g., "-K1").
     """
 
-    elements: List[Element]
-    ports: Dict[str, Port]
-    label: Optional[str] = None
+    elements: list[Element]
+    ports: dict[str, Port]
+    label: str | None = None
     skip_auto_connect: bool = False

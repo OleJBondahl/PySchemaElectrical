@@ -6,9 +6,11 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from __future__ import annotations
 
-from pyschemaelectrical.builder import CircuitBuilder
+from typing import Any
+
+from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 from pyschemaelectrical.model.constants import (
     DEFAULT_POLE_SPACING,
     GRID_SIZE,
@@ -17,7 +19,7 @@ from pyschemaelectrical.model.constants import (
 )
 from pyschemaelectrical.symbols.blocks import psu_symbol
 from pyschemaelectrical.symbols.breakers import two_pole_circuit_breaker_symbol
-from pyschemaelectrical.symbols.contacts import multi_pole_spdt_symbol, three_pole_spdt_symbol
+from pyschemaelectrical.symbols.contacts import multi_pole_spdt_symbol
 from pyschemaelectrical.system.system import Circuit
 from pyschemaelectrical.utils.autonumbering import next_terminal_pins
 
@@ -41,9 +43,9 @@ def psu(
     tag_prefix: str = StandardTags.POWER_SUPPLY,
     # Multi-count and wire labels
     count: int = 1,
-    wire_labels: Optional[List[str]] = None,
+    wire_labels: list[str] | None = None,
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Creates a standardized PSU block circuit using CircuitBuilder.
 
@@ -62,7 +64,7 @@ def psu(
         wire_labels: Wire label strings to apply per instance.
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     builder = CircuitBuilder(state)
 
@@ -161,7 +163,11 @@ def psu(
 
         system_circuit = add_wire_labels_to_circuit(system_circuit, wire_labels)
 
-    return state, system_circuit, list(set(used_terminals))
+    return BuildResult(
+        state=state,
+        circuit=system_circuit,
+        used_terminals=list(set(used_terminals)),
+    )
 
 
 def changeover(
@@ -180,14 +186,14 @@ def changeover(
     tag_prefix: str = StandardTags.RELAY,
     poles: int = 3,
     # Optional terminal pin tuples (auto-generated if not provided)
-    tm_top_left_pins: Optional[tuple] = None,
-    tm_top_right_pins: Optional[tuple] = None,
-    tm_bot_pins: Optional[tuple] = None,
+    tm_top_left_pins: tuple | None = None,
+    tm_top_right_pins: tuple | None = None,
+    tm_bot_pins: tuple | None = None,
     # Multi-count and wire labels
     count: int = 1,
-    wire_labels: Optional[List[str]] = None,
+    wire_labels: list[str] | None = None,
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Creates a manual changeover switch circuit using single terminals.
 
@@ -211,7 +217,7 @@ def changeover(
         wire_labels: Wire label strings to apply per instance.
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     from pyschemaelectrical.layout.layout import auto_connect, create_horizontal_layout
     from pyschemaelectrical.symbols.terminals import terminal_symbol
@@ -308,7 +314,9 @@ def changeover(
 
     used_terminals = [tm_top_left, tm_top_right, tm_bot]
 
-    return final_state, circuit, used_terminals
+    return BuildResult(
+        state=final_state, circuit=circuit, used_terminals=used_terminals
+    )
 
 
 def power_distribution(
@@ -316,7 +324,7 @@ def power_distribution(
     x: float,
     y: float,
     # Terminal maps (required)
-    terminal_maps: Dict[str, str],
+    terminal_maps: dict[str, str],
     # Layout parameters (with defaults from constants)
     spacing: float = LayoutDefaults.CIRCUIT_SPACING_POWER,
     spacing_single_pole: float = LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
@@ -324,7 +332,7 @@ def power_distribution(
     psu_offset: float = LayoutDefaults.PSU_LAYOUT_OFFSET,
     count: int = 1,
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Creates a complete power distribution system (Changeover + Voltage Monitor + PSU).
 
@@ -343,7 +351,7 @@ def power_distribution(
         count: Number of changeover circuit instances.
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     required_keys = [
         "INPUT_1",
@@ -412,4 +420,8 @@ def power_distribution(
     # Combine everything
     system_circuit = Circuit(elements=all_elements)
 
-    return state, system_circuit, list(set(all_terminals))
+    return BuildResult(
+        state=state,
+        circuit=system_circuit,
+        used_terminals=list(set(all_terminals)),
+    )

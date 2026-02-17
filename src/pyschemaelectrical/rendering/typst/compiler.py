@@ -7,7 +7,6 @@ then compiles it to PDF using the optional ``typst`` Python package.
 
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 from pyschemaelectrical.rendering.typst.frame_generator import (
     A3_HEIGHT,
@@ -29,7 +28,7 @@ class TypstCompilerConfig:
     author: str = ""
     project: str = ""
     revision: str = "00"
-    logo_path: Optional[str] = None
+    logo_path: str | None = None
     font_family: str = "Times New Roman"
     root_dir: str = "."
     temp_dir: str = "temp"
@@ -45,9 +44,9 @@ class _Page:
     terminals_csv_path: str = ""
     csv_path: str = ""
     md_path: str = ""
-    notice: Optional[str] = None
+    notice: str | None = None
     typst_content: str = ""
-    terminal_descriptions: Optional[Dict[str, str]] = None
+    terminal_descriptions: dict[str, str] | None = None
 
 
 class TypstCompiler:
@@ -70,13 +69,13 @@ class TypstCompiler:
 
     def __init__(self, config: TypstCompilerConfig):
         self.config = config
-        self._pages: List[_Page] = []
+        self._pages: list[_Page] = []
 
     def add_schematic_page(
         self,
         title: str,
         svg_path: str,
-        terminals_csv_path: Optional[str] = None,
+        terminals_csv_path: str | None = None,
     ):
         """Add a schematic page with optional terminal table."""
         self._pages.append(
@@ -91,7 +90,7 @@ class TypstCompiler:
     def add_front_page(
         self,
         md_path: str,
-        notice: Optional[str] = None,
+        notice: str | None = None,
     ):
         """Add a front page from a Markdown file."""
         self._pages.append(_Page(page_type="front", md_path=md_path, notice=notice))
@@ -103,7 +102,7 @@ class TypstCompiler:
     def add_terminal_report(
         self,
         csv_path: str,
-        terminal_descriptions: Dict[str, str],
+        terminal_descriptions: dict[str, str],
     ):
         """Add a system terminal report page."""
         self._pages.append(

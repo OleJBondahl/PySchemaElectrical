@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-from typing import List, Tuple, Union
 
 from pyschemaelectrical.model.constants import (
     COLOR_WHITE,
@@ -107,7 +106,7 @@ def _render_element(elem: Element, parent: ET.Element):
         # We don't render ports visibly usually, maybe for debug?
 
 
-def calculate_bounds(elements: List[Element]) -> Tuple[float, float, float, float]:
+def calculate_bounds(elements: list[Element]) -> tuple[float, float, float, float]:
     """
     Calculate the bounding box of a list of elements.
 
@@ -115,7 +114,7 @@ def calculate_bounds(elements: List[Element]) -> Tuple[float, float, float, floa
         elements: List of elements.
 
     Returns:
-        Tuple[min_x, min_y, max_x, max_y]
+        tuple[min_x, min_y, max_x, max_y]
     """
     min_x, min_y = float("inf"), float("inf")
     max_x, max_y = float("-inf"), float("-inf")
@@ -166,17 +165,17 @@ def calculate_bounds(elements: List[Element]) -> Tuple[float, float, float, floa
 
 
 def to_xml_element(
-    elements: List[Element],
-    width: Union[int, str] = DEFAULT_DOC_WIDTH,
-    height: Union[int, str] = DEFAULT_DOC_HEIGHT,
+    elements: list[Element],
+    width: int | str = DEFAULT_DOC_WIDTH,
+    height: int | str = DEFAULT_DOC_HEIGHT,
 ) -> ET.Element:
     """
     Convert a list of Elements into an SVG header/root ElementTree Element.
 
     Args:
-        elements (List[Element]): List of elements to render.
-        width (Union[int, str]): document width. Pass "auto" for autosize.
-        height (Union[int, str]): document height. Pass "auto" for autosize.
+        elements (list[Element]): List of elements to render.
+        width (int | str): document width. Pass "auto" for autosize.
+        height (int | str): document height. Pass "auto" for autosize.
 
     Returns:
         ET.Element: The root SVG element.
@@ -271,19 +270,19 @@ def save_svg(root: ET.Element, filename: str):
 
 
 def render_to_svg(
-    elements: List[Element],
+    elements: list[Element],
     filename: str,
-    width: Union[int, str] = DEFAULT_DOC_WIDTH,
-    height: Union[int, str] = DEFAULT_DOC_HEIGHT,
-):
+    width: int | str = DEFAULT_DOC_WIDTH,
+    height: int | str = DEFAULT_DOC_HEIGHT,
+) -> None:
     """
     High-level function to render elements to an SVG file.
 
     Args:
-        elements (List[Element]): Elements to render.
+        elements (list[Element]): Elements to render.
         filename (str): Output filename.
-        width (Union[int, str]): Document width.
-        height (Union[int, str]): Document height.
+        width (int | str): Document width.
+        height (int | str): Document height.
     """
     root = to_xml_element(elements, width, height)
     save_svg(root, filename)

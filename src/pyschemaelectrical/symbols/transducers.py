@@ -1,5 +1,3 @@
-from typing import Dict, List, Tuple
-
 from pyschemaelectrical.model.constants import GRID_SIZE
 from pyschemaelectrical.model.core import Point, Port, Symbol
 from pyschemaelectrical.model.parts import standard_style
@@ -39,16 +37,16 @@ def current_transducer_symbol() -> Symbol:
     line_end = Point(-radius - line_length, 0)
     line = Line(line_start, line_end, style)
 
-    elements: List[Element] = [circle, line]
+    elements: list[Element] = [circle, line]
 
     # No ports
-    ports: Dict[str, Port] = {}
+    ports: dict[str, Port] = {}
 
     return Symbol(elements, ports, label="")
 
 
 def current_transducer_assembly_symbol(
-    label: str = "", pins: Tuple[str, ...] = ("1", "2")
+    label: str = "", pins: tuple[str, ...] = ("1", "2")
 ) -> Symbol:
     """
     Create a Current Transducer Assembly.
@@ -61,7 +59,7 @@ def current_transducer_assembly_symbol(
 
     Args:
         label (str): Label for the box (or assembly).
-        pins (Tuple[str, ...]): Pin numbers for the terminal box.
+        pins (tuple[str, ...]): Pin numbers for the terminal box.
 
     Returns:
         Symbol: The combined symbol. Origin at the Transducer center.

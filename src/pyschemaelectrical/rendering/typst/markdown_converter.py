@@ -4,13 +4,12 @@ Simple Markdown to Typst converter for front pages.
 Supports headings (# ## ###), tables (| col | col |), and paragraphs.
 """
 
-from typing import List, Optional
 
 
 def markdown_to_typst(
     md_path: str,
     width: str = "50%",
-    notice: Optional[str] = None,
+    notice: str | None = None,
 ) -> str:
     """
     Convert a Markdown file to Typst markup for a front page.
@@ -45,14 +44,14 @@ def markdown_to_typst(
     return "\n".join(typst_lines)
 
 
-def _convert_lines(lines: List[str], width: str) -> List[str]:
+def _convert_lines(lines: list[str], width: str) -> list[str]:
     """Convert markdown lines to Typst markup."""
     typst_lines = []
     typst_lines.append(r"#align(center + horizon)[")
     typst_lines.append(f"  #block(width: {width})[")
 
     in_table = False
-    table_rows: List[str] = []
+    table_rows: list[str] = []
 
     for line in lines:
         line = line.strip()
@@ -89,7 +88,7 @@ def _convert_lines(lines: List[str], width: str) -> List[str]:
     return typst_lines
 
 
-def _flush_table(rows: List[str]) -> List[str]:
+def _flush_table(rows: list[str]) -> list[str]:
     """Convert accumulated Markdown table rows to a Typst table."""
     if not rows:
         return []

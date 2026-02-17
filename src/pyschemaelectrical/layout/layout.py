@@ -9,15 +9,17 @@ electrical symbols automatically. Key features include:
 - Vertical chain layout with automatic connections
 """
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
+from pyschemaelectrical.model.constants import DEFAULT_WIRE_ALIGNMENT_TOLERANCE
 from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import standard_style
 from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.utils.transform import translate
 
 
-def get_connection_ports(symbol: Symbol, direction: Vector) -> List[Port]:
+def get_connection_ports(symbol: Symbol, direction: Vector) -> list[Port]:
     """
     Find all ports in the symbol that match the given direction.
 
@@ -26,7 +28,7 @@ def get_connection_ports(symbol: Symbol, direction: Vector) -> List[Port]:
         direction (Vector): The direction vector to match.
 
     Returns:
-        List[Port]: A list of matching ports.
+        list[Port]: A list of matching ports.
     """
     matches = []
     seen_positions = set()
@@ -46,7 +48,7 @@ def get_connection_ports(symbol: Symbol, direction: Vector) -> List[Port]:
     return matches
 
 
-def auto_connect(sym1: Symbol, sym2: Symbol) -> List[Line]:
+def auto_connect(sym1: Symbol, sym2: Symbol) -> list[Line]:
     """
     Automatically connects two symbols with Lines.
 
@@ -58,7 +60,7 @@ def auto_connect(sym1: Symbol, sym2: Symbol) -> List[Line]:
         sym2 (Symbol): The lower symbol (target).
 
     Returns:
-        List[Line]: A list of connection lines.
+        list[Line]: A list of connection lines.
     """
     lines = []
 
@@ -68,15 +70,15 @@ def auto_connect(sym1: Symbol, sym2: Symbol) -> List[Line]:
     for dp in down_ports:
         for up in up_ports:
             # Check vertical alignment (same X)
-            if abs(dp.position.x - up.position.x) < 0.1:  # Strict tolerance
+            if abs(dp.position.x - up.position.x) < DEFAULT_WIRE_ALIGNMENT_TOLERANCE:
                 lines.append(Line(dp.position, up.position, style=standard_style()))
 
     return lines
 
 
 def _find_matching_ports(
-    down_ports: List[Port], up_ports: List[Port]
-) -> List[Tuple[Port, Port]]:
+    down_ports: list[Port], up_ports: list[Port]
+) -> list[tuple[Port, Port]]:
     """Pair up downward ports with upward ports based on X position."""
     pairs = []
     # Sort downward ports by X position for consistent ordering
@@ -85,7 +87,7 @@ def _find_matching_ports(
     for dp in sorted_down:
         # Find matching upward port
         for up in up_ports:
-            if abs(dp.position.x - up.position.x) < 0.1:
+            if abs(dp.position.x - up.position.x) < DEFAULT_WIRE_ALIGNMENT_TOLERANCE:
                 pairs.append((dp, up))
                 break
     return pairs
@@ -94,8 +96,8 @@ def _find_matching_ports(
 def _get_wire_label_spec(
     dp: Port,
     match_index: int,
-    wire_specs: Optional[Union[Dict[str, tuple], List[tuple]]],
-) -> Tuple[str, str]:
+    wire_specs: dict[str, tuple] | list[tuple] | None,
+) -> tuple[str, str]:
     """Determine the label (color, size) for a wire."""
     if not wire_specs:
         return ("", "")
@@ -113,8 +115,8 @@ def _get_wire_label_spec(
 def auto_connect_labeled(
     sym1: Symbol,
     sym2: Symbol,
-    wire_specs: Optional[Union[Dict[str, tuple], List[tuple]]] = None,
-) -> List[Element]:
+    wire_specs: dict[str, tuple] | list[tuple] | None = None,
+) -> list[Element]:
     """
     Automatically connects two symbols with labeled wires.
 
@@ -129,12 +131,12 @@ def auto_connect_labeled(
         sym1 (Symbol): The upper symbol (source).
         sym2 (Symbol): The lower symbol (target).
         wire_specs: Specification for wire labels.
-            - If Dict[str, tuple]: Maps Port ID to (color, size).
-            - If List[tuple]: Maps (color, size) to ports by X-position (Left to Right).
+            - If dict[str, tuple]: Maps Port ID to (color, size).
+            - If list[tuple]: Maps (color, size) to ports by X-position (Left to Right).
             If None or not found, wire is created without label.
 
     Returns:
-        List[Element]: List of connection lines and label texts.
+        list[Element]: List of connection lines and label texts.
     """
     from .wire_labels import create_labeled_wire
 
@@ -164,18 +166,18 @@ def auto_connect_labeled(
 
 
 def layout_vertical_chain(
-    symbols: List[Symbol], start: Point, spacing: float
-) -> List[Element]:
+    symbols: list[Symbol], start: Point, spacing: float
+) -> list[Element]:
     """
     Arranges a list of symbols in a vertical column and connects them.
 
     Args:
-        symbols (List[Symbol]): List of Symbol templates (usually centered at 0,0).
+        symbols (list[Symbol]): List of Symbol templates (usually centered at 0,0).
         start (Point): Starting Point (center of the first symbol).
         spacing (float): Vertical distance between centers.
 
     Returns:
-        List[Element]: List of Elements (Placed Symbols and Connecting Lines).
+        list[Element]: List of Elements (Placed Symbols and Connecting Lines).
     """
     elements = []
     placed_symbols = []
@@ -206,15 +208,15 @@ def layout_vertical_chain(
 
 
 def layout_horizontal(
-    start_state: Dict[str, Any],
+    start_state: dict[str, Any],
     start_x: float,
     start_y: float,
     spacing: float,
     count: int,
     generate_func: Callable[
-        [Dict[str, Any], float, float], Tuple[Dict[str, Any], List[Element]]
+        [dict[str, Any], float, float], tuple[dict[str, Any], list[Element]]
     ],
-) -> Tuple[Dict[str, Any], List[Element]]:
+) -> tuple[dict[str, Any], list[Element]]:
     """
     Layout multiple copies of a circuit horizontally, propagating state.
 
@@ -226,12 +228,12 @@ def layout_horizontal(
         count: Number of copies to create.
         generate_func: Function that takes (state, x, y) and
                        returns (new_state, elements).
-                       Expected signature: f(state: Dict,
+                       Expected signature: f(state: dict,
                        x: float, y: float) ->
-                       (Dict, List[Element])
+                       (dict, list[Element])
 
     Returns:
-        Tuple[Dict[str, Any], List[Element]]: Final state and list of all elements.
+        tuple[dict[str, Any], list[Element]]: Final state and list of all elements.
     """
     current_state = start_state
     all_elements = []
@@ -246,22 +248,58 @@ def layout_horizontal(
 
 
 def create_horizontal_layout(
-    state: Dict[str, Any],
+    state: dict[str, Any],
     start_x: float,
     start_y: float,
     count: int,
     spacing: float,
     generator_func_single: Callable[
-        [Dict[str, Any], float, float, Dict[str, Any], Dict[str, Any], int],
-        Tuple[Dict[str, Any], Any],
+        [dict[str, Any], float, float, dict[str, Any], dict[str, Any], int],
+        tuple[dict[str, Any], Any],
     ],
-    default_tag_generators: Dict[str, Callable],
-    tag_generators: Optional[Dict[str, Callable]] = None,
-    terminal_maps: Optional[Dict[str, Any]] = None,
-) -> Tuple[Dict[str, Any], List[Any]]:
+    default_tag_generators: dict[str, Callable],
+    tag_generators: dict[str, Callable] | None = None,
+    terminal_maps: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], list[Any]]:
     """
-    Generic function to create multiple circuits horizontally.
-    Passes instance index to generator function for dynamic pin generation.
+    Generic function to create multiple circuit instances arranged horizontally.
+
+    Iterates ``count`` times, calling ``generator_func_single`` at each step
+    with an incrementing X offset.  Autonumbering state is threaded through
+    every call so that tag counters (e.g. Q1, Q2, ...) stay consistent
+    across instances.  The instance index is forwarded to the generator so
+    it can derive dynamic pin assignments or other per-instance behaviour.
+
+    Args:
+        state: Initial autonumbering state dict.  Threaded through each
+            generator call and returned with the final counter values.
+        start_x: X coordinate for the first circuit instance.
+        start_y: Y coordinate shared by all instances (constant row).
+        count: Number of circuit copies to create.
+        spacing: Horizontal distance (mm) between successive instances.
+        generator_func_single: Factory called once per instance.  Expected
+            signature::
+
+                f(state, x, y, tag_generators, terminal_maps, index)
+                -> (new_state, elements)
+
+            Where *tag_generators* and *terminal_maps* are the merged
+            dictionaries described below, and *index* is the zero-based
+            instance number.
+        default_tag_generators: Base mapping of component prefix to a
+            callable that produces the next tag from state
+            (e.g. ``{"Q": next_q_tag}``).  Copied before merging so the
+            original dict is never mutated.
+        tag_generators: Optional overrides merged on top of
+            *default_tag_generators*.  Use this to substitute fixed or
+            custom tag sequences for specific prefixes.
+        terminal_maps: Optional terminal-mapping dict forwarded verbatim
+            to the generator.  Defaults to an empty dict when ``None``.
+
+    Returns:
+        A tuple of ``(final_state, all_elements)`` where *final_state*
+        carries the updated counters and *all_elements* is a flat list of
+        every element produced across all instances.
     """
 
     tm = terminal_maps or {}

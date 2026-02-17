@@ -7,7 +7,6 @@ All primitives are immutable dataclasses that inherit from Element.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 from .core import Element, Point, Style
 
@@ -90,12 +89,12 @@ class Group(Element):
     A logical collection of elements.
 
     Attributes:
-        elements (List[Element]): List of child elements.
-        style (Optional[Style]): Optional style to apply to the group (inherited).
+        elements (list[Element]): List of child elements.
+        style (Style | None): Optional style to apply to the group (inherited).
     """
 
-    elements: List[Element]
-    style: Optional[Style] = None
+    elements: list[Element]
+    style: Style | None = None
 
 
 @dataclass(frozen=True)
@@ -104,9 +103,9 @@ class Polygon(Element):
     A defined polygon from a list of points.
 
     Attributes:
-        points (List[Point]): Vertices of the polygon.
+        points (list[Point]): Vertices of the polygon.
         style (Style): Styling attributes.
     """
 
-    points: List[Point]
+    points: list[Point]
     style: Style = Style()

@@ -1,5 +1,3 @@
-from typing import List
-
 from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
 from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
@@ -12,7 +10,7 @@ from pyschemaelectrical.model.parts import (
 from pyschemaelectrical.model.primitives import Line
 
 
-def thermal_overload_symbol(label: str = "", pins: tuple = ()) -> Symbol:
+def thermal_overload_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
     """IEC 60617 Thermal Overload Protection.
 
     Geometry: Pulse shape.
@@ -65,7 +63,7 @@ def thermal_overload_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     # Lead-out (Avg)
     l_out = Line(p5, Point(0, bot_port_y), style)
 
-    elements: List[Element] = [l_in, s1, s2, s3, s4, s5, l_out]
+    elements: list[Element] = [l_in, s1, s2, s3, s4, s5, l_out]
 
     if label:
         elements.append(standard_text(label, Point(0, 0)))
@@ -82,7 +80,7 @@ def thermal_overload_symbol(label: str = "", pins: tuple = ()) -> Symbol:
 
 
 def three_pole_thermal_overload_symbol(
-    label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")
+    label: str = "", pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6")
 ) -> Symbol:
     """IEC 60617 Three Pole Thermal Overload Protection.
 
@@ -91,7 +89,7 @@ def three_pole_thermal_overload_symbol(
     return three_pole_factory(thermal_overload_symbol, label, pins)
 
 
-def fuse_symbol(label: str = "", pins: tuple = ()) -> Symbol:
+def fuse_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
     """IEC 60617 Fuse."""
     # Box 5mm x 12.5mm ?
     w = 2 * GRID_SIZE
@@ -103,7 +101,7 @@ def fuse_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     # Internal continuity line
     line = Line(Point(0, -h / 2), Point(0, h / 2), style)
 
-    elements: List[Element] = [body, line]
+    elements: list[Element] = [body, line]
     if label:
         elements.append(standard_text(label, Point(0, 0)))
 

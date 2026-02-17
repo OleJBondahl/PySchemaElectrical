@@ -1,6 +1,6 @@
 import csv
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class TerminalRegistry:
     Immutable registry for terminal connections.
     """
 
-    connections: Tuple[Connection, ...] = field(default_factory=tuple)
+    connections: tuple[Connection, ...] = field(default_factory=tuple)
 
     def add_connection(
         self,
@@ -40,18 +40,18 @@ class TerminalRegistry:
         )
         return TerminalRegistry(self.connections + (new_conn,))
 
-    def add_connections(self, conns: List[Connection]) -> "TerminalRegistry":
+    def add_connections(self, conns: list[Connection]) -> "TerminalRegistry":
         return TerminalRegistry(self.connections + tuple(conns))
 
 
-def get_registry(state: Dict[str, Any]) -> TerminalRegistry:
+def get_registry(state: dict[str, Any]) -> TerminalRegistry:
     """Retrieves or creates the TerminalRegistry from the state."""
     return state.get("terminal_registry", TerminalRegistry())
 
 
 def update_registry(
-    state: Dict[str, Any], registry: TerminalRegistry
-) -> Dict[str, Any]:
+    state: dict[str, Any], registry: TerminalRegistry
+) -> dict[str, Any]:
     """Updates the state with the new registry."""
     new_state = state.copy()
     new_state["terminal_registry"] = registry
@@ -59,13 +59,13 @@ def update_registry(
 
 
 def register_connection(
-    state: Dict[str, Any],
+    state: dict[str, Any],
     terminal_tag: str,
     terminal_pin: str,
     component_tag: str,
     component_pin: str,
     side: str = "bottom",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Functional helper to register a connection in the state.
     """
@@ -77,13 +77,13 @@ def register_connection(
 
 
 def register_3phase_connections(
-    state: Dict[str, Any],
+    state: dict[str, Any],
     terminal_tag: str,
-    terminal_pins: Tuple[str, ...],
+    terminal_pins: tuple[str, ...],
     component_tag: str,
-    component_pins: Tuple[str, ...],
+    component_pins: tuple[str, ...],
     side: str = "bottom",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Register all 3 phase connections between a terminal and a component.
 
@@ -121,12 +121,12 @@ def register_3phase_connections(
 
 
 def register_3phase_input(
-    state: Dict[str, Any],
+    state: dict[str, Any],
     terminal_tag: str,
-    terminal_pins: Tuple[str, ...],
+    terminal_pins: tuple[str, ...],
     component_tag: str,
-    component_pins: Tuple[str, ...] = ("1", "3", "5"),
-) -> Dict[str, Any]:
+    component_pins: tuple[str, ...] = ("1", "3", "5"),
+) -> dict[str, Any]:
     """
     Register 3-phase input connections (terminal to component input pins).
 
@@ -148,12 +148,12 @@ def register_3phase_input(
 
 
 def register_3phase_output(
-    state: Dict[str, Any],
+    state: dict[str, Any],
     terminal_tag: str,
-    terminal_pins: Tuple[str, ...],
+    terminal_pins: tuple[str, ...],
     component_tag: str,
-    component_pins: Tuple[str, ...] = ("2", "4", "6"),
-) -> Dict[str, Any]:
+    component_pins: tuple[str, ...] = ("2", "4", "6"),
+) -> dict[str, Any]:
     """
     Register 3-phase output connections (component output pins to terminal).
 
@@ -189,14 +189,21 @@ def export_registry_to_csv(registry: TerminalRegistry, filepath: str):
         key = (conn.terminal_tag, conn.terminal_pin)
         grouped[key][conn.side].append(conn)
 
-    # Sort keys - handle mixed int/string pins by using
-    # tuple with explicit type handling
+    # Sort keys - handle mixed int/string pins including "prefix:number"
     def sort_key(k):
         t, p = k
+        p_str = str(p)
+        # Handle "prefix:number" format (e.g. "L1:3")
+        if ":" in p_str:
+            prefix, num_str = p_str.rsplit(":", 1)
+            try:
+                return (t, 0, prefix, int(num_str))
+            except ValueError:
+                pass
         try:
-            return (t, 0, int(p), str(p))  # Numeric pins sort first
+            return (t, 1, "", int(p_str))  # Numeric pins sort first
         except (ValueError, TypeError):
-            return (t, 1, 0, str(p))  # Non-numeric pins sort after numeric
+            return (t, 2, "", 0, p_str)  # Non-numeric pins sort last
 
     sorted_keys = sorted(grouped.keys(), key=sort_key)
 

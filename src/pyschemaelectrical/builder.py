@@ -6,14 +6,14 @@ electrical circuits. It abstracts away the complexity of coordinate
 management, manual connection registration, and multi-pole wiring.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.symbols.terminals import (
     multi_pole_terminal_symbol,
     terminal_symbol,
-    three_pole_terminal_symbol,
 )
 from pyschemaelectrical.system.connection_registry import register_connection
 from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
@@ -27,7 +27,7 @@ class LayoutConfig:
 
     start_x: float
     start_y: float
-    spacing: float = 0  # Horizontal spacing between circuit instances
+    spacing: float = 150  # Horizontal spacing between circuit instances
     symbol_spacing: float = 50  # Vertical spacing between components
     label_pos: str = "left"  # Default label position for terminals
 
@@ -36,22 +36,22 @@ class LayoutConfig:
 class ComponentSpec:
     """Declarative specification for a component in a circuit."""
 
-    func: Optional[Callable]  # None for terminals
+    func: Callable | None  # None for terminals
     kind: str = "symbol"  # 'symbol' or 'terminal'
-    tag_prefix: Optional[str] = None
+    tag_prefix: str | None = None
     poles: int = 1
-    pins: Optional[Union[List[str], Tuple[str, ...]]] = None
-    kwargs: Dict[str, Any] = field(default_factory=dict)
+    pins: list[str] | tuple[str, ...] | None = None
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
     # Layout control
     x_offset: float = 0.0
-    y_increment: Optional[float] = None
+    y_increment: float | None = None
 
     # Connection control
     auto_connect_next: bool = True
 
     # Horizontal placement reference (index of component this was placed_right of)
-    placed_right_of: Optional[int] = None
+    placed_right_of: int | None = None
 
     def get_y_increment(self, default: float) -> float:
         return self.y_increment if self.y_increment is not None else default
@@ -61,14 +61,14 @@ class ComponentSpec:
 class CircuitSpec:
     """Complete specification for a circuit definition."""
 
-    components: List[ComponentSpec] = field(default_factory=list)
+    components: list[ComponentSpec] = field(default_factory=list)
     layout: LayoutConfig = field(default_factory=lambda: LayoutConfig(0, 0))
-    manual_connections: List[Tuple[int, int, int, int, str, str]] = field(
+    manual_connections: list[tuple[int, int, int, int, str, str]] = field(
         default_factory=list
     )
-    terminal_map: Dict[str, Any] = field(default_factory=dict)
+    terminal_map: dict[str, Any] = field(default_factory=dict)
     # Horizontal matching connections: (idx_a, idx_b, pin_filter, side_a, side_b)
-    matching_connections: List[Tuple[int, int, Optional[List[str]], str, str]] = field(
+    matching_connections: list[tuple[int, int, list[str] | None, str, str]] = field(
         default_factory=list
     )
 
@@ -83,16 +83,13 @@ class PortRef:
     """Reference to a specific port on a component."""
 
     component: "ComponentRef"
-    port: Union[str, int]  # Pin name ("L", "A1") or pole index (0, 1, 2)
+    port: str | int  # Pin name ("L", "A1") or pole index (0, 1, 2)
 
 
 @dataclass
 class ComponentRef:
     """
     Reference to a component in a CircuitBuilder.
-
-    Supports tuple unpacking for backwards compatibility:
-        _, idx = builder.add_component(...)   # still works
     """
 
     _builder: "CircuitBuilder"
@@ -107,19 +104,16 @@ class ComponentRef:
         """Reference a port by pole index (backwards compatibility)."""
         return PortRef(self, pole_idx)
 
-    def __iter__(self):
-        """Support tuple unpacking: _, idx = builder.add_component(...)"""
-        return iter((self._builder, self._index))
-
 
 @dataclass
 class BuildResult:
     """Result of a circuit build operation."""
 
-    state: Dict[str, Any]
+    state: dict[str, Any]
     circuit: Circuit
-    used_terminals: List[Any]
-    component_map: Dict[str, List[str]] = field(default_factory=dict)
+    used_terminals: list[Any]
+    component_map: dict[str, list[str]] = field(default_factory=dict)
+    terminal_pin_map: dict[str, list[str]] = field(default_factory=dict)
 
     def __iter__(self):
         return iter((self.state, self.circuit, self.used_terminals))
@@ -145,6 +139,30 @@ class BuildResult:
 
         return generator
 
+    def reuse_terminals(self, key: str) -> Callable:
+        """
+        Returns a pin generator that yields pins from this result's terminal_pin_map.
+
+        Use with the reuse_terminals parameter on build():
+            result_b = builder_b.build(reuse_terminals={"X008": result_a})
+        """
+        pins = iter(self.terminal_pin_map.get(key, []))
+
+        def generator(state, poles):
+            from pyschemaelectrical.exceptions import TerminalReuseExhausted
+
+            result = []
+            for _ in range(poles):
+                try:
+                    result.append(next(pins))
+                except StopIteration:
+                    raise TerminalReuseExhausted(
+                        key, list(self.terminal_pin_map.get(key, []))
+                    ) from None
+            return state, tuple(result)
+
+        return generator
+
 
 class CircuitBuilder:
     """
@@ -156,7 +174,7 @@ class CircuitBuilder:
         self._initial_state = state
         self._spec = CircuitSpec()
         # Fixed tag generators added by add_reference()
-        self._fixed_tag_generators: Dict[str, Callable] = {}
+        self._fixed_tag_generators: dict[str, Callable] = {}
 
     def set_layout(
         self, x: float = 0, y: float = 0, spacing: float = 150, symbol_spacing: float = 50
@@ -171,11 +189,11 @@ class CircuitBuilder:
         self,
         tm_id: Any,
         poles: int = 1,
-        pins: Optional[Union[List[str], Tuple[str, ...]]] = None,
-        label_pos: Optional[str] = None,
-        logical_name: Optional[str] = None,
+        pins: list[str] | tuple[str, ...] | None = None,
+        label_pos: str | None = None,
+        logical_name: str | None = None,
         x_offset: float = 0.0,
-        y_increment: Optional[float] = None,
+        y_increment: float | None = None,
         auto_connect_next: bool = True,
         **kwargs,
     ) -> "ComponentRef":
@@ -212,9 +230,9 @@ class CircuitBuilder:
         symbol_func: Callable,
         tag_prefix: str,
         poles: int = 1,
-        pins: Optional[Union[List[str], Tuple[str, ...]]] = None,
+        pins: list[str] | tuple[str, ...] | None = None,
         x_offset: float = 0.0,
-        y_increment: Optional[float] = None,
+        y_increment: float | None = None,
         auto_connect_next: bool = True,
         **kwargs,
     ) -> "ComponentRef":
@@ -243,7 +261,7 @@ class CircuitBuilder:
         self,
         ref_id: str,
         x_offset: float = 0.0,
-        y_increment: Optional[float] = None,
+        y_increment: float | None = None,
         auto_connect_next: bool = True,
         **kwargs,
     ) -> "ComponentRef":
@@ -287,7 +305,7 @@ class CircuitBuilder:
         ref: "ComponentRef",
         symbol_func: Callable,
         tag_prefix: str,
-        pins: Optional[Union[List[str], Tuple[str, ...]]] = None,
+        pins: list[str] | tuple[str, ...] | None = None,
         spacing: float = 40.0,
         poles: int = 1,
         auto_connect_next: bool = False,
@@ -333,7 +351,7 @@ class CircuitBuilder:
         self,
         ref_a: "ComponentRef",
         ref_b: "ComponentRef",
-        pins: Optional[List[str]] = None,
+        pins: list[str] | None = None,
         side_a: str = "right",
         side_b: str = "left",
     ) -> "CircuitBuilder":
@@ -361,8 +379,8 @@ class CircuitBuilder:
         self,
         a: PortRef,
         b: PortRef,
-        side_a: Optional[str] = None,
-        side_b: Optional[str] = None,
+        side_a: str | None = None,
+        side_b: str | None = None,
     ) -> "CircuitBuilder":
         """
         Connect two ports by pin name or pole index.
@@ -465,12 +483,13 @@ class CircuitBuilder:
     def build(
         self,
         count: int = 1,
-        start_indices: Optional[Dict[str, int]] = None,
-        terminal_start_indices: Optional[Dict[str, int]] = None,
-        tag_generators: Optional[Dict[str, Callable]] = None,
-        terminal_maps: Optional[Dict[str, Any]] = None,
-        reuse_tags: Optional[Dict[str, "BuildResult"]] = None,
-        wire_labels: Optional[List[str]] = None,
+        start_indices: dict[str, int] | None = None,
+        terminal_start_indices: dict[str, int] | None = None,
+        tag_generators: dict[str, Callable] | None = None,
+        terminal_maps: dict[str, Any] | None = None,
+        reuse_tags: dict[str, "BuildResult"] | None = None,
+        reuse_terminals: dict[str, "BuildResult"] | None = None,
+        wire_labels: list[str] | None = None,
     ) -> BuildResult:
         """
         Generate the circuits.
@@ -483,11 +502,16 @@ class CircuitBuilder:
             terminal_maps: Terminal ID overrides by logical name.
             reuse_tags: Dict mapping tag prefix to BuildResult whose tags to reuse.
                         e.g., {"K": coil_result} reuses K tags from coil_result.
+            reuse_terminals: Dict mapping terminal key to BuildResult whose
+                        terminal pins to reuse. Keys can be terminal tag strings
+                        (e.g., "X008") or logical names.
+                        e.g., {Terminals.IO_EXT: pump_result} reuses IO_EXT pins.
             wire_labels: Wire label strings to apply to vertical wires.
                          Applied per instance (cycled if count > 1).
 
         Returns:
-            BuildResult with state, circuit, used_terminals, and component_map.
+            BuildResult with state, circuit, used_terminals, component_map,
+            and terminal_pin_map.
         """
         self._validate_connections()
         state = self._initial_state
@@ -514,10 +538,25 @@ class CircuitBuilder:
 
         final_tag_generators = effective_generators if effective_generators else None
 
-        captured_tags: Dict[str, List[str]] = {}
+        # Build terminal reuse generators
+        terminal_reuse_generators: dict[str, Callable] = {}
+        if reuse_terminals:
+            for key, source in reuse_terminals.items():
+                str_key = str(key)
+                if isinstance(source, BuildResult):
+                    terminal_reuse_generators[str_key] = source.reuse_terminals(str_key)
+                elif callable(source):
+                    terminal_reuse_generators[str_key] = source
+
+        captured_tags: dict[str, list[str]] = {}
+        captured_terminal_pins: dict[str, list[str]] = {}
 
         def single_instance_gen(s, x, y, gens, tm):
-            res = _create_single_circuit_from_spec(s, x, y, self._spec, gens, tm)
+            res = _create_single_circuit_from_spec(
+                s, x, y, self._spec, gens, tm,
+                terminal_reuse_generators=terminal_reuse_generators or None,
+                pin_accumulator=captured_terminal_pins,
+            )
             # res is (state, elements, instance_tags)
             # Update captured tags
             for prefix, tag_val in res[2].items():
@@ -565,17 +604,20 @@ class CircuitBuilder:
             circuit=c,
             used_terminals=used_terminals,
             component_map=captured_tags,
+            terminal_pin_map=captured_terminal_pins,
         )
 
 
 def _create_single_circuit_from_spec(
-    state,
-    x,
-    y,
+    state: dict[str, Any],
+    x: float,
+    y: float,
     spec: CircuitSpec,
-    tag_generators: Optional[Dict] = None,
-    terminal_maps: Optional[Dict] = None,
-) -> Tuple[Any, List[Any], Dict[str, str]]:
+    tag_generators: dict | None = None,
+    terminal_maps: dict | None = None,
+    terminal_reuse_generators: dict[str, Callable] | None = None,
+    pin_accumulator: dict[str, list[str]] | None = None,
+) -> tuple[Any, list[Any], dict[str, str]]:
     """
     Pure functional core to create a single instance from a spec.
     Returns: (new_state, elements, map_of_tags_for_this_instance)
@@ -603,10 +645,33 @@ def _create_single_circuit_from_spec(
             elif lname and lname in spec.terminal_map:
                 tid = spec.terminal_map[lname]
 
+            lname = component_spec.kwargs.get("logical_name")
+
             if component_spec.pins:
                 pins = list(component_spec.pins)
+            elif terminal_reuse_generators and (
+                str(tid) in terminal_reuse_generators
+                or (lname and lname in terminal_reuse_generators)
+            ):
+                reuse_key = (
+                    lname
+                    if (lname and lname in terminal_reuse_generators)
+                    else str(tid)
+                )
+                state, pin_tuple = terminal_reuse_generators[reuse_key](
+                    state, component_spec.poles
+                )
+                pins = list(pin_tuple)
             else:
                 state, pins = next_terminal_pins(state, tid, component_spec.poles)
+
+            # Track assigned pins for terminal_pin_map
+            if pin_accumulator is not None:
+                map_key = lname if lname else str(tid)
+                if map_key not in pin_accumulator:
+                    pin_accumulator[map_key] = []
+                pin_accumulator[map_key].extend(pins)
+
             tag = str(tid)
 
         elif component_spec.kind in ("symbol", "reference"):
@@ -754,7 +819,7 @@ def _create_single_circuit_from_spec(
 
         sym = None
         if component_spec.kind == "terminal":
-            lpos = component_spec.kwargs.get("label_pos")
+            lpos = component_spec.kwargs.get("label_pos") or "left"
             if component_spec.poles >= 2:
                 sym = multi_pole_terminal_symbol(tag, pins=rc["pins"], poles=component_spec.poles, label_pos=lpos)
             else:
@@ -921,49 +986,23 @@ def _resolve_pin(component_data, pole_idx, is_input):
     return str(base_idx + offset + 1)
 
 
-def _resolve_registry_pin(component_data, pole_idx):
+def _resolve_registry_pin(component_data: dict[str, Any], pole_idx: int) -> str:
     """
-    Resolve the physical pin number (label) for the registry.
+    Resolve the physical pin number (label) for the connection registry.
 
-    For Terminals: Returns the assigned terminal number
-    (e.g. "42"), not the internal port ID.
-    For Symbols: Returns the pin label (e.g. "A1"),
-    ensuring consistency with _resolve_pin.
+    For Terminals: Returns the assigned terminal number (e.g. "42"),
+    not the internal port ID.
+    For Symbols: Delegates to _resolve_pin to return the pin label
+    (e.g. "A1"), ensuring consistency.
     """
     spec = component_data["spec"]
 
-    # CASE 1: Terminals
+    # CASE 1: Terminals — return the physical pin label
     if spec.kind == "terminal":
-        # Usually 1 pin label per pole (the terminal number)
-        # component_data["pins"] should contain these labels.
         if component_data["pins"] and pole_idx < len(component_data["pins"]):
             return component_data["pins"][pole_idx]
-
-        # Fallback: if no explicit pins provided, maybe we rely on a default counter?
-        # But here we just want a logical ID.
-        # For a 1-pole terminal without explicit pins, we might assume it is "1", "2"...
-        # relative to the start of the block?
-        # Actually, standard behavior without pins is
-        # undefined for registry if we want accurate
-        # numbering.
-        # But let's fallback to returning a 1-based index based on pole.
+        # Fallback: 1-based index
         return str(pole_idx + 1)
 
-    # CASE 2: Symbols
-    # For symbols, the "Pin" in registry is usually the specific port label (e.g. "A1").
-    # Note: Registry doesn't strictly care about
-    # Input/Output distinction in the *name* of the pin,
-    # it cares about the *label* of the pin we connect to.
-
-    # We must determine which pin (Input or Output side) we are talking about.
-    # _resolve_registry_pin is ambiguous if we don't know the side.
-    # BUT, actually register_connection takes `terminal_pin` and `component_pin`.
-    # For Terminals, `terminal_pin` is the Slice ID ("5"). 'side' handles Top/Bottom.
-    # For Components, `component_pin` IS the port label ("A1").
-
-    # So we can't implement this universally without knowing 'is_input'.
-    # But wait, the problematic case is ONLY Terminals.
-    # For Symbols, `_resolve_pin` logic (returning "A1" or
-    # "A2") is exactly what we want.
-
-    return None  # Should use _resolve_pin for symbols
+    # CASE 2: Symbols — delegate to _resolve_pin for the correct port label
+    return _resolve_pin(component_data, pole_idx, is_input=True)

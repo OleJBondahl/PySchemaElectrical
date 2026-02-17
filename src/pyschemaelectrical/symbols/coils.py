@@ -14,7 +14,7 @@ IEC 60617 Coil Symbols.
 
 
 def coil_symbol(
-    label: str = "", pins: tuple = (), show_terminals: bool = True
+    label: str = "", pins: tuple[str, ...] = (), show_terminals: bool = True
 ) -> Symbol:
     """
     Create an IEC 60617 Coil symbol (Square).

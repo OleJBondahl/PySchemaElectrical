@@ -1,5 +1,5 @@
 """
-Project class — Layer 0 declarative API for PySchemaElectrical.
+Project class -- Layer 0 declarative API for PySchemaElectrical.
 
 The Project is the top-level object that owns state, terminal registry,
 circuit definitions, page layout, and output configuration. Users interact
@@ -10,7 +10,8 @@ it to a multi-page PDF.
 import os
 import shutil
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from pyschemaelectrical.builder import BuildResult
 from pyschemaelectrical.descriptors import Descriptor, build_from_descriptors
@@ -37,14 +38,14 @@ class _CircuitDef:
 
     key: str
     factory: str  # "dol_starter", "psu", "changeover", etc. or "descriptors" / "custom"
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     count: int = 1
-    wire_labels: Optional[List[str]] = None
-    reuse_tags: Optional[Dict[str, str]] = None  # maps prefix -> circuit key
-    components: Optional[List[Descriptor]] = None
-    builder_fn: Optional[Callable] = None
-    start_indices: Optional[Dict[str, int]] = None
-    terminal_start_indices: Optional[Dict[str, int]] = None
+    wire_labels: list[str] | None = None
+    reuse_tags: dict[str, str] | None = None  # maps prefix -> circuit key
+    components: list[Descriptor] | None = None
+    builder_fn: Callable | None = None
+    start_indices: dict[str, int] | None = None
+    terminal_start_indices: dict[str, int] | None = None
 
 
 @dataclass
@@ -55,7 +56,7 @@ class _PageDef:
     title: str = ""
     circuit_key: str = ""
     md_path: str = ""
-    notice: Optional[str] = None
+    notice: str | None = None
     csv_path: str = ""
     typst_content: str = ""
 
@@ -105,7 +106,7 @@ class Project:
         author: str = "",
         project: str = "",
         revision: str = "00",
-        logo: Optional[str] = None,
+        logo: str | None = None,
         font: str = "Times New Roman",
     ):
         self.title = title
@@ -117,10 +118,10 @@ class Project:
         self.font = font
 
         self._state = create_autonumberer()
-        self._terminals: Dict[str, Terminal] = {}
-        self._circuit_defs: List[_CircuitDef] = []
-        self._pages: List[_PageDef] = []
-        self._results: Dict[str, BuildResult] = {}
+        self._terminals: dict[str, Terminal] = {}
+        self._circuit_defs: list[_CircuitDef] = []
+        self._pages: list[_PageDef] = []
+        self._results: dict[str, BuildResult] = {}
 
     # ------------------------------------------------------------------
     # Terminal registration
@@ -136,11 +137,11 @@ class Project:
         for t in terminals:
             self._terminals[str(t)] = t
 
-    def set_pin_start(self, terminal_id: str, pin: int):
+    def set_pin_start(self, terminal_id: str, pin: int) -> None:
         """
         Seed the pin counter for a terminal so auto-allocation starts at *pin*.
         """
-        counters = self._state.get("terminal_counters", {})
+        counters = self._state.get("terminal_counters", {}).copy()
         counters[terminal_id] = pin
         self._state["terminal_counters"] = counters
 
@@ -183,12 +184,12 @@ class Project:
     def circuit(
         self,
         key: str,
-        components: List[Descriptor],
+        components: list[Descriptor],
         count: int = 1,
-        wire_labels: Optional[List[str]] = None,
-        reuse_tags: Optional[Dict[str, str]] = None,
-        start_indices: Optional[Dict[str, int]] = None,
-        terminal_start_indices: Optional[Dict[str, int]] = None,
+        wire_labels: list[str] | None = None,
+        reuse_tags: dict[str, str] | None = None,
+        start_indices: dict[str, int] | None = None,
+        terminal_start_indices: dict[str, int] | None = None,
         **kwargs,
     ):
         """
@@ -244,7 +245,7 @@ class Project:
             _PageDef(page_type="schematic", title=title, circuit_key=circuit_key)
         )
 
-    def front_page(self, md_path: str, notice: Optional[str] = None):
+    def front_page(self, md_path: str, notice: str | None = None):
         """Add a front page from a Markdown file."""
         self._pages.append(_PageDef(page_type="front", md_path=md_path, notice=notice))
 
@@ -280,7 +281,7 @@ class Project:
         2. Generate SVG for each circuit.
         3. Generate per-circuit terminal CSV.
         4. Generate system terminal CSV with bridge info.
-        5. Assemble and compile Typst → PDF.
+        5. Assemble and compile Typst -> PDF.
 
         Args:
             output: Path for the output PDF file.
@@ -406,7 +407,7 @@ class Project:
 
     def _build_one_circuit(self, cdef: _CircuitDef) -> BuildResult:
         """Build a single circuit definition."""
-        # Resolve reuse_tags: map circuit key → BuildResult
+        # Resolve reuse_tags: map circuit key -> BuildResult
         resolved_reuse = None
         if cdef.reuse_tags:
             resolved_reuse = {}
@@ -427,12 +428,19 @@ class Project:
             return self._build_std_circuit(cdef, resolved_reuse)
 
     def _build_std_circuit(
-        self, cdef: _CircuitDef, resolved_reuse: Optional[Dict]
+        self, cdef: _CircuitDef, resolved_reuse: dict | None
     ) -> BuildResult:
         """Build a standard circuit (dol_starter, psu, etc.)."""
         from pyschemaelectrical import std_circuits
 
-        factory_fn = getattr(std_circuits, cdef.factory)
+        try:
+            factory_fn = getattr(std_circuits, cdef.factory)
+        except AttributeError:
+            available = [n for n in dir(std_circuits) if not n.startswith("_")]
+            raise ValueError(
+                f"Unknown circuit factory '{cdef.factory}'. "
+                f"Available: {available}"
+            ) from None
 
         # Build kwargs from params
         kwargs = dict(cdef.params)
@@ -440,22 +448,15 @@ class Project:
         if cdef.wire_labels:
             kwargs["wire_labels"] = cdef.wire_labels
 
-        # Standard circuits use positional x, y — default to 0, 0
+        # Standard circuits use positional x, y -- default to 0, 0
         x = kwargs.pop("x", 0.0)
         y = kwargs.pop("y", 0.0)
 
-        # Standard circuits need terminal IDs as positional args
-        # The caller passes them via kwargs with standard names
-        state, circuit, used_terminals = factory_fn(self._state, x, y, **kwargs)
-
-        return BuildResult(
-            state=state,
-            circuit=circuit,
-            used_terminals=used_terminals,
-        )
+        # Standard circuits now return BuildResult directly
+        return factory_fn(self._state, x, y, **kwargs)
 
     def _build_descriptor_circuit(
-        self, cdef: _CircuitDef, resolved_reuse: Optional[Dict]
+        self, cdef: _CircuitDef, resolved_reuse: dict | None
     ) -> BuildResult:
         """Build a circuit from inline descriptors."""
         return build_from_descriptors(
@@ -507,8 +508,8 @@ class Project:
         self,
         compiler: Any,
         page_def: _PageDef,
-        svg_paths: Dict[str, str],
-        csv_paths: Dict[str, str],
+        svg_paths: dict[str, str],
+        csv_paths: dict[str, str],
         system_csv_path: str,
     ):
         """Add a page definition to the TypstCompiler."""

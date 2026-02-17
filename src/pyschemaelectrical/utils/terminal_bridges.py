@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Terminal Internal Connections (Bridges) Utilities.
 
@@ -25,14 +27,13 @@ import csv
 import shutil
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Dict, List, Tuple, Union
 
 # Type aliases for internal connection definitions
-BridgeRange = Tuple[int, int]
-ConnectionDef = Union[str, List[BridgeRange]]
+BridgeRange = tuple[int, int]
+ConnectionDef = str | list[BridgeRange]
 
 
-def expand_range_to_pins(start: int, end: int) -> List[int]:
+def expand_range_to_pins(start: int, end: int) -> list[int]:
     """
     Expand a (start, end) range to list of all pins in between.
 
@@ -54,8 +55,8 @@ def expand_range_to_pins(start: int, end: int) -> List[int]:
 
 
 def get_connection_groups_for_terminal(
-    tag: str, pins: List[int], internal_connections: Dict[str, ConnectionDef]
-) -> List[List[int]]:
+    tag: str, pins: list[int], internal_connections: dict[str, ConnectionDef]
+) -> list[list[int]]:
     """
     Get the internal connection groups for a specific terminal.
 
@@ -101,8 +102,8 @@ def get_connection_groups_for_terminal(
 
 
 def generate_internal_connections_data(
-    terminal_pins: Dict[str, List[int]], internal_connections: Dict[str, ConnectionDef]
-) -> Dict[str, List[List[int]]]:
+    terminal_pins: dict[str, list[int]], internal_connections: dict[str, ConnectionDef]
+) -> dict[str, list[list[int]]]:
     """
     Generate internal connections data for all terminals.
 
@@ -123,7 +124,7 @@ def generate_internal_connections_data(
         >>> generate_internal_connections_data(pins, connections)
         {'X001': [[1, 2]], 'X103': [[1, 2, 3, 4]]}
     """
-    result: Dict[str, List[List[int]]] = {}
+    result: dict[str, list[list[int]]] = {}
 
     for tag, pins in terminal_pins.items():
         groups = get_connection_groups_for_terminal(tag, pins, internal_connections)
@@ -133,7 +134,7 @@ def generate_internal_connections_data(
     return result
 
 
-def parse_terminal_pins_from_csv(csv_path: str) -> Dict[str, List[int]]:
+def parse_terminal_pins_from_csv(csv_path: str) -> dict[str, list[int]]:
     """
     Parse system_terminals.csv to extract unique pins per terminal tag.
 
@@ -150,7 +151,7 @@ def parse_terminal_pins_from_csv(csv_path: str) -> Dict[str, List[int]]:
     Note:
         Non-numeric pins are silently skipped.
     """
-    terminal_pins: Dict[str, List[int]] = {}
+    terminal_pins: dict[str, list[int]] = {}
     csv_file = Path(csv_path)
 
     if not csv_file.exists():
@@ -195,7 +196,7 @@ def parse_terminal_pins_from_csv(csv_path: str) -> Dict[str, List[int]]:
 
 
 def update_csv_with_internal_connections(
-    csv_path: str, internal_connections: Dict[str, ConnectionDef]
+    csv_path: str, internal_connections: dict[str, ConnectionDef]
 ) -> None:
     """
     Update system_terminals.csv with an 'Internal Bridge' column.

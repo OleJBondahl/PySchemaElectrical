@@ -6,7 +6,9 @@ import csv
 import os
 
 
-def export_terminal_list(filepath, used_terminals, descriptions=None):
+def export_terminal_list(
+    filepath: str, used_terminals: list[str], descriptions: dict[str, str] | None = None
+) -> None:
     """
     Exports the terminal list to a CSV file.
 

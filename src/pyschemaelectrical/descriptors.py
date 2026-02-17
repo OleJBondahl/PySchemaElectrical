@@ -15,10 +15,9 @@ Usage:
     ]
 """
 
-from __future__ import annotations
-
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pyschemaelectrical.builder import BuildResult
@@ -37,7 +36,7 @@ class CompDescriptor:
 
     symbol_fn: Any  # symbol factory function
     tag_prefix: str
-    pins: Tuple[str, ...] = ()
+    pins: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -46,7 +45,7 @@ class TermDescriptor:
 
     terminal_id: str
     poles: int = 1
-    pins: Optional[Tuple[str, ...]] = None
+    pins: tuple[str, ...] | None = None
 
 
 def ref(terminal_id: str) -> RefDescriptor:
@@ -54,33 +53,33 @@ def ref(terminal_id: str) -> RefDescriptor:
     return RefDescriptor(terminal_id)
 
 
-def comp(symbol_fn: Any, tag_prefix: str, pins: Tuple[str, ...] = ()) -> CompDescriptor:
+def comp(symbol_fn: Any, tag_prefix: str, pins: tuple[str, ...] = ()) -> CompDescriptor:
     """Create a component descriptor."""
     return CompDescriptor(symbol_fn, tag_prefix, pins)
 
 
 def term(
-    terminal_id: str, poles: int = 1, pins: Optional[Tuple[str, ...]] = None
+    terminal_id: str, poles: int = 1, pins: tuple[str, ...] | None = None
 ) -> TermDescriptor:
     """Create a terminal descriptor."""
     return TermDescriptor(terminal_id, poles, pins)
 
 
-Descriptor = Union[RefDescriptor, CompDescriptor, TermDescriptor]
+Descriptor = RefDescriptor | CompDescriptor | TermDescriptor
 
 
 def build_from_descriptors(
     state: Any,
-    descriptors: List[Descriptor],
+    descriptors: list[Descriptor],
     x: float = 0.0,
     y: float = 0.0,
     spacing: float = 80.0,
     count: int = 1,
-    wire_labels: Optional[List[str]] = None,
-    reuse_tags: Optional[Dict[str, Any]] = None,
-    tag_generators: Optional[Dict[str, Callable]] = None,
-    start_indices: Optional[Dict[str, int]] = None,
-    terminal_start_indices: Optional[Dict[str, int]] = None,
+    wire_labels: list[str] | None = None,
+    reuse_tags: dict[str, Any] | None = None,
+    tag_generators: dict[str, Callable] | None = None,
+    start_indices: dict[str, int] | None = None,
+    terminal_start_indices: dict[str, int] | None = None,
 ) -> "BuildResult":
     """
     Build a circuit from a list of descriptors.
@@ -104,6 +103,8 @@ def build_from_descriptors(
     Returns:
         BuildResult with state, circuit, used_terminals, and component_map.
     """
+    if not descriptors:
+        raise ValueError("Cannot build circuit with empty descriptor list")
     from pyschemaelectrical.builder import CircuitBuilder
 
     builder = CircuitBuilder(state)

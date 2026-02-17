@@ -1,5 +1,4 @@
 from dataclasses import replace
-from typing import List
 
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
@@ -10,7 +9,9 @@ from pyschemaelectrical.model.constants import (
 )
 from pyschemaelectrical.model.core import Point, Port, Style, Symbol, Vector
 from pyschemaelectrical.model.parts import (
+    create_extended_blade,
     create_pin_labels,
+    pad_pins,
     standard_style,
     standard_text,
     three_pole_factory,
@@ -29,7 +30,7 @@ This module contains functions to generate contact symbols including:
 
 
 def three_pole_normally_open_symbol(
-    label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")
+    label: str = "", pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6")
 ) -> Symbol:
     """
     Create an IEC 60617 Three Pole Normally Open Contact.
@@ -46,7 +47,7 @@ def three_pole_normally_open_symbol(
     return three_pole_factory(normally_open_symbol, label, pins)
 
 
-def normally_open_symbol(label: str = "", pins: tuple = ()) -> Symbol:
+def normally_open_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
     """
     Create an IEC 60617 Normally Open Contact.
 
@@ -87,7 +88,7 @@ def normally_open_symbol(label: str = "", pins: tuple = ()) -> Symbol:
 
     blade = Line(blade_start, blade_end, style)
 
-    elements: List[Element] = [l1, l2, blade]
+    elements: list[Element] = [l1, l2, blade]
     if label:
         elements.append(standard_text(label, Point(0, 0)))
 
@@ -103,7 +104,7 @@ def normally_open_symbol(label: str = "", pins: tuple = ()) -> Symbol:
 
 
 def three_pole_normally_closed_symbol(
-    label: str = "", pins: tuple = ("1", "2", "3", "4", "5", "6")
+    label: str = "", pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6")
 ) -> Symbol:
     """
     Create an IEC 60617 Three Pole Normally Closed Contact.
@@ -118,7 +119,7 @@ def three_pole_normally_closed_symbol(
     return three_pole_factory(normally_closed_symbol, label, pins)
 
 
-def normally_closed_symbol(label: str = "", pins: tuple = ()) -> Symbol:
+def normally_closed_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
     """
     Create an IEC 60617 Normally Closed Contact.
 
@@ -151,27 +152,12 @@ def normally_closed_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     seat_end_x = GRID_SIZE / 2  # 2.5
     seat = Line(Point(0, top_y), Point(seat_end_x, top_y), style)
 
-    # Blade
-    # Starts bottom-center, passes through the seat endpoint
+    # Blade: starts bottom-center, passes through the seat endpoint
     blade_start = Point(0, bot_y)
+    blade_target = Point(seat_end_x, top_y)
+    blade = create_extended_blade(blade_start, blade_target, style)
 
-    # Calculate vector to the seat point
-    target_x = seat_end_x
-    target_y = top_y
-
-    dx = target_x - blade_start.x
-    dy = target_y - blade_start.y
-    length = (dx**2 + dy**2) ** 0.5
-
-    # Extend by 1/4 grid
-    extension = GRID_SIZE / 4
-    new_length = length + extension
-    scale = new_length / length
-
-    blade_end = Point(blade_start.x + dx * scale, blade_start.y + dy * scale)
-    blade = Line(blade_start, blade_end, style)
-
-    elements: List[Element] = [l1, l2, seat, blade]
+    elements: list[Element] = [l1, l2, seat, blade]
 
     if label:
         elements.append(standard_text(label, Point(0, 0)))
@@ -188,7 +174,7 @@ def normally_closed_symbol(label: str = "", pins: tuple = ()) -> Symbol:
 
 
 def spdt_contact_symbol(
-    label: str = "", pins: tuple = ("1", "2", "4"), inverted: bool = False
+    label: str = "", pins: tuple[str, ...] = ("1", "2", "4"), inverted: bool = False
 ) -> Symbol:
     r"""
     Create an IEC 60617 Single Pole Double Throw (SPDT) Contact (Changeover).
@@ -232,7 +218,7 @@ def spdt_contact_symbol(
 
     style = standard_style()
 
-    elements: List[Element] = []
+    elements: list[Element] = []
 
     if not inverted:
         # Standard: Common (Input) - Bottom Right
@@ -285,16 +271,8 @@ def spdt_contact_symbol(
         }
 
     # Calculate Blade (Shared Logic)
-    dx = target_x - blade_start.x
-    dy = target_y - blade_start.y
-    length = (dx**2 + dy**2) ** 0.5
-
-    extension = GRID_SIZE / 4
-    new_length = length + extension
-    scale = new_length / length
-
-    blade_end = Point(blade_start.x + dx * scale, blade_start.y + dy * scale)
-    blade = Line(blade_start, blade_end, style)
+    blade_target = Point(target_x, target_y)
+    blade = create_extended_blade(blade_start, blade_target, style)
 
     elements.extend([l_com, l_no, l_nc, seat_nc, blade])
 
@@ -303,11 +281,9 @@ def spdt_contact_symbol(
 
     if pins:
         # Expected tuple: (Common, NC, NO)
-        p_labels = list(pins)
-        while len(p_labels) < 3:
-            p_labels.append("")
+        p_safe = pad_pins(pins, 3)
 
-        common_pin, nc_pin, no_pin = p_labels[0], p_labels[1], p_labels[2]
+        common_pin, nc_pin, no_pin = p_safe[0], p_safe[1], p_safe[2]
 
         offset = 2.0  # mm
 
@@ -368,7 +344,7 @@ def spdt_contact_symbol(
 def multi_pole_spdt_symbol(
     poles: int = 3,
     label: str = "",
-    pins: tuple = (),
+    pins: tuple[str, ...] = (),
 ) -> Symbol:
     """
     Create an IEC 60617 Multi-Pole SPDT Contact.
@@ -424,7 +400,7 @@ def multi_pole_spdt_symbol(
 
 def three_pole_spdt_symbol(
     label: str = "",
-    pins: tuple = ("11", "12", "14", "21", "22", "24", "31", "32", "34"),
+    pins: tuple[str, ...] = ("11", "12", "14", "21", "22", "24", "31", "32", "34"),
 ) -> Symbol:
     """
     Create an IEC 60617 Three Pole SPDT Contact.

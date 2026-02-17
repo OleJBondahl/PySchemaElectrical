@@ -6,7 +6,6 @@ Project-specific constants (terminal IDs, paths) should be defined in user proje
 """
 
 from dataclasses import dataclass
-from typing import Tuple
 
 # Grid System
 GRID_SIZE = 5.0  # mm, Base grid unit
@@ -37,7 +36,8 @@ PIN_LABEL_OFFSET_Y_ADJUST = 0.0  # mm, adjustment for up/down ports
 
 # Layout
 DEFAULT_POLE_SPACING = 2 * GRID_SIZE  # 10.0mm
-DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 0.2 * GRID_SIZE  # 1.0mm
+DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 0.1  # 0.1mm strict tolerance for port matching
+WIRE_LABEL_OFFSET_X = -GRID_SIZE / 2  # -2.5mm, horizontal offset for wire labels
 
 # Colors
 COLOR_BLACK = "black"
@@ -74,13 +74,13 @@ class StandardSpacing:
     )
 
     SINGLE_POLE = SpacingConfig(
-        circuit_spacing=20 * GRID_SIZE,  # 100.0mm
+        circuit_spacing=15 * GRID_SIZE,  # 100.0mm
         symbols_start_x=10 * GRID_SIZE,  # 50.0mm
         symbols_spacing=12 * GRID_SIZE,  # 60.0mm
     )
 
     POWER_DISTRIBUTION = SpacingConfig(
-        circuit_spacing=16 * GRID_SIZE,  # 80.0mm
+        circuit_spacing=15 * GRID_SIZE,  # 80.0mm
         symbols_start_x=10 * GRID_SIZE,  # 50.0mm
         symbols_spacing=8 * GRID_SIZE,  # 40.0mm
     )
@@ -115,7 +115,7 @@ class PinSet:
         description: What this pin set represents
     """
 
-    pins: Tuple[str, ...]
+    pins: tuple[str, ...]
     description: str
 
 

@@ -6,9 +6,11 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, List, Optional, Tuple
+from __future__ import annotations
 
-from pyschemaelectrical.builder import CircuitBuilder
+from typing import Any
+
+from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.model.constants import GRID_SIZE, LayoutDefaults, StandardTags
 from pyschemaelectrical.model.core import Symbol
@@ -41,17 +43,17 @@ def spdt(
     coil_tag_prefix: str = StandardTags.CONTACTOR,
     contact_tag_prefix: str = StandardTags.RELAY,
     # Pin parameters
-    coil_pins: Tuple[str, ...] = ("A1", "A2"),
-    contact_pins: Tuple[str, ...] = ("1", "2", "4"),
-    tm_top_pins: Optional[Tuple[str, ...]] = None,
-    tm_bot_left_pins: Optional[Tuple[str, ...]] = None,
-    tm_bot_right_pins: Optional[Tuple[str, ...]] = None,
+    coil_pins: tuple[str, ...] = ("A1", "A2"),
+    contact_pins: tuple[str, ...] = ("1", "2", "4"),
+    tm_top_pins: tuple[str, ...] | None = None,
+    tm_bot_left_pins: tuple[str, ...] | None = None,
+    tm_bot_right_pins: tuple[str, ...] | None = None,
     # Multi-count, wire labels, and relay tag
     count: int = 1,
-    wire_labels: Optional[List[str]] = None,
-    relay_tag: Optional[str] = None,
+    wire_labels: list[str] | None = None,
+    relay_tag: str | None = None,
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Creates a standard SPDT control circuit (Coil + Inverted SPDT).
 
@@ -87,7 +89,7 @@ def spdt(
                    is always this value and contact pins auto-increment.
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     terminal_maps = kwargs.get("terminal_maps") or {}
 
@@ -100,6 +102,10 @@ def spdt(
 
         effective_tag_generators[contact_tag_prefix] = _fixed_contact_gen
 
+    # Accumulators for BuildResult metadata
+    tag_accumulator: dict[str, list[str]] = {}
+    pin_accumulator: dict[str, list[str]] = {}
+
     def create_single_control(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single Motor Control instance with dynamic pin numbering."""
         c = Circuit()
@@ -110,11 +116,13 @@ def spdt(
             s, coil_tag = tag_gens[coil_tag_prefix](s)
         else:
             s, coil_tag = next_tag(s, coil_tag_prefix)
+        tag_accumulator.setdefault(coil_tag_prefix, []).append(coil_tag)
 
         if tag_gens and contact_tag_prefix in tag_gens:
             s, contact_tag = tag_gens[contact_tag_prefix](s)
         else:
             s, contact_tag = next_tag(s, contact_tag_prefix)
+        tag_accumulator.setdefault(contact_tag_prefix, []).append(contact_tag)
 
         # --- Dynamic Pin Generation ---
         # If contact_pins is the default (1, 2, 4), generate instance-based pins
@@ -137,11 +145,13 @@ def spdt(
             s, p_top = next_terminal_pins(s, tm_top, 1)
         else:
             p_top = tm_top_pins
+        pin_accumulator.setdefault(str(tm_top), []).extend(p_top)
 
         if tm_bot_left_pins is None:
             s, p_left = next_terminal_pins(s, tm_bot_left, 1)
         else:
             p_left = tm_bot_left_pins
+        pin_accumulator.setdefault(str(tm_bot_left), []).extend(p_left)
 
         if tm_bot_right_pins is None:
             s, _ = next_terminal_pins(s, tm_bot_right, 1)
@@ -271,7 +281,13 @@ def spdt(
     # Exclude tm_bot_right because it is a reference symbol, not a terminal strip
     used_terminals = [tm_top, tm_bot_left]
 
-    return final_state, circuit, used_terminals
+    return BuildResult(
+        state=final_state,
+        circuit=circuit,
+        used_terminals=used_terminals,
+        component_map=tag_accumulator,
+        terminal_pin_map=pin_accumulator,
+    )
 
 
 def no_contact(
@@ -286,14 +302,14 @@ def no_contact(
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.SWITCH,
-    switch_pins: Tuple[str, ...] = ("3", "4"),
-    tm_top_pins: Optional[Tuple[str, ...]] = None,
-    tm_bot_pins: Optional[Tuple[str, ...]] = None,
+    switch_pins: tuple[str, ...] = ("3", "4"),
+    tm_top_pins: tuple[str, ...] | None = None,
+    tm_bot_pins: tuple[str, ...] | None = None,
     # Multi-count and wire labels
     count: int = 1,
-    wire_labels: Optional[List[str]] = None,
+    wire_labels: list[str] | None = None,
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Creates a simple Normally Open (NO) contact circuit.
 
@@ -313,7 +329,7 @@ def no_contact(
         wire_labels: Wire label strings to apply per instance.
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     builder = CircuitBuilder(state)
     builder.set_layout(x=x, y=y, spacing=spacing, symbol_spacing=symbol_spacing)
@@ -329,7 +345,7 @@ def no_contact(
     # 3. Output Terminal (GND)
     builder.add_terminal(tm_bot, poles=1, pins=tm_bot_pins)
 
-    result = builder.build(
+    return builder.build(
         count=count,
         start_indices=kwargs.get("start_indices"),
         terminal_start_indices=kwargs.get("terminal_start_indices"),
@@ -337,7 +353,6 @@ def no_contact(
         terminal_maps=kwargs.get("terminal_maps"),
         wire_labels=wire_labels,
     )
-    return result.state, result.circuit, result.used_terminals
 
 
 def coil(
@@ -350,10 +365,10 @@ def coil(
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.RELAY,
-    coil_pins: Tuple[str, ...] = ("A1", "A2"),
-    tm_top_pins: Tuple[str, str] = ("1", "2"),
+    coil_pins: tuple[str, ...] = ("A1", "A2"),
+    tm_top_pins: tuple[str, str] = ("1", "2"),
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Creates a simple coil circuit (e.g. Voltage Monitor, Relay Coil).
 
@@ -370,7 +385,7 @@ def coil(
         tm_top_pins: Use specific pins for the top terminal (default: ("1", "2"))
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     builder = CircuitBuilder(state)
     builder.set_layout(x, y, symbol_spacing=symbol_spacing)
@@ -406,7 +421,6 @@ def coil(
         auto_connect_next=True,  # Connects Coil output to this
     )
 
-    result = builder.build(
+    return builder.build(
         count=kwargs.get("count", 1), tag_generators=kwargs.get("tag_generators")
     )
-    return result.state, result.circuit, result.used_terminals

@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
 from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
@@ -12,7 +10,7 @@ from pyschemaelectrical.model.parts import (
 from pyschemaelectrical.model.primitives import Line
 
 
-def circuit_breaker_symbol(label: str = "", pins: tuple = ()) -> Symbol:
+def circuit_breaker_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
     """IEC 60617 Circuit Breaker (Single Pole).
 
     A circuit breaker is represented as a normally open contact with a cross (X)
@@ -65,7 +63,7 @@ def circuit_breaker_symbol(label: str = "", pins: tuple = ()) -> Symbol:
         style,
     )
 
-    elements: List[Element] = [l1, l2, blade, cross_line_1, cross_line_2]
+    elements: list[Element] = [l1, l2, blade, cross_line_1, cross_line_2]
 
     if label:
         elements.append(standard_text(label, Point(0, 0)))
@@ -83,7 +81,7 @@ def circuit_breaker_symbol(label: str = "", pins: tuple = ()) -> Symbol:
 
 def three_pole_circuit_breaker_symbol(
     label: str = "",
-    pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
+    pins: tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
 ) -> Symbol:
     """IEC 60617 Three Pole Circuit Breaker.
 
@@ -91,7 +89,7 @@ def three_pole_circuit_breaker_symbol(
 
     Args:
         label (str): Component label (e.g., "F1").
-        pins (Tuple): Six pin designations for the three poles.
+        pins (tuple): Six pin designations for the three poles.
 
     Returns:
         Symbol: Three pole circuit breaker symbol.
@@ -100,7 +98,7 @@ def three_pole_circuit_breaker_symbol(
 
 
 def two_pole_circuit_breaker_symbol(
-    label: str = "", pins: Tuple[str, str, str, str] = ("1", "2", "3", "4")
+    label: str = "", pins: tuple[str, str, str, str] = ("1", "2", "3", "4")
 ) -> Symbol:
     """IEC 60617 Two Pole Circuit Breaker.
 
@@ -108,7 +106,7 @@ def two_pole_circuit_breaker_symbol(
 
     Args:
         label (str): Component label (e.g., "F1").
-        pins (Tuple): Four pin designations.
+        pins (tuple): Four pin designations.
 
     Returns:
         Symbol: Two pole circuit breaker symbol.

@@ -1,5 +1,4 @@
 from dataclasses import replace
-from typing import List, Optional, Tuple
 
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
@@ -18,7 +17,7 @@ def terminal_box_symbol(
     num_pins: int = 1,
     start_pin_number: int = 1,
     pin_spacing: float = DEFAULT_POLE_SPACING,
-    pins: Optional[Tuple[str, ...]] = None,
+    pins: tuple[str, ...] | None = None,
 ) -> Symbol:
     """
     Create a Rectangular Terminal Box Symbol.
@@ -72,7 +71,7 @@ def terminal_box_symbol(
 
     rect = box(Point(center_x, center_y), box_width, box_height, filled=False)
 
-    elements: List[Element] = [rect]
+    elements: list[Element] = [rect]
     ports = {}
 
     for i in range(num_pins):
@@ -113,7 +112,7 @@ def terminal_box_symbol(
     return Symbol(elements, ports, label=label)
 
 
-def psu_symbol(label: str = "U1", **kwargs) -> Symbol:
+def psu_symbol(label: str = "U1", pins: tuple[str, ...] | None = None) -> Symbol:
     """
     Create a Power Supply Unit (PSU) symbol.
 
@@ -123,6 +122,8 @@ def psu_symbol(label: str = "U1", **kwargs) -> Symbol:
 
     Args:
         label (str): Component tag.
+        pins: Accepted for builder compatibility but not used;
+              the PSU has fixed pin assignments.
 
     Returns:
         Symbol: The PSU symbol.
@@ -203,11 +204,11 @@ def psu_symbol(label: str = "U1", **kwargs) -> Symbol:
 
 def dynamic_block_symbol(
     label: str = "",
-    top_pins: Optional[Tuple[str, ...]] = None,
-    bottom_pins: Optional[Tuple[str, ...]] = None,
+    top_pins: tuple[str, ...] | None = None,
+    bottom_pins: tuple[str, ...] | None = None,
     pin_spacing: float = DEFAULT_POLE_SPACING,
-    top_pin_positions: Optional[Tuple[float, ...]] = None,
-    bottom_pin_positions: Optional[Tuple[float, ...]] = None,
+    top_pin_positions: tuple[float, ...] | None = None,
+    bottom_pin_positions: tuple[float, ...] | None = None,
 ) -> Symbol:
     """
     Create a dynamic block symbol with configurable pins on top and bottom.
@@ -228,16 +229,16 @@ def dynamic_block_symbol(
 
     Args:
         label (str): Component tag.
-        top_pins (Tuple[str, ...]): Tuple of pin labels for
+        top_pins (tuple[str, ...]): Tuple of pin labels for
             top pins (e.g., ("L", "N", "PE")).
-        bottom_pins (Tuple[str, ...]): Tuple of pin labels
+        bottom_pins (tuple[str, ...]): Tuple of pin labels
             for bottom pins (e.g., ("24V", "GND")).
         pin_spacing (float): Distance between pins when using uniform spacing.
-        top_pin_positions (Optional[Tuple[float, ...]]):
+        top_pin_positions (tuple[float, ...] | None):
             Explicit x-coordinates for top pins. If provided,
             must match length of top_pins. Overrides
             pin_spacing for top pins.
-        bottom_pin_positions (Optional[Tuple[float, ...]]):
+        bottom_pin_positions (tuple[float, ...] | None):
             Explicit x-coordinates for bottom pins.
             If provided, must match length of bottom_pins.
             Overrides pin_spacing for bottom pins.
@@ -318,7 +319,7 @@ def dynamic_block_symbol(
     # Create the rectangle
     rect = box(Point(center_x, center_y), box_width, box_height, filled=False)
 
-    elements: List[Element] = [rect]
+    elements: list[Element] = [rect]
     ports = {}
 
     # Create top pins (pointing upward)

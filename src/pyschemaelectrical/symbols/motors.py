@@ -1,8 +1,17 @@
-from typing import List
+import math
 
-from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.model.constants import (
+    COLOR_BLACK,
+    DEFAULT_POLE_SPACING,
+    GRID_SIZE,
+    TEXT_FONT_FAMILY,
+)
 from pyschemaelectrical.model.core import Element, Point, Port, Style, Symbol, Vector
 from pyschemaelectrical.model.parts import (
+    PIN_LABEL_OFFSET_X,
+    PIN_LABEL_OFFSET_Y_ADJUST,
+    TEXT_FONT_FAMILY_AUX,
+    TEXT_SIZE_PIN,
     create_pin_labels,
     standard_style,
     standard_text,
@@ -19,7 +28,7 @@ This module contains motor symbols following IEC 60617 standard:
 
 
 def three_pole_motor_symbol(
-    label: str = "", pins: tuple = ("U", "V", "W", "PE")
+    label: str = "", pins: tuple[str, ...] = ("U", "V", "W", "PE")
 ) -> Symbol:
     """
     Create an IEC 60617 Three-Phase AC Motor symbol.
@@ -52,10 +61,6 @@ def three_pole_motor_symbol(
     Returns:
         Symbol: The 3-phase motor symbol.
     """
-    import math
-
-    from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
-
     style = standard_style()
 
     # Pin spacing - use standard spacing to match terminals
@@ -67,7 +72,7 @@ def three_pole_motor_symbol(
     # Using radius = 2 * pin_spacing gives good proportions
     radius = 2 * pin_spacing  # 10mm
 
-    elements: List[Element] = []
+    elements: list[Element] = []
     ports = {}
 
     # Main circle - centered at origin
@@ -77,9 +82,6 @@ def three_pole_motor_symbol(
     # Add component tag inside the circle - centered using standard label style
     if label:
         # Use anchor="middle" to truly center the label
-        from pyschemaelectrical.model.constants import COLOR_BLACK, TEXT_FONT_FAMILY
-        from pyschemaelectrical.model.primitives import Text
-
         label_text = Text(
             content=label,
             position=Point(0, 0),
@@ -151,14 +153,6 @@ def three_pole_motor_symbol(
         # geometric order (Left -> Right).
         # create_pin_labels sorts by key, which scrambles
         # semantic ordering (e.g. U, V, W)
-        from pyschemaelectrical.model.parts import (
-            COLOR_BLACK,
-            PIN_LABEL_OFFSET_X,
-            PIN_LABEL_OFFSET_Y_ADJUST,
-            TEXT_FONT_FAMILY_AUX,
-            TEXT_SIZE_PIN,
-        )
-
         for i, pin_text in enumerate(pin_labels):
             if not pin_text or pin_text not in ports:
                 continue
@@ -199,7 +193,7 @@ def three_pole_motor_symbol(
     return Symbol(elements, ports, label=label)
 
 
-def motor_symbol(label: str = "", pins: tuple = ()) -> Symbol:
+def motor_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
     """
     Create an IEC 60617 generic single-phase Motor symbol.
 
@@ -228,15 +222,13 @@ def motor_symbol(label: str = "", pins: tuple = ()) -> Symbol:
     diameter = 3 * GRID_SIZE  # 15mm
     radius = diameter / 2
 
-    elements: List[Element] = []
+    elements: list[Element] = []
 
     # Main circle
     circle = Circle(center=Point(0, 0), radius=radius, style=style)
     elements.append(circle)
 
     # Add "M" text
-    from pyschemaelectrical.model.constants import COLOR_BLACK, TEXT_FONT_FAMILY
-
     m_text = Text(
         content="M",
         position=Point(0, 0),

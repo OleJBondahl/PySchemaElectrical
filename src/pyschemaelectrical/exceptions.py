@@ -47,6 +47,19 @@ class TagReuseExhausted(CircuitValidationError):
         )
 
 
+class TerminalReuseExhausted(CircuitValidationError):
+    """Raised when reuse_terminals runs out of pins from the source result."""
+
+    def __init__(self, terminal_key: str, available_pins: list):
+        self.terminal_key = terminal_key
+        self.available_pins = available_pins
+        super().__init__(
+            f"reuse_terminals exhausted for terminal '{terminal_key}'. "
+            f"Source only had {len(available_pins)} pins: {available_pins}. "
+            f"Ensure the source circuit was built with enough instances."
+        )
+
+
 class WireLabelCountMismatch(CircuitValidationError):
     """Raised when wire label count doesn't match vertical wire count."""
 

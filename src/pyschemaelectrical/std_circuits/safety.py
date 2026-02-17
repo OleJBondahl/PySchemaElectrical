@@ -6,9 +6,11 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, List, Optional, Tuple
+from __future__ import annotations
 
-from pyschemaelectrical.builder import CircuitBuilder
+from typing import Any
+
+from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 from pyschemaelectrical.model.constants import (
     LayoutDefaults,
     StandardTags,
@@ -30,9 +32,9 @@ def emergency_stop(
     tag_prefix: str = StandardTags.SWITCH,
     # Multi-count and wire labels
     count: int = 1,
-    wire_labels: Optional[List[str]] = None,
+    wire_labels: list[str] | None = None,
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Create an Emergency Stop circuit.
 
@@ -49,7 +51,7 @@ def emergency_stop(
         wire_labels: Wire label strings to apply per instance.
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     builder = CircuitBuilder(state)
     builder.set_layout(x, y, spacing=spacing, symbol_spacing=symbol_spacing)
@@ -67,5 +69,4 @@ def emergency_stop(
     # 3. Output Terminal
     builder.add_terminal(tm_bot, poles=1)
 
-    result = builder.build(count=count, wire_labels=wire_labels)
-    return result.state, result.circuit, result.used_terminals
+    return builder.build(count=count, wire_labels=wire_labels)

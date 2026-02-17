@@ -5,7 +5,7 @@ PySchemaElectrical Library.
 from .system.system import Circuit, add_symbol, render_system  # noqa: E402
 from .builder import BuildResult, CircuitBuilder, ComponentRef, PortRef
 from .utils.autonumbering import create_autonumberer, get_tag_number, next_terminal_pins
-from .utils.utils import set_tag_counter, set_terminal_counter
+from .utils.utils import set_tag_counter, set_terminal_counter, get_terminal_counter
 from .utils.export_utils import export_terminal_list
 from .utils.terminal_bridges import (
     BridgeRange,
@@ -34,6 +34,7 @@ from .exceptions import (
     PortNotFoundError,
     ComponentNotFoundError,
     TagReuseExhausted,
+    TerminalReuseExhausted,
     WireLabelCountMismatch,
 )
 from .terminal import Terminal
@@ -41,4 +42,4 @@ from .wire import wire
 from .descriptors import ref, comp, term, build_from_descriptors
 from .plc import PlcMapper
 from .project import Project
-from . import std_circuits  # noqa: E402 — must be last to avoid circular imports
+from . import std_circuits  # noqa: E402, I001 — must be last to avoid circular imports

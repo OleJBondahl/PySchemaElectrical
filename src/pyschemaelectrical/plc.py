@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 PLC I/O Mapping.
 
@@ -7,7 +9,6 @@ generating pin names, and tracking terminal connections.
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -25,10 +26,10 @@ class SensorTypeDef:
 
     name: str
     module: str  # Module type name
-    pins: Tuple[
+    pins: tuple[
         str, ...
     ]  # Pin names per channel, e.g. ("Signal", "GND") or ("R+", "RL", "R-")
-    polarity: Optional[Dict[int, str]] = (
+    polarity: dict[int, str] | None = (
         None  # Pin index -> polarity suffix, e.g. {0: "+", 1: "-"}
     )
 
@@ -79,10 +80,10 @@ class PlcMapper:
     """
 
     def __init__(self) -> None:
-        self._module_types: Dict[str, ModuleTypeDef] = {}
-        self._sensor_types: Dict[str, SensorTypeDef] = {}
-        self._sensors: List[SensorInstance] = []
-        self._terminal_pin_counters: Dict[str, int] = {}
+        self._module_types: dict[str, ModuleTypeDef] = {}
+        self._sensor_types: dict[str, SensorTypeDef] = {}
+        self._sensors: list[SensorInstance] = []
+        self._terminal_pin_counters: dict[str, int] = {}
 
     def module_type(self, name: str, capacity: int, pin_format: str) -> "PlcMapper":
         """
@@ -108,8 +109,8 @@ class PlcMapper:
         self,
         name: str,
         module: str,
-        pins: List[str],
-        polarity: Optional[Dict[int, str]] = None,
+        pins: list[str],
+        polarity: dict[int, str] | None = None,
     ) -> "PlcMapper":
         """
         Register a sensor type.
@@ -198,7 +199,7 @@ class PlcMapper:
 
         return fmt.format(ch=channel, polarity=polarity, pin=pin_name)
 
-    def generate_connections(self) -> List[PlcConnection]:
+    def generate_connections(self) -> list[PlcConnection]:
         """
         Allocate sensors to modules and generate connection data.
 
@@ -210,7 +211,7 @@ class PlcMapper:
             List of PlcConnection objects, one per wire.
         """
         # Group sensors by module type
-        sensors_by_module: Dict[str, List[SensorInstance]] = {}
+        sensors_by_module: dict[str, list[SensorInstance]] = {}
         for s in self._sensors:
             st = self._sensor_types[s.sensor_type]
             mod_name = st.module
@@ -218,7 +219,7 @@ class PlcMapper:
                 sensors_by_module[mod_name] = []
             sensors_by_module[mod_name].append(s)
 
-        connections: List[PlcConnection] = []
+        connections: list[PlcConnection] = []
 
         for mod_type_name, sensors in sensors_by_module.items():
             mod_type = self._module_types[mod_type_name]
@@ -249,7 +250,7 @@ class PlcMapper:
 
         return connections
 
-    def generate_connections_table(self) -> List[List[str]]:
+    def generate_connections_table(self) -> list[list[str]]:
         """
         Generate connections as a list of string rows (for CSV export).
 
@@ -271,14 +272,14 @@ class PlcMapper:
         ]
 
     @property
-    def module_count(self) -> Dict[str, int]:
+    def module_count(self) -> dict[str, int]:
         """
         Calculate the number of modules needed per module type.
 
         Returns:
             Dict mapping module type name to count of modules needed.
         """
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for s in self._sensors:
             st = self._sensor_types[s.sensor_type]
             mod_name = st.module

@@ -1,5 +1,3 @@
-from typing import Optional, Tuple
-
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
@@ -22,8 +20,8 @@ from .contacts import (
 
 def contactor_symbol(
     label: str = "",
-    coil_pins: Optional[Tuple[str, str]] = None,
-    contact_pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
+    coil_pins: tuple[str, str] | None = None,
+    contact_pins: tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
 ) -> Symbol:
     """
     High-level contactor symbol.
@@ -34,9 +32,9 @@ def contactor_symbol(
 
     Args:
         label (str): The device label (e.g. "-K1").
-        coil_pins (Optional[Tuple[str, str]]): Pins for the
+        coil_pins (tuple[str, str] | None): Pins for the
             coil (A1, A2). If None, coil terminals are hidden.
-        contact_pins (Tuple[str, ...]): Pins for the 3-pole contact (1..6).
+        contact_pins (tuple[str, ...]): Pins for the 3-pole contact (1..6).
 
     Returns:
         Symbol: The composite contactor symbol.
@@ -82,7 +80,7 @@ def contactor_symbol(
 
 
 def emergency_stop_assembly_symbol(
-    label: str = "", pins: Tuple[str, str] = ("1", "2")
+    label: str = "", pins: tuple[str, str] = ("1", "2")
 ) -> Symbol:
     """
     Emergency Stop Assembly.
@@ -123,7 +121,7 @@ def emergency_stop_assembly_symbol(
 
 
 def turn_switch_assembly_symbol(
-    label: str = "", pins: Tuple[str, str] = ("1", "2")
+    label: str = "", pins: tuple[str, str] = ("1", "2")
 ) -> Symbol:
     """
     Turn Switch Assembly.

@@ -6,8 +6,11 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any, List, Optional, Tuple, Union
+from __future__ import annotations
 
+from typing import Any
+
+from pyschemaelectrical.builder import BuildResult
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 from pyschemaelectrical.model.constants import (
     LayoutDefaults,
@@ -37,7 +40,7 @@ def dol_starter(
     y: float,
     # Required terminal parameters
     tm_top: str,
-    tm_bot: Union[str, List[str]],
+    tm_bot: str | list[str],
     # Layout parameters (with defaults from constants)
     spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
@@ -47,9 +50,9 @@ def dol_starter(
     contactor_tag_prefix: str = StandardTags.CONTACTOR,
     ct_tag_prefix: str = "CT",
     # Pin parameters for symbols (with defaults)
-    breaker_pins: Tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
-    thermal_pins: Tuple[str, str, str, str, str, str] = ("", "T1", "", "T2", "", "T3"),
-    contactor_pins: Tuple[str, str, str, str, str, str] = (
+    breaker_pins: tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
+    thermal_pins: tuple[str, str, str, str, str, str] = ("", "T1", "", "T2", "", "T3"),
+    contactor_pins: tuple[str, str, str, str, str, str] = (
         "1",
         "2",
         "3",
@@ -57,21 +60,21 @@ def dol_starter(
         "5",
         "6",
     ),
-    ct_pins: Tuple[str, ...] = ("1", "2", "3", "4"),
-    ct_terminals: Optional[Tuple[str, ...]] = None,
+    ct_pins: tuple[str, ...] = ("1", "2", "3", "4"),
+    ct_terminals: tuple[str, ...] | None = None,
     # Pin parameters for terminals (None = auto-number)
-    tm_top_pins: Optional[Tuple[str, ...]] = None,
-    tm_bot_pins: Optional[Tuple[str, ...]] = None,
+    tm_top_pins: tuple[str, ...] | None = None,
+    tm_bot_pins: tuple[str, ...] | None = None,
     # Terminal poles (default 3 for three-phase)
     poles: int = 3,
     # Optional aux terminals
-    tm_aux_1: Optional[str] = None,
-    tm_aux_2: Optional[str] = None,
+    tm_aux_1: str | None = None,
+    tm_aux_2: str | None = None,
     # Multi-count and wire label parameters
     count: int = 1,
-    wire_labels: Optional[List[str]] = None,
+    wire_labels: list[str] | None = None,
     **kwargs,
-) -> Tuple[Any, Any, List[Any]]:
+) -> BuildResult:
     """
     Create a Direct-On-Line (DOL) Motor Starter.
 
@@ -98,7 +101,7 @@ def dol_starter(
             wires per instance.
 
     Returns:
-        Tuple of (state, circuit, used_terminals)
+        BuildResult containing (state, circuit, used_terminals).
     """
     # Support legacy terminal_maps parameter
     terminal_maps = kwargs.get("terminal_maps") or {}
@@ -109,6 +112,10 @@ def dol_starter(
 
     # Resolve per-instance terminal: tm_bot can be a list
     tm_bot_list = tm_bot if isinstance(tm_bot, list) else None
+
+    # Accumulators for BuildResult metadata
+    tag_accumulator: dict[str, list[str]] = {}
+    pin_accumulator: dict[str, list[str]] = {}
 
     def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single DOL starter instance."""
@@ -123,17 +130,23 @@ def dol_starter(
             s, input_pins = next_terminal_pins(s, tm_top, poles)
         else:
             input_pins = tm_top_pins
+        pin_accumulator.setdefault(str(tm_top), []).extend(input_pins)
 
         if tm_bot_pins is None:
             s, output_pins = next_terminal_pins(s, instance_tm_bot, poles)
         else:
             output_pins = tm_bot_pins
+        pin_accumulator.setdefault(str(instance_tm_bot), []).extend(output_pins)
 
         # Get component tags
         s, breaker_tag = next_tag(s, breaker_tag_prefix)
+        tag_accumulator.setdefault(breaker_tag_prefix, []).append(breaker_tag)
         s, thermal_tag = next_tag(s, thermal_tag_prefix)
+        tag_accumulator.setdefault(thermal_tag_prefix, []).append(thermal_tag)
         s, cont_tag = next_tag(s, contactor_tag_prefix)
+        tag_accumulator.setdefault(contactor_tag_prefix, []).append(cont_tag)
         s, ct_tag = next_tag(s, ct_tag_prefix)
+        tag_accumulator.setdefault(ct_tag_prefix, []).append(ct_tag)
 
         # 1. Input Terminal
         sym = multi_pole_terminal_symbol(
@@ -282,4 +295,10 @@ def dol_starter(
             if not getattr(tid, "reference", False) and tid not in used_terminals:
                 used_terminals.append(tid)
 
-    return final_state, circuit, used_terminals
+    return BuildResult(
+        state=final_state,
+        circuit=circuit,
+        used_terminals=used_terminals,
+        component_map=tag_accumulator,
+        terminal_pin_map=pin_accumulator,
+    )

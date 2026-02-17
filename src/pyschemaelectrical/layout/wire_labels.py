@@ -5,15 +5,13 @@ This module provides functional abstractions for adding wire specification label
 (color, size, etc.) to connection lines in electrical schematics.
 """
 
-from __future__ import annotations
-
 from itertools import cycle, islice
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pyschemaelectrical.system.system import Circuit
 
-from pyschemaelectrical.model.constants import TEXT_FONT_FAMILY_AUX, TEXT_SIZE_PIN
+from pyschemaelectrical.model.constants import TEXT_FONT_FAMILY_AUX, TEXT_SIZE_PIN, WIRE_LABEL_OFFSET_X
 from pyschemaelectrical.model.core import Element, Point
 from pyschemaelectrical.model.primitives import Line, Text
 
@@ -21,7 +19,7 @@ from pyschemaelectrical.model.primitives import Line, Text
 def calculate_wire_label_position(
     start: Point,
     end: Point,
-    offset_x: float = -2.5,  # Default to -2.5 to place left of wire
+    offset_x: float = WIRE_LABEL_OFFSET_X,
 ) -> Point:
     """
     Calculate the position for a wire label along a vertical wire.
@@ -101,7 +99,7 @@ def create_labeled_wire(
     wire_color: str = "",
     wire_size: str = "",
     label_offset_x: float = -2.5,
-) -> List[Element]:
+) -> list[Element]:
     """
     Create a wire connection with an optional label.
 
@@ -116,11 +114,11 @@ def create_labeled_wire(
         label_offset_x (float): Horizontal offset for label (default -2.5).
 
     Returns:
-        List[Element]: List containing the wire line and optionally the label text.
+        list[Element]: List containing the wire line and optionally the label text.
     """
     from pyschemaelectrical.model.parts import standard_style
 
-    elements: List[Element] = []
+    elements: list[Element] = []
 
     # Create the wire line
     wire_line = Line(start, end, style=standard_style())
@@ -137,8 +135,8 @@ def create_labeled_wire(
 
 
 def create_labeled_connections(
-    connection_specs: List[Tuple[Point, Point, str, str]],
-) -> List[Element]:
+    connection_specs: list[tuple[Point, Point, str, str]],
+) -> list[Element]:
     """
     Create multiple labeled wire connections from specifications.
 
@@ -152,7 +150,7 @@ def create_labeled_connections(
             - size (str): Wire size specification
 
     Returns:
-        List[Element]: All wire lines and labels as flat list.
+        list[Element]: All wire lines and labels as flat list.
 
     Example:
         >>> specs = [
@@ -172,7 +170,7 @@ def create_labeled_connections(
     return reduce(lambda acc, x: acc + x, all_elements, [])
 
 
-def find_vertical_wires(elements: List[Element], tolerance: float = 0.1) -> List[Line]:
+def find_vertical_wires(elements: list[Element], tolerance: float = 0.1) -> list[Line]:
     """
     Find all vertical wire segments in a circuit.
 
@@ -198,7 +196,7 @@ def find_vertical_wires(elements: List[Element], tolerance: float = 0.1) -> List
 
 
 def add_wire_labels_to_circuit(
-    circuit, wire_labels: Optional[List[str]] = None, offset_x: float = -2.5
+    circuit: "Circuit", wire_labels: list[str] | None = None, offset_x: float = WIRE_LABEL_OFFSET_X
 ) -> "Circuit":
     """
     Add wire labels to all vertical wires in a circuit.

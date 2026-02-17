@@ -6,7 +6,7 @@ related generation functions.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Union
+from typing import Any
 
 # Avoid direct import if circular dependency is feared, but verified safe here.
 from pyschemaelectrical.system.connection_registry import TerminalRegistry
@@ -25,15 +25,15 @@ class GenerationState:
         pin_counter: Global pin counter (legacy)
     """
 
-    tags: Dict[str, int] = field(default_factory=dict)
-    terminal_counters: Dict[str, int] = field(default_factory=dict)
-    contact_channels: Dict[str, int] = field(default_factory=dict)
-    terminal_registry: Union[TerminalRegistry, Dict] = field(
+    tags: dict[str, int] = field(default_factory=dict)
+    terminal_counters: dict[str, int] = field(default_factory=dict)
+    contact_channels: dict[str, int] = field(default_factory=dict)
+    terminal_registry: TerminalRegistry | dict = field(
         default_factory=TerminalRegistry
     )
     pin_counter: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for backward compatibility."""
         # For terminal_registry, if it's a TerminalRegistry
         # object (immutable), we just pass reference.
@@ -51,24 +51,19 @@ class GenerationState:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "GenerationState":
+    def from_dict(cls, d: dict[str, Any]) -> "GenerationState":
         """Create from dictionary for backward compatibility."""
         # Handle terminal_registry
         tr = d.get("terminal_registry")
         if tr is None:
             tr = TerminalRegistry()
         elif isinstance(tr, dict):
-            # If it's a dict, keep it as dict or try to
-            # convert? For now keep as is if it's legacy
-            # dict state, but ideally it should be
-            # TerminalRegistry. Note: pure dict won't have
-            # add_connection unless we convert it.
-            # If legacy dict has {terminal_registry: {}},
-            # we probably want TerminalRegistry.
-            if not tr:  # Empty dict
+            # Legacy dict state — convert empty dicts to TerminalRegistry,
+            # keep non-empty dicts as-is for backward compatibility.
+            if not tr:
                 tr = TerminalRegistry()
             else:
-                tr = tr.copy()  # Keep as dict if not empty? Or warning?
+                tr = tr.copy()
         # If it's already an object (from to_dict), use it. It's frozen/immutable.
 
         return cls(
@@ -80,11 +75,11 @@ class GenerationState:
         )
 
 
-def create_initial_state() -> Dict[str, Any]:
+def create_initial_state() -> dict[str, Any]:
     """
     Create a new initial state dictionary.
 
     Returns:
-        Dict: A fresh state with all required keys initialized.
+        dict: A fresh state with all required keys initialized.
     """
     return GenerationState().to_dict()

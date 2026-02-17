@@ -11,14 +11,20 @@ electrical symbols according to IEC 60617 standards. It includes:
 All constants are imported from the constants module.
 """
 
+from __future__ import annotations
+
 from dataclasses import replace
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.primitives import Line
 
 from pyschemaelectrical.utils.transform import translate
 
 from .constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
+    GRID_SIZE,
     LINE_WIDTH_THIN,
     PIN_LABEL_OFFSET_X,
     PIN_LABEL_OFFSET_Y_ADJUST,
@@ -47,6 +53,36 @@ def standard_style(filled: bool = False) -> Style:
         stroke=COLOR_BLACK,
         stroke_width=LINE_WIDTH_THIN,
         fill=COLOR_BLACK if filled else "none",
+    )
+
+
+def create_pin_label_text(
+    content: str,
+    position: Point,
+    anchor: str = "start",
+) -> "Text":
+    """Create a styled pin-label text element.
+
+    Args:
+        content: The pin label string.
+        position: Where to place the text.
+        anchor: Text anchor ('start', 'middle', 'end').
+
+    Returns:
+        A Text element with standard pin label styling.
+    """
+    from pyschemaelectrical.model.primitives import Text
+
+    return Text(
+        content=content,
+        position=position,
+        font_size=TEXT_SIZE_PIN,
+        style=Style(
+            stroke="none",
+            fill=COLOR_BLACK,
+            font_family=TEXT_FONT_FAMILY_AUX,
+        ),
+        text_anchor=anchor,
     )
 
 
@@ -79,13 +115,13 @@ def standard_text(content: str, parent_origin: Point, label_pos: str = "left") -
 
 
 def terminal_circle(
-    center: Optional[Point] = None, filled: bool = False
+    center: Point | None = None, filled: bool = False
 ) -> Element:
     """
     Create a standard connection terminal circle.
 
     Args:
-        center (Point): Center of the terminal.
+        center: Center of the terminal. Defaults to Point(0, 0) if None.
         filled (bool): Whether it is filled (e.g. for
             potential connection points vs loose ends).
 
@@ -95,6 +131,39 @@ def terminal_circle(
     if center is None:
         center = Point(0, 0)
     return Circle(center, TERMINAL_RADIUS, standard_style(filled))
+
+
+def create_extended_blade(
+    start: Point,
+    target: Point,
+    style: Style,
+    extension: float = GRID_SIZE / 4,
+) -> Line:
+    """
+    Create a blade line extended past the target by `extension` mm.
+
+    Used for NC and SPDT contact blade geometry. If start and target
+    coincide (zero length), returns a zero-length line.
+
+    Args:
+        start: Blade start point.
+        target: Point the blade passes through.
+        style: Line style.
+        extension: How far past target to extend (default: GRID_SIZE/4).
+
+    Returns:
+        Line from start to the extended endpoint.
+    """
+    from pyschemaelectrical.model.primitives import Line
+
+    dx = target.x - start.x
+    dy = target.y - start.y
+    length = (dx**2 + dy**2) ** 0.5
+    if length == 0:
+        return Line(start, target, style)
+    scale = (length + extension) / length
+    end = Point(start.x + dx * scale, start.y + dy * scale)
+    return Line(start, end, style)
 
 
 def box(center: Point, width: float, height: float, filled: bool = False) -> Element:
@@ -125,17 +194,17 @@ def box(center: Point, width: float, height: float, filled: bool = False) -> Ele
     return Polygon(points=[p1, p2, p3, p4], style=standard_style(filled))
 
 
-def create_pin_labels(ports: Dict[str, Any], pins: Tuple[str, ...]) -> List[Text]:
+def create_pin_labels(ports: dict[str, Any], pins: tuple[str, ...]) -> list[Text]:
     """
     Generate text labels for pins based on ports.
 
     Args:
-        ports (Dict[str, Port]): The ports dictionary of the symbol.
-        pins (Tuple[str, ...]): List of pin labels to assign (e.g. ("13", "14")).
+        ports (dict[str, Port]): The ports dictionary of the symbol.
+        pins (tuple[str, ...]): Pin labels to assign (e.g. ("13", "14")).
                                 Use empty string "" to skip label (port still exists).
 
     Returns:
-        List[Text]: A list of Text elements for the pin numbers.
+        list[Text]: A list of Text elements for the pin numbers.
 
     Note:
         Labels are assigned in port insertion order.
@@ -184,10 +253,44 @@ def create_pin_labels(ports: Dict[str, Any], pins: Tuple[str, ...]) -> List[Text
     return labels
 
 
+def _add_remapped_ports(
+    symbol: Symbol, in_key: str, out_key: str, port_ids: tuple[str, str], target: dict
+) -> None:
+    """Add ports from *symbol* to *target* with remapped IDs.
+
+    For each key (*in_key*, *out_key*) found in *symbol.ports*, the
+    corresponding port is copied into *target* under the ID taken from
+    *port_ids*.
+
+    Args:
+        symbol: Source symbol whose ports are being remapped.
+        in_key: Port key in *symbol* for the input port.
+        out_key: Port key in *symbol* for the output port.
+        port_ids: Two-element tuple of new port IDs (input, output).
+        target: Mutable dict that collects the remapped ports.
+    """
+    if in_key in symbol.ports:
+        p = symbol.ports[in_key]
+        new_id = port_ids[0]
+        target[new_id] = replace(p, id=new_id)
+    if out_key in symbol.ports:
+        p = symbol.ports[out_key]
+        new_id = port_ids[1]
+        target[new_id] = replace(p, id=new_id)
+
+
+def pad_pins(pins: tuple[str, ...], count: int, fill: str = "") -> list[str]:
+    """Pad a pin tuple to *count* entries with *fill* value."""
+    result = list(pins)
+    while len(result) < count:
+        result.append(fill)
+    return result
+
+
 def three_pole_factory(
     single_pole_func: Callable[..., Symbol],
     label: str = "",
-    pins: Tuple[str, ...] = ("1", "2", "3", "4", "5", "6"),
+    pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6"),
     pole_spacing: float = DEFAULT_POLE_SPACING,
 ) -> Symbol:
     """
@@ -196,7 +299,7 @@ def three_pole_factory(
     Args:
         single_pole_func (Callable): A function that returns a single pole Symbol.
         label (str): The label for the composite symbol (e.g. "-Q1").
-        pins (Tuple[str, ...]): A tuple of 6 pin labels (use "" to hide label).
+        pins (tuple[str, ...]): A tuple of 6 pin labels (use "" to hide label).
         pole_spacing (float): Horizontal spacing between poles.
 
     Returns:
@@ -222,26 +325,13 @@ def three_pole_factory(
     # Combine elements
     all_elements = p1.elements + p2.elements + p3.elements
 
-    new_ports = {}
-
-    def add_remapped_ports(
-        symbol: Symbol, in_key: str, out_key: str, port_ids: Tuple[str, str]
-    ):
-        """Add ports with sequential IDs, not dependent on pin labels."""
-        if in_key in symbol.ports:
-            p = symbol.ports[in_key]
-            new_id = port_ids[0]  # Use fixed port ID (1, 3, 5 for tops)
-            new_ports[new_id] = replace(p, id=new_id)
-        if out_key in symbol.ports:
-            p = symbol.ports[out_key]
-            new_id = port_ids[1]  # Use fixed port ID (2, 4, 6 for bottoms)
-            new_ports[new_id] = replace(p, id=new_id)
+    new_ports: dict = {}
 
     # Use fixed port IDs (1-6) regardless of pin labels
     # This ensures ports always exist even if pin labels are empty
-    add_remapped_ports(p1, "1", "2", ("1", "2"))
-    add_remapped_ports(p2, "1", "2", ("3", "4"))
-    add_remapped_ports(p3, "1", "2", ("5", "6"))
+    _add_remapped_ports(p1, "1", "2", ("1", "2"), new_ports)
+    _add_remapped_ports(p2, "1", "2", ("3", "4"), new_ports)
+    _add_remapped_ports(p3, "1", "2", ("5", "6"), new_ports)
 
     return Symbol(elements=all_elements, ports=new_ports, label=label)
 
@@ -249,7 +339,7 @@ def three_pole_factory(
 def two_pole_factory(
     single_pole_func: Callable[..., Symbol],
     label: str = "",
-    pins: Tuple[str, ...] = ("1", "2", "3", "4"),
+    pins: tuple[str, ...] = ("1", "2", "3", "4"),
     pole_spacing: float = DEFAULT_POLE_SPACING,
 ) -> Symbol:
     """
@@ -258,7 +348,7 @@ def two_pole_factory(
     Args:
         single_pole_func (Callable): A function that returns a single pole Symbol.
         label (str): The label for the composite symbol (e.g. "-F1").
-        pins (Tuple[str, ...]): A tuple of 4 pin labels.
+        pins (tuple[str, ...]): A tuple of 4 pin labels.
         pole_spacing (float): Horizontal spacing between poles.
 
     Returns:
@@ -277,22 +367,10 @@ def two_pole_factory(
     # Combine elements
     all_elements = p1.elements + p2.elements
 
-    new_ports = {}
-
-    def add_remapped_ports(
-        symbol: Symbol, in_key: str, out_key: str, port_ids: Tuple[str, str]
-    ):
-        if in_key in symbol.ports:
-            p = symbol.ports[in_key]
-            new_id = port_ids[0]
-            new_ports[new_id] = replace(p, id=new_id)
-        if out_key in symbol.ports:
-            p = symbol.ports[out_key]
-            new_id = port_ids[1]
-            new_ports[new_id] = replace(p, id=new_id)
+    new_ports: dict = {}
 
     # Use fixed port IDs (1-4)
-    add_remapped_ports(p1, "1", "2", ("1", "2"))
-    add_remapped_ports(p2, "1", "2", ("3", "4"))
+    _add_remapped_ports(p1, "1", "2", ("1", "2"), new_ports)
+    _add_remapped_ports(p2, "1", "2", ("3", "4"), new_ports)
 
     return Symbol(elements=all_elements, ports=new_ports, label=label)

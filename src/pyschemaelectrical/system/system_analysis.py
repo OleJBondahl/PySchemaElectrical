@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import csv
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+
+from typing import Any
 
 from pyschemaelectrical.model.core import Element, Point, Symbol
 from pyschemaelectrical.model.primitives import Line
@@ -10,7 +13,7 @@ from pyschemaelectrical.symbols.terminals import Terminal, TerminalBlock
 TOLERANCE = 0.1
 
 
-def _point_key(p: Point) -> Tuple[float, float]:
+def _point_key(p: Point) -> tuple[float, float]:
     # Round to 1 decimal place to match tolerance
     return (round(p.x, 1), round(p.y, 1))
 
@@ -18,14 +21,14 @@ def _point_key(p: Point) -> Tuple[float, float]:
 @dataclass
 class ConnectionNode:
     point: Point
-    connected_lines: List[Line]
-    connected_ports: List[Tuple[Symbol, str]]  # Symbol, PortID
+    connected_lines: list[Line]
+    connected_ports: list[tuple[Symbol, str]]  # Symbol, PortID
 
 
 def build_connectivity_graph(
-    elements: List[Element],
-) -> Dict[Tuple[float, float], ConnectionNode]:
-    nodes: Dict[Tuple[float, float], ConnectionNode] = {}
+    elements: list[Element],
+) -> dict[tuple[float, float], ConnectionNode]:
+    nodes: dict[tuple[float, float], ConnectionNode] = {}
 
     def get_node(p: Point) -> ConnectionNode:
         k = _point_key(p)
@@ -49,7 +52,7 @@ def build_connectivity_graph(
 
 def _find_connected_symbol(
     node: ConnectionNode, start_symbol: Symbol
-) -> Optional[Tuple[Symbol, str]]:
+) -> tuple[Symbol, str] | None:
     """Check if this node has ports from other symbols."""
     for sym, pid in node.connected_ports:
         if sym != start_symbol:
@@ -58,7 +61,7 @@ def _find_connected_symbol(
 
 
 def _is_valid_direction(
-    p_node: Point, p_other: Point, direction_filter: Optional[Any]
+    p_node: Point, p_other: Point, direction_filter: Any | None
 ) -> bool:
     """Check if the line direction matches the filter."""
     if not direction_filter:
@@ -75,11 +78,11 @@ def _is_valid_direction(
 
 def trace_connection(
     node: ConnectionNode,
-    graph: Dict[Tuple[float, float], ConnectionNode],
-    visited_lines: Set[int],
+    graph: dict[tuple[float, float], ConnectionNode],
+    visited_lines: set[int],
     start_symbol: Symbol,
-    direction_filter: Optional[Any] = None,  # Vector
-) -> Tuple[Optional[Symbol], Optional[str]]:
+    direction_filter: Any | None = None,  # Vector
+) -> tuple[Symbol | None, str | None]:
 
     # Check if this node has ports from other symbols
     found_symbol = _find_connected_symbol(node, start_symbol)
@@ -113,24 +116,29 @@ def trace_connection(
     return None, None
 
 
-def _get_terminal_channels(term: Element) -> List[Dict[str, str]]:
+def _get_terminal_channels(term: Element) -> list[dict[str, str]]:
     """Extract channels (pin, from_port, to_port) from a terminal element."""
     channels = []
     if isinstance(term, Terminal):
         channels.append(
             {"pin": term.terminal_number or "", "from_port": "1", "to_port": "2"}
         )
-    elif isinstance(term, TerminalBlock) and term.channel_map:
-        for (up_p, down_p), pin_num in term.channel_map.items():
+    elif isinstance(term, TerminalBlock):
+        # Derive channels from port pairs (odd=in, even=out)
+        port_ids = sorted(term.ports.keys(), key=lambda k: (k.isdigit(), int(k) if k.isdigit() else 0))
+        numeric_ids = [p for p in port_ids if p.isdigit()]
+        for i in range(0, len(numeric_ids) - 1, 2):
+            in_id = numeric_ids[i]
+            out_id = numeric_ids[i + 1]
             channels.append(
-                {"pin": pin_num or "", "from_port": up_p, "to_port": down_p}
+                {"pin": "", "from_port": in_id, "to_port": out_id}
             )
     return channels
 
 
 def _trace_port_connection(
-    term: Symbol, port_id: str, graph: Dict[Tuple[float, float], ConnectionNode]
-) -> Tuple[str, str]:
+    term: Symbol, port_id: str, graph: dict[tuple[float, float], ConnectionNode]
+) -> tuple[str, str]:
     """Trace a connection from a specific port of a terminal."""
     if port_id not in term.ports:
         return "", ""
@@ -146,8 +154,8 @@ def _trace_port_connection(
 
 
 def _create_terminal_row(
-    term: Symbol, channel: Dict[str, str], graph: Dict
-) -> List[str]:
+    term: Symbol, channel: dict[str, str], graph: dict
+) -> list[str]:
     """Create a CSV row for a single terminal channel."""
     comp_from, pin_from = _trace_port_connection(term, channel["from_port"], graph)
     comp_to, pin_to = _trace_port_connection(term, channel["to_port"], graph)
@@ -162,7 +170,7 @@ def _create_terminal_row(
     ]
 
 
-def export_terminals_to_csv(elements: List[Element], filename: str):
+def export_terminals_to_csv(elements: list[Element], filename: str):
     """
     Export all terminals in the system to a CSV file.
 
@@ -199,7 +207,7 @@ def export_terminals_to_csv(elements: List[Element], filename: str):
         writer.writerows(rows)
 
 
-def export_components_to_csv(elements: List[Element], filename: str):
+def export_components_to_csv(elements: list[Element], filename: str):
     """
     Export all components in the system to a CSV file.
 

@@ -3,14 +3,17 @@ Utility functions for circuit generation and state management.
 Contains helpers for tag counters and contact pin management.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from __future__ import annotations
 
-from pyschemaelectrical.model.state import GenerationState
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.state import GenerationState
 
 
 def set_tag_counter(
-    state: Union[Dict[str, Any], GenerationState], prefix: str, value: int
-) -> Dict[str, Any]:
+    state: dict[str, Any] | GenerationState, prefix: str, value: int
+) -> dict[str, Any]:
     """
     Sets the counter for a specific tag prefix to a given value.
     The next call to next_tag() will return value + 1.
@@ -30,22 +33,22 @@ def set_tag_counter(
 
 
 def set_terminal_counter(
-    state: Union[Dict[str, Any], GenerationState], terminal_tag: str, value: int
-) -> Dict[str, Any]:
+    state: dict[str, Any] | GenerationState, terminal_tag: str, value: int
+) -> dict[str, Any]:
     """
     Sets the pin counter for a specific terminal tag.
     The next call to next_terminal_pins() will start from value + 1.
     """
     new_state = state.copy()
-    # Pyschemaelectrical likely uses 'terminal_counters' based on debug output
+    # State key for terminal pin counters
     new_state["terminal_counters"] = state.get("terminal_counters", {}).copy()
     new_state["terminal_counters"][terminal_tag] = value
     return new_state
 
 
 def next_contact_pins(
-    state: Union[Dict[str, Any], GenerationState], tag: str
-) -> Tuple[Dict[str, Any], Tuple[str, str, str]]:
+    state: dict[str, Any] | GenerationState, tag: str
+) -> tuple[dict[str, Any], tuple[str, str, str]]:
     """
     Get the next set of pins for a contact (SPDT/Changeover) for a given tag.
     Increments the channel counter for that tag.
@@ -77,10 +80,26 @@ def next_contact_pins(
     return new_state, pins
 
 
+def get_terminal_counter(
+    state: dict[str, Any] | GenerationState, terminal_tag: str
+) -> int:
+    """
+    Get the current pin counter for a terminal (0 if unused).
+
+    Args:
+        state: The autonumbering state.
+        terminal_tag: The terminal tag to query.
+
+    Returns:
+        Current pin counter value for this terminal.
+    """
+    return state.get("terminal_counters", {}).get(str(terminal_tag), 0)
+
+
 def apply_start_indices(
-    state: Union[Dict[str, Any], GenerationState],
-    start_indices: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    state: dict[str, Any] | GenerationState,
+    start_indices: dict[str, int] | None = None,
+) -> dict[str, Any]:
     """
     Apply start indices to tag counters.
 
@@ -98,25 +117,15 @@ def apply_start_indices(
     return state
 
 
-def create_fixed_tag_generator(tag: str) -> Callable[[Any], Tuple[Any, str]]:
+def merge_terminals(target: list, source: list) -> list:
     """
-    Create a generator that always returns a fixed tag.
+    Merge two terminal lists, returning a new combined list.
 
     Args:
-        tag: The fixed tag to return (e.g., "K2", "K3")
+        target: The first terminal list
+        source: The second terminal list to append
 
     Returns:
-        A lambda function that returns (state, tag)
+        A new list containing all items from both lists.
     """
-    return lambda s: (s, tag)
-
-
-def merge_terminals(target: List, source: List) -> None:
-    """
-    Merge terminal lists (mutates target).
-
-    Args:
-        target: The target terminal list
-        source: The source terminal list to append
-    """
-    target.extend(source)
+    return target + source
