@@ -229,6 +229,22 @@ The sibling project `auxillary_cabinet_v3` (located at `../auxillary_cabinet_v3/
 See `todo.md` for the complete audit-driven task list. It contains:
 
 - **Section 0**: Questions requiring maintainer input (blocking some tasks)
-- **Sections 1–11**: Active tasks grouped by category with effort estimates
-- **Section 12**: Archived completed items
+- **Sections 1–16**: Active tasks grouped by category with effort estimates
+- **Section 17**: Archived completed items
 - **Summary table**: Tasks prioritized into Tiers 1–5
+
+### Working with Subagents (Task Tool)
+
+When using the Task tool to launch subagents for research or code work:
+
+- **Subagent results are returned inline** in the tool response when the agent completes, NOT written to the output file. The `output_file` path is only useful for checking progress on *still-running* background agents via `Read` or `tail`. Once the agent finishes, the full result is in the `TaskOutput` response.
+- **To retrieve completed results**, use `TaskOutput` with `block=true` to wait for completion. The result text is returned directly.
+- **To resume an agent** for follow-up questions, use the `resume` parameter with the agent's ID. The agent retains full context from its previous run.
+- **Launch independent agents in parallel** by putting multiple Task tool calls in a single message. This is much faster than sequential launches.
+- **Keep prompts self-contained** — each new agent starts with zero context about the codebase. Include file paths, module names, and what specifically to investigate. Reference the project root as `c:\Users\OleJohanBondahl\Documents\GitHub_ZEN\PySchemaElectrical\`.
+- **Use the right agent type** for the job:
+  - `Explore` — fast read-only codebase searches (Glob, Grep, Read). Best for audits and investigations.
+  - `general-purpose` — can run Bash commands (pytest, ruff, etc.) in addition to reading files. Use for tasks that need command output.
+  - `Bash` — pure command execution. Use for git operations, running tests, building.
+- **Prefer `run_in_background: true`** when launching multiple agents, so they run concurrently. Then collect results with `TaskOutput` afterward.
+- **Do NOT edit code in audit/research agents** — if the task is investigation-only, explicitly state "DO NOT edit any files. Only read and search." in the prompt to prevent accidental modifications.

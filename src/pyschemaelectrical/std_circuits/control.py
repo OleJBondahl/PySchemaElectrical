@@ -153,10 +153,6 @@ def spdt(
             p_left = tm_bot_left_pins
         pin_accumulator.setdefault(str(tm_bot_left), []).extend(p_left)
 
-        if tm_bot_right_pins is None:
-            s, _ = next_terminal_pins(s, tm_bot_right, 1)
-        # tm_bot_right pins consumed for state advancement only
-
         # --- Coordinates ---
         # Vertical Stack
         y_r1 = start_y
@@ -227,10 +223,10 @@ def spdt(
 
         # --- Explicit Registry Registration ---
         # Use dynamic_contact_pins for registry
-        # 1. Top Terminal (Output/Bottom "2") -> Coil (Input/Top "A1")
-        if len(p_top) >= 2 and len(coil_pins) >= 1:
+        # 1. Top Terminal -> Coil (Input/Top "A1")
+        if len(p_top) >= 1 and len(coil_pins) >= 1:
             s = register_connection(
-                s, tm_top, p_top[1], coil_tag, coil_pins[0], side="bottom"
+                s, tm_top, p_top[0], coil_tag, coil_pins[0], side="bottom"
             )
 
         # 2. SPDT (NC "X2") -> Left Terminal (Input/Top "1")

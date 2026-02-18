@@ -140,10 +140,23 @@ class Project:
     def set_pin_start(self, terminal_id: str, pin: int) -> None:
         """
         Seed the pin counter for a terminal so auto-allocation starts at *pin*.
+
+        Also updates per-prefix counters for this terminal so that
+        prefixed allocations respect the new floor.
         """
+        tag_key = str(terminal_id)
+
         counters = self._state.get("terminal_counters", {}).copy()
-        counters[terminal_id] = pin
+        counters[tag_key] = pin
         self._state["terminal_counters"] = counters
+
+        prefix_counters = self._state.get("terminal_prefix_counters", {}).copy()
+        if tag_key in prefix_counters:
+            new_tag_prefixes = prefix_counters[tag_key].copy()
+            for p in new_tag_prefixes:
+                new_tag_prefixes[p] = pin
+            prefix_counters[tag_key] = new_tag_prefixes
+        self._state["terminal_prefix_counters"] = prefix_counters
 
     # ------------------------------------------------------------------
     # Standard circuit registration
@@ -315,7 +328,7 @@ class Project:
         # 3. Generate system terminal CSV with bridge info
         system_csv_path = os.path.join(temp_dir, "system_terminals.csv")
         registry = get_registry(self._state)
-        export_registry_to_csv(registry, system_csv_path)
+        export_registry_to_csv(registry, system_csv_path, state=self._state)
 
         # Add bridge info from registered terminals
         bridge_defs = {}
@@ -382,7 +395,7 @@ class Project:
         # System terminal CSV
         system_csv_path = os.path.join(output_dir, "system_terminals.csv")
         registry = get_registry(self._state)
-        export_registry_to_csv(registry, system_csv_path)
+        export_registry_to_csv(registry, system_csv_path, state=self._state)
 
         bridge_defs = {}
         for tid, t in self._terminals.items():

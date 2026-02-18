@@ -1,13 +1,20 @@
 from dataclasses import dataclass, replace
 
-from pyschemaelectrical.model.constants import DEFAULT_POLE_SPACING
-from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
+from pyschemaelectrical.model.constants import (
+    COLOR_BLACK,
+    DEFAULT_POLE_SPACING,
+    PIN_LABEL_OFFSET_X,
+    TEXT_FONT_FAMILY_AUX,
+    TEXT_SIZE_PIN,
+)
+from pyschemaelectrical.model.core import Element, Point, Port, Style, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     create_pin_labels,
     pad_pins,
-    standard_text,
     terminal_circle,
+    terminal_text,
 )
+from pyschemaelectrical.model.primitives import Text
 from pyschemaelectrical.utils.transform import translate
 
 """
@@ -63,7 +70,7 @@ def terminal_symbol(
 
     elements: list[Element] = [c]
     if label:
-        elements.append(standard_text(label, Point(0, 0), label_pos=label_pos))
+        elements.append(terminal_text(label, Point(0, 0), label_pos=label_pos))
 
     # Port 1: Up (Input/From)
     # Port 2: Down (Output/To)
@@ -80,9 +87,25 @@ def terminal_symbol(
         # We take the first pin as the terminal number.
         term_num = pins[0]
 
-        # We attach it to Port "2" (Bottom/Down).
-        # We use a temporary dict to force the function to label only Port "2"
-        elements.extend(create_pin_labels(ports={"2": ports["2"]}, pins=(term_num,)))
+        # Place pin label on the same side as the terminal label
+        port_y = float(ports["2"].position.y)
+        if label_pos == "right":
+            pos_x = ports["2"].position.x + PIN_LABEL_OFFSET_X
+            anchor = "start"
+        else:
+            pos_x = ports["2"].position.x - PIN_LABEL_OFFSET_X
+            anchor = "end"
+        elements.append(
+            Text(
+                content=term_num,
+                position=Point(pos_x, port_y),
+                anchor=anchor,
+                font_size=TEXT_SIZE_PIN,
+                style=Style(
+                    stroke="none", fill=COLOR_BLACK, font_family=TEXT_FONT_FAMILY_AUX
+                ),
+            )
+        )
 
     return Terminal(
         elements=elements, ports=ports, label=label, terminal_number=term_num

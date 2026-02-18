@@ -174,10 +174,77 @@ def register_3phase_output(
     )
 
 
-def export_registry_to_csv(registry: TerminalRegistry, filepath: str):
+def _build_all_pin_keys(
+    grouped: dict,
+    state: dict[str, Any] | None,
+) -> list[tuple[str, str]]:
+    """Build a complete list of (terminal_tag, pin) keys including empty slots.
+
+    For each terminal that has allocated pins (tracked in *state*), every pin
+    from 1 up to the highest allocated number is included even when no
+    connection was registered for it.  This ensures the exported CSV shows a
+    contiguous list of pins for every terminal strip.
+
+    Prefixed terminals (those with entries in ``terminal_prefix_counters``)
+    enumerate every ``prefix:N`` combination.  Sequential terminals enumerate
+    plain numeric pins.
+    """
+    if state is None:
+        return sorted(grouped.keys(), key=_pin_sort_key)
+
+    # Only fill gaps for terminals that have at least one registered connection.
+    # This avoids generating empty rows for filtered-out terminals (e.g. PLC).
+    registry_tags: set[str] = {tag for tag, _ in grouped}
+    prefix_counters: dict[str, dict[str, int]] = state.get(
+        "terminal_prefix_counters", {}
+    )
+    seq_counters: dict[str, int] = state.get("terminal_counters", {})
+
+    all_keys: set[tuple[str, str]] = set(grouped.keys())
+
+    for tag in registry_tags:
+        if tag in prefix_counters and prefix_counters[tag]:
+            # Prefixed terminal — enumerate prefix:1 .. prefix:max for each prefix
+            for prefix, max_num in prefix_counters[tag].items():
+                for n in range(1, max_num + 1):
+                    all_keys.add((tag, f"{prefix}:{n}"))
+        elif tag in seq_counters:
+            # Sequential terminal — enumerate 1 .. max
+            for n in range(1, seq_counters[tag] + 1):
+                all_keys.add((tag, str(n)))
+
+    return sorted(all_keys, key=_pin_sort_key)
+
+
+def _pin_sort_key(k: tuple[str, str]) -> tuple:
+    """Sort key for (terminal_tag, pin) pairs."""
+    t, p = k
+    p_str = str(p)
+    # Handle "prefix:number" format (e.g. "L1:3")
+    if ":" in p_str:
+        prefix, num_str = p_str.rsplit(":", 1)
+        try:
+            return (t, 0, prefix, int(num_str))
+        except ValueError:
+            pass
+    try:
+        return (t, 1, "", int(p_str))  # Numeric pins sort first
+    except (ValueError, TypeError):
+        return (t, 2, "", 0, p_str)  # Non-numeric pins sort last
+
+
+def export_registry_to_csv(
+    registry: TerminalRegistry,
+    filepath: str,
+    state: dict[str, Any] | None = None,
+):
     """
     Exports the registry to the expected CSV format.
-    Refactored to group by Terminal Tag + Pin.
+
+    When *state* is provided (containing ``terminal_counters`` and/or
+    ``terminal_prefix_counters``), the export includes placeholder rows for
+    every allocated pin slot — even those without a registered connection —
+    so the resulting CSV shows a contiguous pin list per terminal strip.
     """
     # Group by (Tag, Pin)
     # Result: Map[(Tag, Pin), {'top': [], 'bottom': []}]
@@ -189,23 +256,7 @@ def export_registry_to_csv(registry: TerminalRegistry, filepath: str):
         key = (conn.terminal_tag, conn.terminal_pin)
         grouped[key][conn.side].append(conn)
 
-    # Sort keys - handle mixed int/string pins including "prefix:number"
-    def sort_key(k):
-        t, p = k
-        p_str = str(p)
-        # Handle "prefix:number" format (e.g. "L1:3")
-        if ":" in p_str:
-            prefix, num_str = p_str.rsplit(":", 1)
-            try:
-                return (t, 0, prefix, int(num_str))
-            except ValueError:
-                pass
-        try:
-            return (t, 1, "", int(p_str))  # Numeric pins sort first
-        except (ValueError, TypeError):
-            return (t, 2, "", 0, p_str)  # Non-numeric pins sort last
-
-    sorted_keys = sorted(grouped.keys(), key=sort_key)
+    sorted_keys = _build_all_pin_keys(grouped, state)
 
     with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -221,18 +272,22 @@ def export_registry_to_csv(registry: TerminalRegistry, filepath: str):
         )
 
         for t_tag, t_pin in sorted_keys:
-            data = grouped[(t_tag, t_pin)]
+            data = grouped.get((t_tag, t_pin))
 
-            # Format Top side (usually "From")
-            # Usually 'top' connections go to components inside the panel
-            top_conns = data["top"]
-            from_comp = " / ".join(c.component_tag for c in top_conns)
-            from_pin = " / ".join(c.component_pin for c in top_conns)
+            if data:
+                # Format Top side (usually "From")
+                # Usually 'top' connections go to components inside the panel
+                top_conns = data["top"]
+                from_comp = " / ".join(c.component_tag for c in top_conns)
+                from_pin = " / ".join(c.component_pin for c in top_conns)
 
-            # Format Bottom side (usually "To")
-            # Usually 'bottom' connections go to field
-            bot_conns = data["bottom"]
-            to_comp = " / ".join(c.component_tag for c in bot_conns)
-            to_pin = " / ".join(c.component_pin for c in bot_conns)
+                # Format Bottom side (usually "To")
+                # Usually 'bottom' connections go to field
+                bot_conns = data["bottom"]
+                to_comp = " / ".join(c.component_tag for c in bot_conns)
+                to_pin = " / ".join(c.component_pin for c in bot_conns)
 
-            writer.writerow([from_comp, from_pin, t_tag, t_pin, to_comp, to_pin])
+                writer.writerow([from_comp, from_pin, t_tag, t_pin, to_comp, to_pin])
+            else:
+                # Empty slot — pin was allocated but has no connections
+                writer.writerow(["", "", t_tag, t_pin, "", ""])

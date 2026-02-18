@@ -20,6 +20,8 @@ class GenerationState:
     Attributes:
         tags: Counter for component tags (e.g., {"K": 3} means next K is K4)
         terminal_counters: Counter for terminal numbering per terminal block
+        terminal_prefix_counters: Per-prefix counters for prefixed terminals
+            (e.g., {"X001": {"L1": 3, "N": 2}} means next L1 on X001 is group 4)
         contact_channels: Counter for contact channel assignment
         terminal_registry: Registry of terminal connections
         pin_counter: Global pin counter (legacy)
@@ -27,6 +29,7 @@ class GenerationState:
 
     tags: dict[str, int] = field(default_factory=dict)
     terminal_counters: dict[str, int] = field(default_factory=dict)
+    terminal_prefix_counters: dict[str, dict[str, int]] = field(default_factory=dict)
     contact_channels: dict[str, int] = field(default_factory=dict)
     terminal_registry: TerminalRegistry | dict = field(
         default_factory=TerminalRegistry
@@ -45,6 +48,10 @@ class GenerationState:
         return {
             "tags": self.tags.copy(),
             "terminal_counters": self.terminal_counters.copy(),
+            "terminal_prefix_counters": {
+                tag: prefixes.copy()
+                for tag, prefixes in self.terminal_prefix_counters.items()
+            },
             "contact_channels": self.contact_channels.copy(),
             "terminal_registry": tr,
             "pin_counter": self.pin_counter,
@@ -69,6 +76,10 @@ class GenerationState:
         return cls(
             tags=d.get("tags", {}).copy(),
             terminal_counters=d.get("terminal_counters", {}).copy(),
+            terminal_prefix_counters={
+                tag: prefixes.copy()
+                for tag, prefixes in d.get("terminal_prefix_counters", {}).items()
+            },
             contact_channels=d.get("contact_channels", {}).copy(),
             terminal_registry=tr,
             pin_counter=d.get("pin_counter", 0),

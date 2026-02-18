@@ -20,6 +20,7 @@ from pyschemaelectrical.model.constants import (
 from pyschemaelectrical.symbols.blocks import psu_symbol
 from pyschemaelectrical.symbols.breakers import two_pole_circuit_breaker_symbol
 from pyschemaelectrical.symbols.contacts import multi_pole_spdt_symbol
+from pyschemaelectrical.system.connection_registry import register_connection
 from pyschemaelectrical.system.system import Circuit
 from pyschemaelectrical.utils.autonumbering import next_terminal_pins
 
@@ -259,6 +260,7 @@ def changeover(
 
         for i in range(poles):
             pole_x = start_x + (i * pole_spacing)
+            pole_id = i + 1
 
             # Top Left: NC terminal for input_1
             nc_x = pole_x - 2.5
@@ -269,6 +271,9 @@ def changeover(
             nc_sym = add_symbol(c, nc_sym, nc_x, nc_y)
             lines = auto_connect(nc_sym, switch_sym)
             c.elements.extend(lines)
+            s = register_connection(
+                s, str(tm_top_left), input1_pins[i], switch_tag, f"{pole_id}2", "bottom"
+            )
 
             # Top Right: NO terminal for input_2
             no_x = pole_x + 2.5
@@ -279,6 +284,9 @@ def changeover(
             no_sym = add_symbol(c, no_sym, no_x, no_y)
             lines = auto_connect(no_sym, switch_sym)
             c.elements.extend(lines)
+            s = register_connection(
+                s, str(tm_top_right), input2_pins[i], switch_tag, f"{pole_id}4", "bottom"
+            )
 
             # Bottom: Common terminal for output
             com_x = pole_x + 2.5
@@ -289,6 +297,9 @@ def changeover(
             com_sym = add_symbol(c, com_sym, com_x, com_y)
             lines = auto_connect(switch_sym, com_sym)
             c.elements.extend(lines)
+            s = register_connection(
+                s, str(tm_bot), output_pins[i], switch_tag, f"{pole_id}1", "top"
+            )
 
         return s, c.elements
 

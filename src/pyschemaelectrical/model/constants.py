@@ -29,7 +29,10 @@ TEXT_FONT_FAMILY = "Times New Roman"
 TEXT_SIZE_MAIN = GRID_SIZE  # 5.0mm
 TEXT_OFFSET_X = -GRID_SIZE  # -5.0mm
 
-TEXT_FONT_FAMILY_AUX = "sans-serif"
+TERMINAL_TEXT_SIZE = 0.85 * GRID_SIZE  # 3.5mm (smaller to avoid collision with pin numbers)
+TERMINAL_TEXT_OFFSET_X = -1.5 * GRID_SIZE  # -7.5mm (50% further from terminal)
+
+TEXT_FONT_FAMILY_AUX = "Times New Roman"
 TEXT_SIZE_PIN = 0.7 * GRID_SIZE  # 3.5mm
 PIN_LABEL_OFFSET_X = 0.3 * GRID_SIZE  # 1.5mm
 PIN_LABEL_OFFSET_Y_ADJUST = 0.0  # mm, adjustment for up/down ports

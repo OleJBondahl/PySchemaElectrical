@@ -129,9 +129,15 @@ def next_terminal_pins(
 
     When ``pin_prefixes`` are available (either passed explicitly or read
     from a :class:`Terminal` object's ``pin_prefixes`` attribute), pins are
-    formatted as ``"<prefix>:<group_number>"`` and the counter advances by
-    1 per allocation (group-based).  Otherwise plain sequential numbers are
-    generated and the counter advances by *poles*.
+    formatted as ``"<prefix>:<group_number>"``.  Each prefix has its own
+    counter so that using a subset of prefixes (e.g. only ``L1``) does not
+    advance the counters for unused prefixes (e.g. ``L2``, ``L3``).
+    The group number for a multi-prefix allocation is the maximum of all
+    requested per-prefix counters (plus one), ensuring consistent group
+    numbers within a single allocation.
+
+    Without ``pin_prefixes``, plain sequential numbers are generated and the
+    counter advances by *poles*.
 
     Args:
         state: The current autonumbering state.
@@ -150,20 +156,45 @@ def next_terminal_pins(
     tag_key = str(terminal_tag)
 
     if prefixes and len(prefixes) >= poles:
-        # Group-based: counter advances by 1 per allocation
-        current_num = counters.get(tag_key, 0) + 1
-        pins = tuple(f"{prefixes[i]}:{current_num}" for i in range(poles))
-        new_counter_val = current_num
+        # Per-prefix group-based allocation.
+        # Each prefix has its own counter.  The group number is
+        # max(per-prefix counters for requested prefixes) + 1,
+        # also respecting the legacy shared counter as a floor
+        # (set only by set_terminal_counter, not auto-advanced here).
+        prefix_counters = state.get("terminal_prefix_counters", {})
+        tag_prefixes = prefix_counters.get(tag_key, {})
+        shared_floor = counters.get(tag_key, 0)
+
+        requested = tuple(prefixes[i] for i in range(poles))
+        max_existing = max(
+            (tag_prefixes.get(p, 0) for p in requested),
+            default=0,
+        )
+        new_group = max(max_existing, shared_floor) + 1
+        pins = tuple(f"{p}:{new_group}" for p in requested)
+
+        # Update per-prefix counters for only the requested prefixes
+        new_tag_prefixes = tag_prefixes.copy()
+        for p in requested:
+            new_tag_prefixes[p] = new_group
+
+        new_state = state.copy()
+        new_prefix_counters = prefix_counters.copy()
+        new_prefix_counters[tag_key] = new_tag_prefixes
+        new_state["terminal_prefix_counters"] = new_prefix_counters
+        # Legacy shared counter is NOT advanced here — it serves only
+        # as a floor set by set_terminal_counter().  Copy it unchanged.
+        new_state["terminal_counters"] = counters.copy()
     else:
-        # Original behaviour: counter advances by number of poles
+        # Sequential: counter advances by number of poles
         current_pin = counters.get(tag_key, 0) + 1
         pins = tuple(str(current_pin + i) for i in range(poles))
         new_counter_val = current_pin + poles - 1
 
-    new_state = state.copy()
-    new_counters = counters.copy()
-    new_counters[tag_key] = new_counter_val
-    new_state["terminal_counters"] = new_counters
+        new_state = state.copy()
+        new_counters = counters.copy()
+        new_counters[tag_key] = new_counter_val
+        new_state["terminal_counters"] = new_counters
 
     return new_state, pins
 

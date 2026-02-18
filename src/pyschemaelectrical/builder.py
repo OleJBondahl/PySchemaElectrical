@@ -6,6 +6,7 @@ electrical circuits. It abstracts away the complexity of coordinate
 management, manual connection registration, and multi-pole wiring.
 """
 
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -49,9 +50,14 @@ class ComponentSpec:
 
     # Connection control
     auto_connect_next: bool = True
+    connection_side: str | None = None  # Override auto-determined side ('top' or 'bottom')
+    pin_prefixes: tuple[str, ...] | None = None  # Override terminal's default pin_prefixes
 
     # Horizontal placement reference (index of component this was placed_right of)
     placed_right_of: int | None = None
+
+    # Vertical placement reference (index of component + pin name to place above)
+    placed_above_of: tuple[int, str] | None = None
 
     def get_y_increment(self, default: float) -> float:
         return self.y_increment if self.y_increment is not None else default
@@ -190,15 +196,25 @@ class CircuitBuilder:
         tm_id: Any,
         poles: int = 1,
         pins: list[str] | tuple[str, ...] | None = None,
+        pin_prefixes: tuple[str, ...] | None = None,
         label_pos: str | None = None,
         logical_name: str | None = None,
         x_offset: float = 0.0,
         y_increment: float | None = None,
         auto_connect_next: bool = True,
+        connection_side: str | None = None,
         **kwargs,
     ) -> "ComponentRef":
         """
         Add a terminal block.
+
+        Args:
+            pin_prefixes: Override the terminal's default pin_prefixes for
+                auto-allocation. E.g. ``("L1", "N")`` to select specific
+                prefixes from a terminal that has ``("L1","L2","L3","N")``.
+            connection_side: Override the auto-determined side ('top' or 'bottom')
+                for the terminal CSV from/to column. If None, determined by
+                component order in the builder chain.
 
         Returns: ComponentRef (supports tuple unpacking:
             _, idx = builder.add_terminal(...))
@@ -211,9 +227,11 @@ class CircuitBuilder:
             kind="terminal",
             poles=poles,
             pins=pins,
+            pin_prefixes=pin_prefixes,
             x_offset=x_offset,
             y_increment=y_increment,
             auto_connect_next=auto_connect_next,
+            connection_side=connection_side,
             kwargs={
                 "tm_id": tm_id,
                 "label_pos": label_pos,
@@ -346,6 +364,88 @@ class CircuitBuilder:
         self._spec.components.append(spec)
         idx = len(self._spec.components) - 1
         return ComponentRef(self, idx, tag_prefix)
+
+    def place_above(
+        self,
+        ref: PortRef,
+        tm_id: Any,
+        poles: int = 1,
+        pins: list[str] | tuple[str, ...] | None = None,
+        label_pos: str | None = None,
+        y_offset: float | None = None,
+    ) -> "ComponentRef":
+        """
+        Place a terminal or reference above a component's pin.
+
+        Resolves the target position from the placed symbol's port at build
+        time. Automatically registers a connection between the new
+        terminal/reference and the target pin.
+
+        Does NOT advance the vertical stack pointer.
+
+        Args:
+            ref: PortRef identifying the target component and pin
+                (e.g., ``ct.pin("53")``).
+            tm_id: Terminal or reference ID. If the terminal has
+                ``reference=True``, a reference arrow is placed;
+                otherwise a physical terminal symbol.
+            poles: Number of poles (default 1).
+            pins: Explicit pin labels. If None, auto-allocated.
+            label_pos: Label position ('left' or 'right').
+            y_offset: Distance above the port. If None, uses
+                ``symbol_spacing / 2``.
+
+        Returns: ComponentRef for the placed terminal/reference.
+        """
+        ref_idx = ref.component._index
+        pin_name = str(ref.port)
+        is_ref = getattr(tm_id, "reference", False)
+
+        # Store y_offset in y_increment — interpreted as "distance above port"
+        # when placed_above_of is set.
+        y_inc = y_offset if y_offset is not None else None
+
+        if is_ref:
+            from pyschemaelectrical.symbols.references import ref_symbol
+
+            def fixed_gen(state):
+                return state, str(tm_id)
+
+            self._fixed_tag_generators[str(tm_id)] = fixed_gen
+
+            spec = ComponentSpec(
+                func=ref_symbol,
+                tag_prefix=str(tm_id),
+                kind="reference",
+                poles=poles,
+                y_increment=y_inc,
+                auto_connect_next=False,
+                placed_above_of=(ref_idx, pin_name),
+                kwargs={"direction": "up", "label_pos": label_pos or "left"},
+            )
+        else:
+            spec = ComponentSpec(
+                func=None,
+                kind="terminal",
+                poles=poles,
+                pins=pins,
+                y_increment=y_inc,
+                auto_connect_next=False,
+                placed_above_of=(ref_idx, pin_name),
+                kwargs={
+                    "tm_id": tm_id,
+                    "label_pos": label_pos or "left",
+                },
+            )
+
+        self._spec.components.append(spec)
+        idx = len(self._spec.components) - 1
+        new_ref = ComponentRef(self, idx, str(tm_id))
+
+        # Register connection: placed terminal/ref bottom → target pin
+        self.connect(new_ref.pole(0), ref, side_a="bottom", side_b="top")
+
+        return new_ref
 
     def connect_matching(
         self,
@@ -663,7 +763,10 @@ def _create_single_circuit_from_spec(
                 )
                 pins = list(pin_tuple)
             else:
-                state, pins = next_terminal_pins(state, tid, component_spec.poles)
+                state, pins = next_terminal_pins(
+                    state, tid, component_spec.poles,
+                    pin_prefixes=component_spec.pin_prefixes,
+                )
 
             # Track assigned pins for terminal_pin_map
             if pin_accumulator is not None:
@@ -688,11 +791,14 @@ def _create_single_circuit_from_spec(
             if component_spec.pins:
                 pins = list(component_spec.pins)
 
-        # Handle Y position for placed_right_of components
+        # Handle Y position for placed_right_of / placed_above_of components
         if component_spec.placed_right_of is not None:
             # Use the Y of the reference component, not the current stack pointer
             ref_rc = realized_components[component_spec.placed_right_of]
             comp_y = ref_rc["y"]
+        elif component_spec.placed_above_of is not None:
+            # Placeholder — actual Y resolved in Phase 3 from port position
+            comp_y = current_y
         else:
             comp_y = current_y
             # Only advance vertical stack for normally-placed components
@@ -712,8 +818,10 @@ def _create_single_circuit_from_spec(
         if not curr["spec"].auto_connect_next:
             continue
 
-        # Skip auto-connect for place_right components
+        # Skip auto-connect for place_right / place_above components
         if next_comp["spec"].placed_right_of is not None:
+            continue
+        if next_comp["spec"].placed_above_of is not None:
             continue
 
         poles = min(curr["spec"].poles, next_comp["spec"].poles)
@@ -725,24 +833,26 @@ def _create_single_circuit_from_spec(
             if curr["spec"].kind == "terminal" and next_comp["spec"].kind in ("symbol", "reference"):
                 # Current is Terminal: Use registry pin for Terminal
                 reg_pin_curr = _resolve_registry_pin(curr, p)
+                side = curr["spec"].connection_side or "bottom"
                 state = register_connection(
                     state,
                     curr["tag"],
                     reg_pin_curr,
                     next_comp["tag"],
                     next_pin,
-                    side="bottom",
+                    side=side,
                 )
             elif curr["spec"].kind in ("symbol", "reference") and next_comp["spec"].kind == "terminal":
                 # Next is Terminal: Use registry pin for Terminal
                 reg_pin_next = _resolve_registry_pin(next_comp, p)
+                side = next_comp["spec"].connection_side or "top"
                 state = register_connection(
                     state,
                     next_comp["tag"],
                     reg_pin_next,
                     curr["tag"],
                     curr_pin,
-                    side="top",
+                    side=side,
                 )
             elif curr["spec"].kind == "reference" and next_comp["spec"].kind == "symbol":
                 # Current is Reference (e.g. PLC:DO): register as terminal-like
@@ -803,8 +913,20 @@ def _create_single_circuit_from_spec(
         component_spec = rc["spec"]
         tag = rc["tag"]
 
-        # Calculate X position
-        if component_spec.placed_right_of is not None:
+        # Calculate position
+        if component_spec.placed_above_of is not None:
+            ref_idx, pin_name = component_spec.placed_above_of
+            ref_rc = realized_components[ref_idx]
+            ref_sym = ref_rc["symbol"]
+            port = ref_sym.ports[pin_name]
+            final_x = port.position.x + component_spec.x_offset
+            y_offset = (
+                component_spec.y_increment
+                if component_spec.y_increment is not None
+                else spec.layout.symbol_spacing / 2
+            )
+            rc["y"] = port.position.y - y_offset
+        elif component_spec.placed_right_of is not None:
             ref_rc = realized_components[component_spec.placed_right_of]
             ref_x_offset = ref_rc["spec"].x_offset
             if ref_rc["spec"].placed_right_of is not None:
@@ -828,11 +950,11 @@ def _create_single_circuit_from_spec(
         elif component_spec.kind in ("symbol", "reference"):
             kwargs = component_spec.kwargs.copy()
             if rc["pins"]:
-                # Pass resolved pins to the symbol factory
-                # so it can render labels
-                sym = component_spec.func(tag, pins=rc["pins"], **kwargs)
-            else:
-                sym = component_spec.func(tag, **kwargs)
+                # Distribute pins to the correct parameters based on
+                # the symbol function's signature (pins=, contact_pins=, etc.)
+                pin_kwargs = _distribute_pins(component_spec.func, rc["pins"], kwargs)
+                kwargs.update(pin_kwargs)
+            sym = component_spec.func(tag, **kwargs)
 
         if sym:
             # Respect auto_connect configuration
@@ -906,6 +1028,61 @@ def _create_single_circuit_from_spec(
     auto_connect_circuit(c)
 
     return state, c.elements, instance_tags
+
+
+def _distribute_pins(func, pins, existing_kwargs):
+    """
+    Map a flat pins tuple to the symbol function's pin parameters.
+
+    Inspects the function signature to determine how to pass pins:
+    - If the function accepts 'pins', passes all pins as pins=
+    - If the function has *_pins parameters (e.g. contact_pins, coil_pins),
+      distributes by default value lengths: required params (non-None defaults)
+      first, optional params (None defaults) get the remainder.
+
+    Args:
+        func: The symbol factory function.
+        pins: Flat tuple of pin labels from add_component.
+        existing_kwargs: Already-provided kwargs (won't be overridden).
+
+    Returns:
+        Dict of keyword arguments to merge into the function call.
+    """
+    sig = inspect.signature(func)
+    params = sig.parameters
+
+    # Case 1: Function accepts 'pins' directly
+    if "pins" in params and "pins" not in existing_kwargs:
+        return {"pins": tuple(pins)}
+
+    # Case 2: Distribute across *_pins parameters
+    pin_params = [
+        (name, param)
+        for name, param in params.items()
+        if name.endswith("_pins") and name not in existing_kwargs
+    ]
+    if not pin_params:
+        return {}
+
+    result = {}
+    remaining = list(pins)
+
+    # Required params first (non-None default with known length)
+    for name, param in pin_params:
+        default = param.default
+        if default not in (None, inspect.Parameter.empty) and hasattr(default, "__len__"):
+            take = min(len(default), len(remaining))
+            if take > 0:
+                result[name] = tuple(remaining[:take])
+                remaining = remaining[take:]
+
+    # Optional params (None default) get remaining
+    for name, param in pin_params:
+        if name not in result and param.default is None and remaining:
+            result[name] = tuple(remaining)
+            remaining = []
+
+    return result
 
 
 def _get_absolute_x_offset(realized_components, comp_idx):

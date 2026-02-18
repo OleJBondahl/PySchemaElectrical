@@ -38,11 +38,26 @@ def set_terminal_counter(
     """
     Sets the pin counter for a specific terminal tag.
     The next call to next_terminal_pins() will start from value + 1.
+
+    Also updates all per-prefix counters for this terminal to *value*
+    so that prefixed allocations respect the new floor.
     """
+    tag_key = str(terminal_tag)
     new_state = state.copy()
-    # State key for terminal pin counters
+
+    # Update legacy shared counter
     new_state["terminal_counters"] = state.get("terminal_counters", {}).copy()
-    new_state["terminal_counters"][terminal_tag] = value
+    new_state["terminal_counters"][tag_key] = value
+
+    # Update per-prefix counters to match
+    prefix_counters = state.get("terminal_prefix_counters", {}).copy()
+    if tag_key in prefix_counters:
+        new_tag_prefixes = prefix_counters[tag_key].copy()
+        for p in new_tag_prefixes:
+            new_tag_prefixes[p] = value
+        prefix_counters[tag_key] = new_tag_prefixes
+    new_state["terminal_prefix_counters"] = prefix_counters
+
     return new_state
 
 
