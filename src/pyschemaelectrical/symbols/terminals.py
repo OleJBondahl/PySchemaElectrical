@@ -46,7 +46,10 @@ class TerminalBlock(Symbol):
 
 
 def terminal_symbol(
-    label: str = "", pins: tuple[str, ...] = (), label_pos: str = "left"
+    label: str = "",
+    pins: tuple[str, ...] = (),
+    label_pos: str = "left",
+    pin_label_pos: str | None = None,
 ) -> Terminal:
     """
     Create an IEC 60617 Terminal symbol.
@@ -59,11 +62,15 @@ def terminal_symbol(
         pins (tuple): Tuple of pin numbers. Only the first
                       one is used as the terminal number.
                       It is displayed at the bottom port.
-        label_pos (str): Position of label ('left' or 'right').
+        label_pos (str): Position of tag label ('left' or 'right').
+        pin_label_pos (str | None): Position of pin number label
+            ('left' or 'right'). Defaults to label_pos if None.
 
     Returns:
         Terminal: The terminal symbol.
     """
+    if pin_label_pos is None:
+        pin_label_pos = "left"
 
     # Center at (0,0)
     c = terminal_circle(Point(0, 0))
@@ -87,9 +94,9 @@ def terminal_symbol(
         # We take the first pin as the terminal number.
         term_num = pins[0]
 
-        # Place pin label on the same side as the terminal label
+        # Place pin label independently from tag label
         port_y = float(ports["2"].position.y)
-        if label_pos == "right":
+        if pin_label_pos == "right":
             pos_x = ports["2"].position.x + PIN_LABEL_OFFSET_X
             anchor = "start"
         else:
@@ -117,6 +124,7 @@ def multi_pole_terminal_symbol(
     pins: tuple[str, ...] = (),
     poles: int = 2,
     label_pos: str = "left",
+    pin_label_pos: str | None = None,
 ) -> TerminalBlock:
     """
     Create an N-pole terminal block.
@@ -126,7 +134,9 @@ def multi_pole_terminal_symbol(
         pins: Tuple of terminal numbers, one per pole.
               Padded with empty strings if shorter than poles.
         poles: Number of poles (must be >= 2).
-        label_pos: Position of label ('left' or 'right').
+        label_pos: Position of tag label ('left' or 'right').
+        pin_label_pos: Position of pin number label ('left' or 'right').
+            Defaults to label_pos if None.
 
     Returns:
         TerminalBlock: The N-pole terminal block.
@@ -143,7 +153,7 @@ def multi_pole_terminal_symbol(
     for i in range(poles):
         pole_label = label if i == 0 else ""
         pole_lpos = label_pos if i == 0 else "left"
-        pole = terminal_symbol(label=pole_label, pins=(p_safe[i],), label_pos=pole_lpos)
+        pole = terminal_symbol(label=pole_label, pins=(p_safe[i],), label_pos=pole_lpos, pin_label_pos=pin_label_pos)
         if i > 0:
             pole = translate(pole, DEFAULT_POLE_SPACING * i, 0)
 
@@ -162,7 +172,10 @@ def multi_pole_terminal_symbol(
 
 
 def three_pole_terminal_symbol(
-    label: str = "", pins: tuple[str, ...] = ("1", "2", "3"), label_pos: str = "left"
+    label: str = "",
+    pins: tuple[str, ...] = ("1", "2", "3"),
+    label_pos: str = "left",
+    pin_label_pos: str | None = None,
 ) -> TerminalBlock:
     """
     Create a 3-pole terminal block.
@@ -170,9 +183,11 @@ def three_pole_terminal_symbol(
     Args:
         label: The tag of the terminal strip.
         pins: A tuple of 3 terminal numbers (e.g. ("1", "2", "3")).
-        label_pos: Position of label ('left' or 'right').
+        label_pos: Position of tag label ('left' or 'right').
+        pin_label_pos: Position of pin number label ('left' or 'right').
+            Defaults to label_pos if None.
 
     Returns:
         TerminalBlock: The 3-pole terminal block.
     """
-    return multi_pole_terminal_symbol(label, pins, poles=3, label_pos=label_pos)
+    return multi_pole_terminal_symbol(label, pins, poles=3, label_pos=label_pos, pin_label_pos=pin_label_pos)

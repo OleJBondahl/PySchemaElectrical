@@ -279,7 +279,7 @@ def changeover(
             no_x = pole_x + 2.5
             no_y = switch_y - symbol_spacing
             no_sym = terminal_symbol(
-                tm_top_right, pins=(input2_pins[i],), label_pos="right"
+                tm_top_right, pins=(input2_pins[i],), label_pos="right", pin_label_pos="right"
             )
             no_sym = add_symbol(c, no_sym, no_x, no_y)
             lines = auto_connect(no_sym, switch_sym)

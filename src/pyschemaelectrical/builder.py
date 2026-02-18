@@ -198,6 +198,7 @@ class CircuitBuilder:
         pins: list[str] | tuple[str, ...] | None = None,
         pin_prefixes: tuple[str, ...] | None = None,
         label_pos: str | None = None,
+        pin_label_pos: str | None = None,
         logical_name: str | None = None,
         x_offset: float = 0.0,
         y_increment: float | None = None,
@@ -209,6 +210,9 @@ class CircuitBuilder:
         Add a terminal block.
 
         Args:
+            label_pos: Position of tag label ('left' or 'right').
+            pin_label_pos: Position of pin number label ('left' or 'right').
+                Defaults to label_pos if None.
             pin_prefixes: Override the terminal's default pin_prefixes for
                 auto-allocation. E.g. ``("L1", "N")`` to select specific
                 prefixes from a terminal that has ``("L1","L2","L3","N")``.
@@ -235,6 +239,7 @@ class CircuitBuilder:
             kwargs={
                 "tm_id": tm_id,
                 "label_pos": label_pos,
+                "pin_label_pos": pin_label_pos,
                 "logical_name": logical_name,
                 **kwargs,
             },
@@ -942,10 +947,11 @@ def _create_single_circuit_from_spec(
         sym = None
         if component_spec.kind == "terminal":
             lpos = component_spec.kwargs.get("label_pos") or "left"
+            plpos = component_spec.kwargs.get("pin_label_pos")
             if component_spec.poles >= 2:
-                sym = multi_pole_terminal_symbol(tag, pins=rc["pins"], poles=component_spec.poles, label_pos=lpos)
+                sym = multi_pole_terminal_symbol(tag, pins=rc["pins"], poles=component_spec.poles, label_pos=lpos, pin_label_pos=plpos)
             else:
-                sym = terminal_symbol(tag, pins=rc["pins"], label_pos=lpos)
+                sym = terminal_symbol(tag, pins=rc["pins"], label_pos=lpos, pin_label_pos=plpos)
 
         elif component_spec.kind in ("symbol", "reference"):
             kwargs = component_spec.kwargs.copy()
