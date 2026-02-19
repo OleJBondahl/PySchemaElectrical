@@ -43,7 +43,14 @@ from .model.constants import (
 )
 from .model.core import SymbolFactory
 from .model.state import GenerationState, create_initial_state
-from .plc import PlcMapper
+from .plc_resolver import (
+    PlcDesignation,
+    PlcModuleType,
+    PlcRack,
+    extract_plc_connections_from_registry,
+    generate_plc_report_rows,
+    resolve_plc_references,
+)
 from .project import Project
 from .system.connection_registry import export_registry_to_csv, get_registry
 from .terminal import Terminal
@@ -72,6 +79,7 @@ from .utils.utils import (
     fixed_tag,
     get_terminal_counter,
     merge_terminals,
+    natural_sort_key,
     set_tag_counter,
     set_terminal_counter,
 )
