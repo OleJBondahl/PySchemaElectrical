@@ -19,7 +19,6 @@ from pyschemaelectrical.utils.export_utils import (
     merge_terminal_csv,
 )
 
-
 # ---------------------------------------------------------------------------
 # _terminal_pin_sort_key
 # ---------------------------------------------------------------------------
@@ -186,14 +185,18 @@ class TestMergeTerminalCsv:
         return header, rows
 
     def test_no_duplicates_just_sorts(self):
-        """Without duplicates, rows are sorted by tag then pin."""
+        """Without duplicates, rows are sorted by tag then pin (contiguous pins — no gap filling)."""
         header = [
-            "Component From", "Pin From", "Terminal Tag",
-            "Terminal Pin", "Component To", "Pin To",
+            "Component From",
+            "Pin From",
+            "Terminal Tag",
+            "Terminal Pin",
+            "Component To",
+            "Pin To",
         ]
         rows = [
             ["F1", "2", "X002", "1", "M1", "U"],
-            ["F2", "4", "X001", "10", "M2", "V"],
+            ["F2", "4", "X001", "3", "M2", "V"],
             ["F3", "6", "X001", "2", "M3", "W"],
             ["F4", "1", "X001", "1", "M4", "U"],
         ]
@@ -207,13 +210,13 @@ class TestMergeTerminalCsv:
             merge_terminal_csv(tmp_path)
             _, result = self._read_csv(tmp_path)
 
-            # Should be sorted: X001/1, X001/2, X001/10, X002/1
+            # Should be sorted: X001/1, X001/2, X001/3, X002/1
             assert result[0][2] == "X001"
             assert result[0][3] == "1"
             assert result[1][2] == "X001"
             assert result[1][3] == "2"
             assert result[2][2] == "X001"
-            assert result[2][3] == "10"
+            assert result[2][3] == "3"
             assert result[3][2] == "X002"
             assert result[3][3] == "1"
         finally:
@@ -222,8 +225,12 @@ class TestMergeTerminalCsv:
     def test_duplicates_merged(self):
         """Duplicate (tag, pin) rows are merged into one."""
         header = [
-            "Component From", "Pin From", "Terminal Tag",
-            "Terminal Pin", "Component To", "Pin To",
+            "Component From",
+            "Pin From",
+            "Terminal Tag",
+            "Terminal Pin",
+            "Component To",
+            "Pin To",
         ]
         rows = [
             ["F1", "2", "X001", "1", "", ""],
@@ -262,8 +269,13 @@ class TestMergeTerminalCsv:
     def test_bridge_column_preserved(self):
         """The Internal Bridge column survives the merge."""
         header = [
-            "Component From", "Pin From", "Terminal Tag",
-            "Terminal Pin", "Component To", "Pin To", "Internal Bridge",
+            "Component From",
+            "Pin From",
+            "Terminal Tag",
+            "Terminal Pin",
+            "Component To",
+            "Pin To",
+            "Internal Bridge",
         ]
         rows = [
             ["F1", "2", "X001", "1", "", "", "1"],
@@ -287,13 +299,17 @@ class TestMergeTerminalCsv:
             os.unlink(tmp_path)
 
     def test_prefixed_pins_sorted_correctly(self):
-        """Prefixed pins like L1:1 sort naturally."""
+        """Prefixed pins like L1:1 sort naturally (contiguous — no gap filling)."""
         header = [
-            "Component From", "Pin From", "Terminal Tag",
-            "Terminal Pin", "Component To", "Pin To",
+            "Component From",
+            "Pin From",
+            "Terminal Tag",
+            "Terminal Pin",
+            "Component To",
+            "Pin To",
         ]
         rows = [
-            ["F1", "2", "X001", "L1:10", "M1", "U"],
+            ["F1", "2", "X001", "L1:3", "M1", "U"],
             ["F2", "4", "X001", "L1:2", "M2", "V"],
             ["F3", "6", "X001", "L1:1", "M3", "W"],
             ["F4", "1", "X001", "2", "M4", "PE"],
@@ -310,16 +326,20 @@ class TestMergeTerminalCsv:
             _, result = self._read_csv(tmp_path)
 
             pins = [r[3] for r in result]
-            # Numeric pins ("1", "2") sort before prefixed ("L1:1", "L1:2", "L1:10")
-            assert pins == ["1", "2", "L1:1", "L1:2", "L1:10"]
+            # Numeric pins ("1", "2") sort before prefixed ("L1:1", "L1:2", "L1:3")
+            assert pins == ["1", "2", "L1:1", "L1:2", "L1:3"]
         finally:
             os.unlink(tmp_path)
 
     def test_empty_csv_no_data_rows(self):
         """A CSV with only a header produces no error."""
         header = [
-            "Component From", "Pin From", "Terminal Tag",
-            "Terminal Pin", "Component To", "Pin To",
+            "Component From",
+            "Pin From",
+            "Terminal Tag",
+            "Terminal Pin",
+            "Component To",
+            "Pin To",
         ]
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".csv", delete=False, newline=""
@@ -337,8 +357,13 @@ class TestMergeTerminalCsv:
     def test_header_preserved(self):
         """The original header row is preserved after merge/sort."""
         header = [
-            "Component From", "Pin From", "Terminal Tag",
-            "Terminal Pin", "Component To", "Pin To", "Internal Bridge",
+            "Component From",
+            "Pin From",
+            "Terminal Tag",
+            "Terminal Pin",
+            "Component To",
+            "Pin To",
+            "Internal Bridge",
         ]
         rows = [
             ["F1", "2", "X001", "1", "M1", "U", ""],
@@ -364,8 +389,12 @@ class TestMergeTerminalCsv:
     def test_multiple_terminals_sorted(self):
         """Rows across multiple terminal tags are sorted correctly."""
         header = [
-            "Component From", "Pin From", "Terminal Tag",
-            "Terminal Pin", "Component To", "Pin To",
+            "Component From",
+            "Pin From",
+            "Terminal Tag",
+            "Terminal Pin",
+            "Component To",
+            "Pin To",
         ]
         rows = [
             ["F1", "2", "X003", "1", "M1", "U"],
@@ -401,25 +430,41 @@ class TestMergeTerminalCsv:
 
 def test_fill_empty_pin_slots_inserts_missing_sequential_pins():
     from pyschemaelectrical.utils.export_utils import _fill_empty_pin_slots
+
     rows = [["A", "1", "X1", "1", "", "", ""], ["A", "1", "X1", "3", "", "", ""]]
     result = _fill_empty_pin_slots(rows)
     pins = {r[3] for r in result if r[2] == "X1"}
     assert "2" in pins  # gap filled
 
+
 def test_fill_empty_pin_slots_inserts_missing_prefixed_pins():
     from pyschemaelectrical.utils.export_utils import _fill_empty_pin_slots
+
     rows = [["A", "1", "X1", "L1:1", "", "", ""], ["A", "1", "X1", "L1:3", "", "", ""]]
     result = _fill_empty_pin_slots(rows)
     pins = {r[3] for r in result if r[2] == "X1"}
     assert "L1:2" in pins
 
+
 def test_apply_prefix_bridges_sets_group_numbers(tmp_path):
     import csv
+
     from pyschemaelectrical.utils.export_utils import _apply_prefix_bridges
+
     csv_path = tmp_path / "test.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Comp From", "Pin From", "Terminal Tag", "Terminal Pin", "Comp To", "Pin To", "Internal Bridge"])
+        writer.writerow(
+            [
+                "Comp From",
+                "Pin From",
+                "Terminal Tag",
+                "Terminal Pin",
+                "Comp To",
+                "Pin To",
+                "Internal Bridge",
+            ]
+        )
         writer.writerow(["", "", "X101", "L1:1", "", "", ""])
         writer.writerow(["", "", "X101", "L1:2", "", "", ""])
         writer.writerow(["", "", "X101", "L2:1", "", "", ""])
@@ -431,13 +476,26 @@ def test_apply_prefix_bridges_sets_group_numbers(tmp_path):
     assert l1_groups["L1:1"] == l1_groups["L1:2"]  # same group
     assert l2_groups["L2:1"] != l1_groups["L1:1"]  # different group
 
+
 def test_finalize_terminal_csv_round_trip(tmp_path):
     import csv
+
     from pyschemaelectrical.utils.export_utils import finalize_terminal_csv
+
     csv_path = tmp_path / "terminals.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["Comp From", "Pin From", "Terminal Tag", "Terminal Pin", "Comp To", "Pin To", "Internal Bridge"])
+        writer.writerow(
+            [
+                "Comp From",
+                "Pin From",
+                "Terminal Tag",
+                "Terminal Pin",
+                "Comp To",
+                "Pin To",
+                "Internal Bridge",
+            ]
+        )
         writer.writerow(["A", "1", "X1", "1", "", "", ""])
         writer.writerow(["", "", "X1", "3", "B", "2", ""])
     finalize_terminal_csv(str(csv_path))
