@@ -120,8 +120,9 @@ def factory(
 - **`utils/autonumbering.py`** — Functional state threading: `create_autonumberer`, `next_tag`, `next_terminal_pins`.
 - **`utils/renderer.py`** — SVG rendering from elements.
 - **`utils/transform.py`** — `translate`, `rotate` (pure, return new instances).
-- **`utils/export_utils.py`** — `export_terminal_list()` for CSV export of terminal connection data.
+- **`utils/export_utils.py`** — `export_terminal_list()` for CSV export, `merge_terminal_csv()` for post-processing.
 - **`utils/terminal_bridges.py`** — Internal bridge/connection data for terminal blocks.
+- **`field_devices.py`** — `PinDef`, `DeviceTemplate`, `generate_field_connections()` for field device wiring declarations.
 - **`rendering/typst/`** — Typst-based PDF compilation (frame generation, SVG-to-Typst conversion).
 
 ### Import Order Sensitivity
@@ -201,7 +202,7 @@ These are the highest-level imperative API classes. The rest of the library foll
 - SVG **snapshot testing** via the `snapshot_svg` fixture in `tests/conftest.py` — compares generated SVG strings against stored `.svg` files in `tests/snapshots/`.
 - Set `PYTEST_UPDATE_SNAPSHOTS=1` to update snapshots when rendering changes are intentional.
 - pytest config is in `pyproject.toml` with `--verbose --cov=src --cov-report=term-missing` as default options.
-- **Current baseline**: 773 tests, 96% line coverage, all passing.
+- **Current baseline**: 939 tests, 97% line coverage, all passing.
 - When changing symbol rendering or layout, always run `pytest` and check snapshot diffs.
 
 ### Type Checking

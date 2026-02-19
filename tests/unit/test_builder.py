@@ -1488,3 +1488,154 @@ class TestAdditionalCoverage:
 
         with pytest.raises(PortNotFoundError):
             builder._resolve_port_ref_to_pole(PortRef(ref, "MISSING"))
+
+
+# ---------------------------------------------------------------------------
+# BuildResult accessor methods (Task 15.1, 15.2)
+# ---------------------------------------------------------------------------
+
+
+class TestBuildResultAccessors:
+    """Tests for BuildResult.component_tag(), component_tags(), get_symbol(), get_symbols()."""
+
+    def test_component_tag_returns_first_tag(self):
+        result = BuildResult(
+            state=create_autonumberer(),
+            circuit=Circuit(),
+            used_terminals=[],
+            component_map={"K": ["K1", "K2"], "F": ["F1"]},
+        )
+        assert result.component_tag("K") == "K1"
+        assert result.component_tag("F") == "F1"
+
+    def test_component_tag_raises_keyerror_for_missing_prefix(self):
+        result = BuildResult(
+            state=create_autonumberer(),
+            circuit=Circuit(),
+            used_terminals=[],
+            component_map={"K": ["K1"]},
+        )
+        with pytest.raises(KeyError, match="No tags for prefix 'Q'"):
+            result.component_tag("Q")
+
+    def test_component_tag_raises_keyerror_for_empty_list(self):
+        result = BuildResult(
+            state=create_autonumberer(),
+            circuit=Circuit(),
+            used_terminals=[],
+            component_map={"K": []},
+        )
+        with pytest.raises(KeyError, match="No tags for prefix 'K'"):
+            result.component_tag("K")
+
+    def test_component_tags_returns_all(self):
+        result = BuildResult(
+            state=create_autonumberer(),
+            circuit=Circuit(),
+            used_terminals=[],
+            component_map={"K": ["K1", "K2", "K3"]},
+        )
+        assert result.component_tags("K") == ["K1", "K2", "K3"]
+
+    def test_component_tags_returns_empty_for_missing(self):
+        result = BuildResult(
+            state=create_autonumberer(),
+            circuit=Circuit(),
+            used_terminals=[],
+            component_map={},
+        )
+        assert result.component_tags("K") == []
+
+    def test_component_tags_returns_copy(self):
+        """Modifying the returned list should not affect the BuildResult."""
+        result = BuildResult(
+            state=create_autonumberer(),
+            circuit=Circuit(),
+            used_terminals=[],
+            component_map={"K": ["K1"]},
+        )
+        tags = result.component_tags("K")
+        tags.append("K99")
+        assert result.component_map["K"] == ["K1"]
+
+    def test_get_symbol_finds_placed_symbol(self):
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_component(mock_symbol, tag_prefix="K")
+        builder.add_terminal("X1")
+        result = builder.build()
+        tag = result.component_tag("K")
+        sym = result.get_symbol(tag)
+        assert sym is not None
+        assert sym.label == tag
+
+    def test_get_symbol_returns_none_for_missing(self):
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_terminal("X1")
+        result = builder.build()
+        assert result.get_symbol("NONEXISTENT") is None
+
+    def test_get_symbols_returns_all_matching(self):
+        """With count=2, two instances produce two K tags."""
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_terminal("X1")
+        builder.add_component(mock_symbol, tag_prefix="K")
+        builder.add_terminal("X2")
+        result = builder.build(count=2)
+        symbols = result.get_symbols("K")
+        assert len(symbols) == 2
+
+    def test_get_symbols_returns_empty_for_missing_prefix(self):
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_terminal("X1")
+        result = builder.build()
+        assert result.get_symbols("K") == []
+
+
+# ---------------------------------------------------------------------------
+# String shorthand for tag_generators (Task 15.3)
+# ---------------------------------------------------------------------------
+
+
+class TestTagGeneratorStringShorthand:
+    """Tests for passing string values in tag_generators dict."""
+
+    def test_string_shorthand_produces_fixed_tag(self):
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_terminal("X1")
+        builder.add_component(mock_symbol, tag_prefix="K")
+        builder.add_terminal("X2")
+        result = builder.build(tag_generators={"K": "K5"})
+        assert result.component_tag("K") == "K5"
+
+    def test_string_shorthand_with_callable_mixed(self):
+        """Can mix string shorthand and callable generators."""
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_terminal("X1")
+        builder.add_component(mock_symbol, tag_prefix="K")
+        builder.add_component(mock_symbol, tag_prefix="F")
+        builder.add_terminal("X2")
+        result = builder.build(
+            tag_generators={
+                "K": "K10",
+                "F": lambda s: (s, "F20"),
+            }
+        )
+        assert result.component_tag("K") == "K10"
+        assert result.component_tag("F") == "F20"
+
+    def test_string_shorthand_in_multi_count(self):
+        """String shorthand should produce the same fixed tag for each instance."""
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_terminal("X1")
+        builder.add_component(mock_symbol, tag_prefix="K")
+        builder.add_terminal("X2")
+        result = builder.build(count=2, tag_generators={"K": "K1"})
+        # Both instances use the same fixed tag
+        assert result.component_tags("K") == ["K1", "K1"]

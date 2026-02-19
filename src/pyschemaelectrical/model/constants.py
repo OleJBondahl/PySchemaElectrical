@@ -144,6 +144,41 @@ class StandardPins:
         description="Current measurement transducer terminals",
     )
 
+    COIL = PinSet(
+        pins=("A1", "A2"),
+        description="Relay/contactor coil terminals",
+    )
+
+    NO_CONTACT = PinSet(
+        pins=("13", "14"),
+        description="Normally open auxiliary contact",
+    )
+
+    NC_CONTACT = PinSet(
+        pins=("11", "12"),
+        description="Normally closed auxiliary contact",
+    )
+
+    CB_3P = PinSet(
+        pins=("1", "2", "3", "4", "5", "6"),
+        description="Three-pole circuit breaker (line/load pairs)",
+    )
+
+    CB_2P = PinSet(
+        pins=("1", "2", "3", "4"),
+        description="Two-pole circuit breaker (line/load pairs)",
+    )
+
+    CONTACTOR_3P = PinSet(
+        pins=("L1", "T1", "L2", "T2", "L3", "T3"),
+        description="Three-pole contactor (same as THREE_POLE)",
+    )
+
+    CT = PinSet(
+        pins=("53", "54", "41", "43"),
+        description="Current transformer auxiliary contacts",
+    )
+
     # Common single pin identifiers
     L = "L"  # Line
     N = "N"  # Neutral

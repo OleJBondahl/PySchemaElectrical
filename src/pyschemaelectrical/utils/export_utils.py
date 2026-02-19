@@ -1,9 +1,19 @@
 """
 Export utilities for generating CSV reports for terminals.
+
+Provides functions for exporting terminal lists, and for merging and sorting
+terminal connection CSVs produced by ``export_registry_to_csv``.
+
+The merge/sort workflow handles the common case where multiple sources
+(e.g. registry export + external connections) append rows to the same CSV,
+producing duplicate (Terminal Tag, Terminal Pin) entries that need to be
+collapsed into single rows with FROM and TO sides populated.
 """
 
 import csv
 import os
+import re
+from collections import defaultdict
 
 
 def export_terminal_list(
@@ -28,3 +38,150 @@ def export_terminal_list(
         for tag in unique_terminals:
             desc = descriptions.get(tag, "Unknown Terminal")
             writer.writerow([tag, desc])
+
+
+# ---------------------------------------------------------------------------
+# Terminal CSV merge / sort utilities
+# ---------------------------------------------------------------------------
+
+
+def _terminal_pin_sort_key(pin: str) -> list:
+    """Natural sort key for terminal pin strings.
+
+    Splits *pin* on digit boundaries so that numeric parts compare as
+    integers rather than lexicographically.  This ensures the ordering
+    ``"1" < "2" < "10" < "L1:1" < "L1:10"``.
+
+    Args:
+        pin: A terminal pin identifier, e.g. ``"1"``, ``"10"``, ``"L1:3"``.
+
+    Returns:
+        A list of alternating ``str`` / ``int`` segments suitable for use
+        as a sort key.
+
+    Examples:
+        >>> _terminal_pin_sort_key("2") < _terminal_pin_sort_key("10")
+        True
+        >>> _terminal_pin_sort_key("L1:1") < _terminal_pin_sort_key("L1:10")
+        True
+    """
+    return [int(p) if p.isdigit() else p for p in re.split(r"(\d+)", pin)]
+
+
+def _merge_terminal_rows(rows: list[list[str]]) -> list[str]:
+    """Merge multiple CSV rows that share the same (Terminal Tag, Terminal Pin).
+
+    When the same terminal pin appears in more than one row (e.g. once from
+    the registry export and once from an external-connections append), this
+    function collapses them into a single row.  It collects all
+    ``(component, pin)`` pairs from both the FROM side (columns 0-1) and
+    the TO side (columns 4-5), then distributes them so that one pair ends
+    up on each side.
+
+    The **last** FROM entry is kept on the FROM side (this is typically the
+    external device that was appended after the registry export).  Excess
+    entries are moved to the opposite side to fill vacancies.
+
+    Any non-empty ``Internal Bridge`` value (column 6) found in any of the
+    input rows is preserved on the merged result.
+
+    Args:
+        rows: Two or more CSV data rows (lists of strings) that share the
+            same Terminal Tag (index 2) and Terminal Pin (index 3).
+
+    Returns:
+        A single merged row as a list of strings with 7 columns:
+        ``[Component From, Pin From, Terminal Tag, Terminal Pin,
+        Component To, Pin To, Internal Bridge]``.
+    """
+    from_entries: list[tuple[str, str]] = []
+    to_entries: list[tuple[str, str]] = []
+    bridge = ""
+    term_tag = rows[0][2]
+    term_pin = rows[0][3]
+
+    for row in rows:
+        if row[0]:
+            from_entries.append((row[0], row[1]))
+        if len(row) > 4 and row[4]:
+            to_entries.append((row[4], row[5]))
+        if len(row) > 6 and row[6]:
+            bridge = row[6]
+
+    # Balance: move excess FROM entries to TO and vice versa
+    while len(from_entries) > 1 and len(to_entries) < 1:
+        to_entries.append(from_entries.pop(0))
+    while len(to_entries) > 1 and len(from_entries) < 1:
+        from_entries.append(to_entries.pop(0))
+
+    # Last FROM entry is typically the external device (appended after registry)
+    comp_from = from_entries[-1][0] if from_entries else ""
+    pin_from = from_entries[-1][1] if from_entries else ""
+    comp_to = to_entries[0][0] if to_entries else ""
+    pin_to = to_entries[0][1] if to_entries else ""
+
+    return [comp_from, pin_from, term_tag, term_pin, comp_to, pin_to, bridge]
+
+
+def merge_terminal_csv(csv_path: str) -> None:
+    """Merge duplicate terminal rows and sort by terminal tag then pin number.
+
+    Reads a terminal-connection CSV (as produced by
+    :func:`~pyschemaelectrical.system.connection_registry.export_registry_to_csv`,
+    optionally with rows appended from other sources), merges rows that
+    share the same ``(Terminal Tag, Terminal Pin)`` key, and writes the
+    result back to the same file, sorted by terminal tag and pin in natural
+    order.
+
+    The expected CSV columns are::
+
+        Component From, Pin From, Terminal Tag, Terminal Pin,
+        Component To, Pin To[, Internal Bridge]
+
+    The ``Internal Bridge`` column is optional; if present it is preserved.
+
+    This function is the library equivalent of the consumer project's
+    ``_merge_and_sort_terminal_csv()`` utility, made generic so any project
+    can call it after assembling a terminal CSV from multiple sources.
+
+    Args:
+        csv_path: Path to the CSV file to merge and sort **in place**.
+
+    Raises:
+        FileNotFoundError: If *csv_path* does not exist.
+
+    Example:
+        >>> from pyschemaelectrical.utils.export_utils import merge_terminal_csv
+        >>> merge_terminal_csv("output/system_terminals.csv")
+    """
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        rows = list(reader)
+
+    if not rows:
+        return
+
+    # Group rows by (Terminal Tag, Terminal Pin)
+    groups: dict[tuple[str, str], list[list[str]]] = defaultdict(list)
+    for row in rows:
+        key = (row[2], row[3])
+        groups[key].append(row)
+
+    # Merge duplicates
+    merged_rows: list[list[str]] = []
+    for group_rows in groups.values():
+        if len(group_rows) == 1:
+            merged_rows.append(group_rows[0])
+        else:
+            merged_rows.append(_merge_terminal_rows(group_rows))
+
+    # Sort by terminal tag (natural), then by pin (natural)
+    merged_rows.sort(
+        key=lambda r: (_terminal_pin_sort_key(r[2]), _terminal_pin_sort_key(r[3]))
+    )
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(merged_rows)

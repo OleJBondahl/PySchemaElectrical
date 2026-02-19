@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-02-19
 **Scope:** Full codebase audit (FP/DRY/quality/docs/tests) + `auxillary_cabinet_v3` real-world usage analysis
-**Tool analysis:** `ruff check --select ALL` (1053 issues), `ty check` (31 diagnostics), `pytest` (773 tests, 96% coverage)
+**Tool analysis:** `ruff check --select ALL` (1053 issues), `ty check` (31 diagnostics), `pytest` (939 tests, 97% coverage)
 
 ---
 
@@ -537,22 +537,31 @@ These functions raise exceptions but don't document them:
 - [x] Test `current_transducer_symbol()` — 3 tests (no ports, elements)
 - [x] Test `current_transducer_assembly_symbol()` — 8 tests (ports, skip_auto_connect, offset)
 
-### Task 9.10: Test `rendering/typst/compiler.py` (61% -> target 80%)
+### Task 9.10: Test `rendering/typst/` modules (61% -> 89-100% coverage) — DONE
 
-- [ ] Mock `typst` import to test `compile()` method
-- [ ] Test `_render_page()` dispatch to schematic/front/plc/terminal/custom
-- [ ] Test `_rel_path()` helper
-- [ ] Test page ordering and content generation
+91 new tests across 3 modules. compiler.py: 61% → 89%, frame_generator.py: 0% → 100%, markdown_converter.py: 0% → 100%.
 
-### Task 9.11: Strengthen existing test assertions — DONE (partial)
+- [x] Test `_render_page()` dispatch to all 5 page types + unknown type
+- [x] Test `_render_schematic_page()` with/without terminals CSV
+- [x] Test `_render_front_page()` via markdown_to_typst
+- [x] Test `_render_plc_report()` and `_render_terminal_report()` template substitution
+- [x] Test `_render_custom_page()` with/without title
+- [x] Test `_rel_path()` — absolute, relative, backslash conversion
+- [x] Test `_build_typst_content()` — full assembly, logo handling, config fields, dimensions
+- [x] Test `compile()` ImportError when typst not installed
+- [x] Test `_get_template_path()` — file exists, correct directory
+- [x] Test `markdown_to_typst()` — headings, tables, paragraphs, notice, FileNotFoundError
+- [x] Test `generate_frame()` — A3 constants, grid labels 1-8 / A-F, element counts, font
 
-Strengthened 10 weak assertions in `test_std_circuits_multicount.py`:
+### Task 9.11: Strengthen existing test assertions + snapshot tests — DONE
+
+Strengthened 10 weak assertions in `test_std_circuits_multicount.py` and added 4 new snapshot tests.
 
 - [x] Add `component_map` and `terminal_pin_map` assertions to multicount integration tests
 - [x] Replace `assert len(...) > 0` with specific minimum counts and field checks
 - [x] Use `BuildResult` type assertions and verify `used_terminals` contents
-- [ ] Add snapshot tests for PSU, coil, no_contact, and at least one multi-count circuit
-- [ ] Remove or re-attach orphaned `psu_circuit.svg` snapshot (no test references it)
+- [x] Add snapshot tests for PSU (`psu_circuit`), coil (`coil_circuit`), no_contact (`no_contact_circuit`), multi-count emergency stop (`emergency_stop_multi_count`)
+- [x] Re-attached orphaned `psu_circuit.svg` snapshot to new `test_psu_snapshot` test
 
 ### Task 9.12: Test infrastructure improvements
 
@@ -785,14 +794,12 @@ All public methods now have complete docstrings with Args sections.
 - [ ] `generate_connections_table()` — document CSV format
 - [ ] `module_count` property — document
 
-### Task 13.5: Create missing example files
+### Task 13.5: Create missing example files — DONE (3 of 4)
 
-4 key API patterns have no example files:
-
-- [ ] `example_circuit_builder.py` — CircuitBuilder direct usage (50-60 lines)
-- [ ] `example_descriptors.py` — ref/comp/term declarative syntax (40-50 lines)
-- [ ] `example_plc_mapper.py` — PLC I/O mapping workflow (60-80 lines)
-- [ ] `example_state_threading.py` — State sharing across multiple circuits (40-50 lines)
+- [x] `example_descriptors.py` — ref/comp/term declarative syntax with count=2
+- [x] `example_plc_mapper.py` — PLC I/O mapping with RTD, mA, and proximity sensors
+- [x] `example_state_threading.py` — State sharing across 3 circuits with continuous pin numbering
+- ~~`example_circuit_builder.py`~~ — Already covered by `example_motor_symbol.py` and `example_turn_switch.py`
 - [ ] Update `examples/README.md` to reference new examples
 
 ### Task 13.6: Add module docstrings
@@ -826,42 +833,39 @@ ElementTree *should* auto-escape on serialization, but verify.
 
 Analysis of `auxillary_cabinet_v3` (14 Python modules) identified these patterns.
 
-### Task 15.1: Add typed `BuildResult` accessors
+### Task 15.1: Add typed `BuildResult` accessors — DONE
 
-`power_supply.py:158` uses `result.component_map[StandardTags.POWER_SUPPLY][0]` — no IDE
-autocomplete, requires `[0]` without safety.
+Added 4 convenience methods to `BuildResult`:
 
-- [ ] Add `BuildResult.component_tag(prefix: str) -> str` (returns first tag, raises if missing)
-- [ ] Add `BuildResult.component_tags(prefix: str) -> list[str]` (returns all tags)
+- [x] `component_tag(prefix) -> str` — returns first tag, raises `KeyError` if missing
+- [x] `component_tags(prefix) -> list[str]` — returns all tags (empty list if missing)
+- [x] `get_symbol(tag) -> Symbol | None` — finds placed symbol by label (searches both `circuit.symbols` and `circuit.elements`)
+- [x] `get_symbols(prefix) -> list[Symbol]` — finds all symbols matching a prefix
 
-### Task 15.2: Add `BuildResult.get_terminals()` accessor
+10 new tests in `TestBuildResultAccessors`.
 
-`power_supply.py:219` iterates `circuit.elements` with `hasattr(e, "ports")` to find terminals.
+### Task 15.2: (Merged into 15.1 — `get_symbol`/`get_symbols` cover this use case)
 
-- [ ] Add `BuildResult.get_terminals() -> list[Symbol]`
-- [ ] Or add `BuildResult.get_components_by_prefix(prefix: str) -> list[Symbol]`
+### Task 15.3: String shorthand for `tag_generators` — DONE
 
-### Task 15.3: String shorthand for `tag_generators`
+- [x] `build()` now accepts `str` values in `tag_generators` dict
+- [x] String shorthand auto-wrapped: `{"K": "K1"}` → `lambda s: (s, "K1")`
+- [x] Updated type hint to `dict[str, Callable | str]`
+- [x] Can mix string and callable generators in same dict
+- 3 new tests in `TestTagGeneratorStringShorthand`.
 
-`power_switching.py:67-69` manually defines `k1_tag_gen(s): return (s, "K1")`. Common pattern.
+### Task 15.4: Extend `StandardPins` with common pin sets — DONE
 
-- [ ] Accept `str` values in `tag_generators` dict
-- [ ] Auto-wrap with `create_fixed_tag_generator()` equivalent
-- [ ] Example: `tag_generators={"K": "K1"}` instead of `{"K": k1_tag_gen}`
+Added 6 new `PinSet` constants to `StandardPins`:
 
-### Task 15.4: Review `StandardPins` — extend or deprecate?
-
-`auxillary_cabinet_v3/constants.py` imports `StandardPins` but never uses it. Defines own
-`ComponentPins` class with: `COIL`, `NO_CONTACT`, `CB_3P`, `CB_2P`, `THERMAL_OL`, `CONTACTOR_3P`, `CT`.
-
-- [ ] Add commonly-used pin sets to `StandardPins` (or a new `PinSets` class):
-  - `COIL = ("A1", "A2")`
-  - `NO_CONTACT = ("13", "14")`
-  - `NC_CONTACT = ("11", "12")`
-  - `CB_3P = ("1", "2", "3", "4", "5", "6")`
-  - `CB_2P = ("1", "2", "3", "4")`
-  - `THERMAL_OL = ("", "T1", "", "T2", "", "T3")`
-  - `CT = ("53", "54", "41", "43")`
+- [x] `COIL = ("A1", "A2")` — Relay/contactor coil
+- [x] `NO_CONTACT = ("13", "14")` — Normally open auxiliary contact
+- [x] `NC_CONTACT = ("11", "12")` — Normally closed auxiliary contact
+- [x] `CB_3P = ("1", "2", "3", "4", "5", "6")` — Three-pole circuit breaker
+- [x] `CB_2P = ("1", "2", "3", "4")` — Two-pole circuit breaker
+- [x] `CONTACTOR_3P = ("L1", "T1", "L2", "T2", "L3", "T3")` — Three-pole contactor
+- [x] `CT = ("53", "54", "41", "43")` — Current transformer aux contacts
+- 8 new tests in `TestStandardPins`.
 
 ### Task 15.5: Port `DeviceTemplate` system to library (pending Q8)
 
@@ -885,19 +889,20 @@ class DeviceTemplate:
 With `generate_field_connections()` that auto-numbers terminal pins and maps PLC references.
 This is generic enough for the library.
 
-- [ ] Create `pyschemaelectrical/field_devices.py` module
-- [ ] Port `PinDef`, `DeviceTemplate`, `generate_field_connections()`
-- [ ] Add proper type annotations and validation
-- [ ] Add unit tests
+- [x] Created `pyschemaelectrical/field_devices.py` module
+- [x] Ported `PinDef`, `DeviceTemplate`, `generate_field_connections()` with proper type annotations
+- [x] Supports sequential, prefixed, and fixed pin numbering modes
+- [x] Supports `reuse_terminals` parameter (list[str] or BuildResult)
+- [x] 26 unit tests, 99% coverage
+- [x] Exported `PinDef`, `DeviceTemplate`, `generate_field_connections` from `__init__.py`
 
-### Task 15.6: Port `_merge_and_sort_terminal_csv()` to library
+### Task 15.6: Port `_merge_and_sort_terminal_csv()` to library — DONE
 
-`main.py:218-251` defines CSV post-processing (merge duplicate terminal rows, natural sort).
-This is a generic operation on the library's CSV output format.
-
-- [ ] Add `merge_terminal_csv(csv_path: str) -> None` to `utils/export_utils.py` or similar
-- [ ] Port `_terminal_pin_sort_key()` (natural sort for pin numbers)
-- [ ] Add `_merge_terminal_rows()` logic
+- [x] Added `merge_terminal_csv(csv_path)` to `utils/export_utils.py`
+- [x] Added `_terminal_pin_sort_key()` — natural sort for terminal pins
+- [x] Added `_merge_terminal_rows()` — merges duplicate (tag, pin) rows
+- [x] 22 unit tests in `test_export_utils.py`, 100% coverage
+- [x] Exported `merge_terminal_csv` from `__init__.py`
 
 ### Task 15.7: Port PLC connection generation to library
 
@@ -1065,24 +1070,26 @@ All items below were completed in earlier audit rounds. Kept for reference.
 | 9.2 | Tests | project.py: 54 new tests, 65% → 100% coverage |
 | 9.6 | Tests | power_distribution(): 20 new tests, 75% → 98% coverage |
 | 9.7 | Tests | motor ct_terminals: 30 new tests, ~85% → 99% coverage |
-| 9.11 | Tests | Strengthened 10 weak assertions in multicount integration tests |
+| 9.10 | Tests | rendering/typst: 91 new tests — compiler 61%→89%, frame_gen 0%→100%, markdown 0%→100% |
+| 9.11 | Tests | Strengthened 10 weak assertions + 4 new snapshot tests (PSU, coil, no_contact, multi-count) |
+| 15.1 | API | BuildResult: `component_tag()`, `component_tags()`, `get_symbol()`, `get_symbols()` |
+| 15.3 | API | String shorthand for tag_generators: `{"K": "K1"}` |
+| 15.4 | API | StandardPins: 6 new pin sets (COIL, NO/NC_CONTACT, CB_2P/3P, CONTACTOR_3P, CT) |
+| 15.5 | API | Ported DeviceTemplate/PinDef/generate_field_connections to field_devices.py (26 tests) |
+| 15.6 | API | Ported merge_terminal_csv to export_utils.py (22 tests) |
+| 13.5 | Docs | 3 new examples: descriptors, plc_mapper, state_threading |
 
-### Tier 3: Test Coverage Expansion (remaining)
+### Tier 3: Test Coverage Expansion — COMPLETE
+
+All Tier 3 tasks done. 939 tests, 97% coverage.
+
+### Tier 4: API Improvements (from real usage) — MOSTLY COMPLETE
 
 | Task | Effort | Blocked by |
 |------|--------|------------|
-| 9.10 Test rendering/typst/compiler.py | 2-3 hr | -- |
-| 9.11 Snapshot tests for remaining circuits | 1-2 hr | -- |
-
-### Tier 4: API Improvements (from real usage)
-
-| Task | Effort | Blocked by |
-|------|--------|------------|
-| 15.1-15.3 BuildResult accessors + tag shorthand | 2-3 hr | -- |
-| 15.4 Extend StandardPins | 30 min | -- |
-| 15.5 Port DeviceTemplate system | 4-5 hr | Q8 |
-| 15.6-15.7 Port CSV merge + PLC connection gen | 3-4 hr | Q8 |
-| 13.5 Create 4 missing example files | 3-4 hr | -- |
+| ~~15.1-15.6 BuildResult, tag shorthand, StandardPins, DeviceTemplate, CSV merge~~ | DONE | -- |
+| ~~13.5 Example files~~ | DONE (3 of 4) | -- |
+| 15.7 Port PLC connection generation | 3-4 hr | -- |
 
 ### Tier 5: Cleanup & Polish
 
@@ -1097,5 +1104,4 @@ All items below were completed in earlier audit rounds. Kept for reference.
 | 12.1-12.2 API consistency fixes | 2 hr | -- |
 | 14.1 Verify SVG text escaping | 30 min | -- |
 | 16.1-16.3, 16.4 (port ID docs), 16.5-16.6 Remaining original audit items | 2-3 hr | -- |
-| 9.10 Test typst compiler | 2-3 hr | -- |
 | 9.12 Test infrastructure improvements | 1-2 hr | -- |

@@ -1,8 +1,11 @@
 from pyschemaelectrical.builder import CircuitBuilder
 from pyschemaelectrical.std_circuits import (
     changeover,
+    coil,
     dol_starter,
     emergency_stop,
+    no_contact,
+    psu,
     spdt,
 )
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
@@ -59,6 +62,34 @@ class TestStandardCircuitsSnapshot:
         )
         svg_content = render_circuit_to_string(circuit)
         snapshot_svg(svg_content, "motor_control")
+
+    def test_psu_snapshot(self, snapshot_svg):
+        state = create_autonumberer()
+        state, circuit, _ = psu(
+            state, 0, 0, tm_top="X1", tm_bot_left="X2", tm_bot_right="X3"
+        )
+        svg_content = render_circuit_to_string(circuit)
+        snapshot_svg(svg_content, "psu_circuit")
+
+    def test_coil_snapshot(self, snapshot_svg):
+        state = create_autonumberer()
+        state, circuit, _ = coil(state, 0, 0, tm_top="X1")
+        svg_content = render_circuit_to_string(circuit)
+        snapshot_svg(svg_content, "coil_circuit")
+
+    def test_no_contact_snapshot(self, snapshot_svg):
+        state = create_autonumberer()
+        state, circuit, _ = no_contact(state, 0, 0, tm_top="X1", tm_bot="X2")
+        svg_content = render_circuit_to_string(circuit)
+        snapshot_svg(svg_content, "no_contact_circuit")
+
+    def test_emergency_stop_multi_count_snapshot(self, snapshot_svg):
+        state = create_autonumberer()
+        state, circuit, _ = emergency_stop(
+            state, 0, 0, tm_top="X1", tm_bot="X2", count=2
+        )
+        svg_content = render_circuit_to_string(circuit)
+        snapshot_svg(svg_content, "emergency_stop_multi_count")
 
     def test_builder_integration_dry_run(self, snapshot_svg):
         """Test a manual build process representing a real user flow."""

@@ -124,6 +124,79 @@ class BuildResult:
     def __iter__(self):
         return iter((self.state, self.circuit, self.used_terminals))
 
+    def component_tag(self, prefix: str) -> str:
+        """Return the first generated tag for a given prefix.
+
+        Args:
+            prefix: Tag prefix (e.g., "K", "F", "Q").
+
+        Returns:
+            The first tag string (e.g., "K1").
+
+        Raises:
+            KeyError: If the prefix was not used in this build.
+        """
+        tags = self.component_map.get(prefix)
+        if not tags:
+            raise KeyError(
+                f"No tags for prefix '{prefix}'. "
+                f"Available: {list(self.component_map.keys())}"
+            )
+        return tags[0]
+
+    def component_tags(self, prefix: str) -> list[str]:
+        """Return all generated tags for a given prefix.
+
+        Args:
+            prefix: Tag prefix (e.g., "K", "F", "Q").
+
+        Returns:
+            List of tag strings (e.g., ["K1", "K2"]).
+            Empty list if prefix was not used.
+        """
+        return list(self.component_map.get(prefix, []))
+
+    def get_symbol(self, tag: str) -> Any:
+        """Look up a placed symbol by its tag.
+
+        Searches both ``circuit.symbols`` and ``circuit.elements`` for a
+        Symbol with a matching label.
+
+        Args:
+            tag: The symbol tag (e.g., "K1", "F1").
+
+        Returns:
+            The matching Symbol, or None if not found.
+        """
+        from pyschemaelectrical.model.core import Symbol
+
+        # Try circuit.symbols first (populated by add_symbol path)
+        result = self.circuit.get_symbol_by_tag(tag)
+        if result is not None:
+            return result
+        # Fall back to searching elements (populated by builder path)
+        for elem in self.circuit.elements:
+            if isinstance(elem, Symbol) and elem.label == tag:
+                return elem
+        return None
+
+    def get_symbols(self, prefix: str) -> list[Any]:
+        """Return all placed symbols whose tags match a prefix.
+
+        Args:
+            prefix: Tag prefix (e.g., "K", "F").
+
+        Returns:
+            List of Symbol objects matching the prefix.
+        """
+        tags = self.component_map.get(prefix, [])
+        result = []
+        for tag in tags:
+            sym = self.get_symbol(tag)
+            if sym is not None:
+                result.append(sym)
+        return result
+
     def reuse_tags(self, prefix: str) -> Callable:
         """
         Returns a tag generator that yields tags from this result's component_map.
@@ -650,7 +723,7 @@ class CircuitBuilder:
         count: int = 1,
         start_indices: dict[str, int] | None = None,
         terminal_start_indices: dict[str, int] | None = None,
-        tag_generators: dict[str, Callable] | None = None,
+        tag_generators: dict[str, Callable | str] | None = None,
         terminal_maps: dict[str, Any] | None = None,
         reuse_tags: dict[str, "BuildResult"] | None = None,
         reuse_terminals: dict[str, "BuildResult"] | None = None,
@@ -663,7 +736,9 @@ class CircuitBuilder:
             count: Number of circuit instances to create.
             start_indices: Override tag counters (e.g., {"K": 3}).
             terminal_start_indices: Override terminal pin counters.
-            tag_generators: Custom tag generator functions.
+            tag_generators: Custom tag generator functions. Also accepts
+                        string values as shorthand for fixed tags, e.g.,
+                        ``{"K": "K1"}`` instead of ``{"K": lambda s: (s, "K1")}``.
             terminal_maps: Terminal ID overrides by logical name.
             reuse_tags: Dict mapping tag prefix to BuildResult whose tags to reuse.
                         e.g., {"K": coil_result} reuses K tags from coil_result.
@@ -705,7 +780,13 @@ class CircuitBuilder:
                 elif callable(source_result):
                     effective_generators[prefix] = source_result
         if tag_generators:
-            effective_generators.update(tag_generators)
+            for prefix, gen in tag_generators.items():
+                if isinstance(gen, str):
+                    # String shorthand: "K1" -> lambda s: (s, "K1")
+                    fixed_tag = gen
+                    effective_generators[prefix] = lambda s, _t=fixed_tag: (s, _t)
+                else:
+                    effective_generators[prefix] = gen
 
         final_tag_generators = effective_generators if effective_generators else None
 
