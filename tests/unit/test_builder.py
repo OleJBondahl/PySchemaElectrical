@@ -1,4 +1,3 @@
-
 import pytest
 
 from pyschemaelectrical.builder import (
@@ -22,7 +21,6 @@ from pyschemaelectrical.exceptions import (
 from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
 from pyschemaelectrical.system.system import Circuit
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
-
 
 # ---------------------------------------------------------------------------
 # Mock symbol factories
@@ -75,14 +73,18 @@ def mock_two_pole_symbol(tag, pins=(), **kwargs):
     return Symbol(tag, ports=ports, label=tag)
 
 
-def mock_symbol_with_contact_pins(tag, contact_pins=("1", "2"), coil_pins=None, **kwargs):
+def mock_symbol_with_contact_pins(
+    tag, contact_pins=("1", "2"), coil_pins=None, **kwargs
+):
     """Symbol that accepts contact_pins and coil_pins parameters."""
     ports = {}
     for i, pin in enumerate(contact_pins):
         ports[pin] = Port(pin, Point(0, -10 + i * 20), Vector(0, -1 if i == 0 else 1))
     if coil_pins:
         for i, pin in enumerate(coil_pins):
-            ports[pin] = Port(pin, Point(20, -10 + i * 20), Vector(0, -1 if i == 0 else 1))
+            ports[pin] = Port(
+                pin, Point(20, -10 + i * 20), Vector(0, -1 if i == 0 else 1)
+            )
     return Symbol(tag, ports=ports, label=tag)
 
 
@@ -304,7 +306,9 @@ class TestBuildResult:
 
     def test_reuse_terminals_yields_pins_in_order(self):
         """reuse_terminals generator should yield pin groups in order."""
-        result = self._make_result(terminal_pin_map={"X1": ["1", "2", "3", "4", "5", "6"]})
+        result = self._make_result(
+            terminal_pin_map={"X1": ["1", "2", "3", "4", "5", "6"]}
+        )
         gen = result.reuse_terminals("X1")
         state = create_autonumberer()
 
@@ -968,8 +972,7 @@ class TestResolvePortRefToPole:
         """Pin name in a poles*2 pin list should resolve to correct pole index."""
         builder = CircuitBuilder(create_autonumberer())
         builder.add_component(
-            mock_two_pole_symbol, tag_prefix="K",
-            poles=2, pins=["A1", "A2", "B1", "B2"]
+            mock_two_pole_symbol, tag_prefix="K", poles=2, pins=["A1", "A2", "B1", "B2"]
         )
         ref = ComponentRef(builder, 0, "K")
 
@@ -986,8 +989,7 @@ class TestResolvePortRefToPole:
         """Pin name in a non-poles*2 pin list should use direct indexing."""
         builder = CircuitBuilder(create_autonumberer())
         builder.add_component(
-            mock_symbol, tag_prefix="K",
-            poles=1, pins=["L", "N", "PE"]
+            mock_symbol, tag_prefix="K", poles=1, pins=["L", "N", "PE"]
         )
         ref = ComponentRef(builder, 0, "K")
 
@@ -1083,6 +1085,7 @@ class TestDistributePins:
 
     def test_function_without_pin_parameters(self):
         """Should return empty dict when function has no pin parameters."""
+
         def simple_func(tag, value=0):
             pass
 
@@ -1091,6 +1094,7 @@ class TestDistributePins:
 
     def test_function_with_only_named_pins_params(self):
         """Should handle functions with only required *_pins params."""
+
         def func_with_required_pins(tag, contact_pins=("a", "b")):
             pass
 
@@ -1109,17 +1113,37 @@ class TestGetAbsoluteXOffset:
     def test_single_level(self):
         """A component placed_right_of a base should return its x_offset."""
         realized = [
-            {"spec": ComponentSpec(func=None, kind="symbol", x_offset=0.0, placed_right_of=None)},
-            {"spec": ComponentSpec(func=None, kind="symbol", x_offset=40.0, placed_right_of=0)},
+            {
+                "spec": ComponentSpec(
+                    func=None, kind="symbol", x_offset=0.0, placed_right_of=None
+                )
+            },
+            {
+                "spec": ComponentSpec(
+                    func=None, kind="symbol", x_offset=40.0, placed_right_of=0
+                )
+            },
         ]
         assert _get_absolute_x_offset(realized, 1) == 40.0
 
     def test_chained_place_right(self):
         """Chained place_right should accumulate x_offsets."""
         realized = [
-            {"spec": ComponentSpec(func=None, kind="symbol", x_offset=0.0, placed_right_of=None)},
-            {"spec": ComponentSpec(func=None, kind="symbol", x_offset=40.0, placed_right_of=0)},
-            {"spec": ComponentSpec(func=None, kind="symbol", x_offset=30.0, placed_right_of=1)},
+            {
+                "spec": ComponentSpec(
+                    func=None, kind="symbol", x_offset=0.0, placed_right_of=None
+                )
+            },
+            {
+                "spec": ComponentSpec(
+                    func=None, kind="symbol", x_offset=40.0, placed_right_of=0
+                )
+            },
+            {
+                "spec": ComponentSpec(
+                    func=None, kind="symbol", x_offset=30.0, placed_right_of=1
+                )
+            },
         ]
         # Component 2 is placed right of 1 (40) which is placed right of 0 (0)
         # Total: 30 + 40 = 70
@@ -1128,7 +1152,11 @@ class TestGetAbsoluteXOffset:
     def test_base_component_no_chain(self):
         """Base component (no placed_right_of) should just return its x_offset."""
         realized = [
-            {"spec": ComponentSpec(func=None, kind="symbol", x_offset=10.0, placed_right_of=None)},
+            {
+                "spec": ComponentSpec(
+                    func=None, kind="symbol", x_offset=10.0, placed_right_of=None
+                )
+            },
         ]
         assert _get_absolute_x_offset(realized, 0) == 10.0
 
@@ -1243,7 +1271,9 @@ class TestBuildIntegration:
         builder = CircuitBuilder(state)
         builder.set_layout(0, 0)
         tm = builder.add_terminal("X1", pins=["1"])
-        comp = builder.add_component(mock_symbol, tag_prefix="K", auto_connect_next=False)
+        comp = builder.add_component(
+            mock_symbol, tag_prefix="K", auto_connect_next=False
+        )
         builder.add_connection(tm._index, 0, comp._index, 0, "bottom", "top")
 
         result = builder.build(count=1)
@@ -1259,12 +1289,17 @@ class TestBuildIntegration:
         builder.set_layout(0, 0)
 
         ref_a = builder.add_component(
-            mock_symbol_with_pins, tag_prefix="K",
-            pins=["1", "2"], auto_connect_next=False,
+            mock_symbol_with_pins,
+            tag_prefix="K",
+            pins=["1", "2"],
+            auto_connect_next=False,
         )
         ref_b = builder.place_right(
-            ref_a, mock_symbol_with_pins, tag_prefix="Q",
-            pins=["1", "2"], spacing=50.0,
+            ref_a,
+            mock_symbol_with_pins,
+            tag_prefix="Q",
+            pins=["1", "2"],
+            spacing=50.0,
         )
         builder.connect_matching(ref_a, ref_b, pins=["1", "2"])
 
@@ -1480,8 +1515,10 @@ class TestAdditionalCoverage:
         is not found in a non-2x pins list (lines 591-592)."""
         builder = CircuitBuilder(create_autonumberer())
         builder.add_component(
-            mock_symbol, tag_prefix="K",
-            poles=1, pins=["L", "N", "PE"]  # 3 pins, not 1*2
+            mock_symbol,
+            tag_prefix="K",
+            poles=1,
+            pins=["L", "N", "PE"],  # 3 pins, not 1*2
         )
         ref = ComponentRef(builder, 0, "K")
 
@@ -1637,4 +1674,35 @@ class TestTagGeneratorStringShorthand:
         builder.add_terminal("X2")
         result = builder.build(count=2, tag_generators={"K": "K1"})
         # Both instances use the same fixed tag
+        assert result.component_tags("K") == ["K1", "K1"]
+
+
+# ---------------------------------------------------------------------------
+# fixed_tag() utility
+# ---------------------------------------------------------------------------
+
+
+class TestFixedTag:
+    """Tests for the fixed_tag() tag generator factory."""
+
+    def test_fixed_tag_always_returns_same_tag(self):
+        from pyschemaelectrical import create_autonumberer, fixed_tag
+
+        state = create_autonumberer()
+        gen = fixed_tag("K1")
+        s1, t1 = gen(state)
+        s2, t2 = gen(state)
+        assert t1 == "K1"
+        assert t2 == "K1"
+        assert s1 is state
+
+    def test_fixed_tag_works_as_tag_generator_in_build(self):
+        from pyschemaelectrical import CircuitBuilder, create_autonumberer, fixed_tag
+
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        builder.add_terminal("X1")
+        builder.add_component(mock_symbol, tag_prefix="K")
+        builder.add_terminal("X2")
+        result = builder.build(count=2, tag_generators={"K": fixed_tag("K1")})
         assert result.component_tags("K") == ["K1", "K1"]

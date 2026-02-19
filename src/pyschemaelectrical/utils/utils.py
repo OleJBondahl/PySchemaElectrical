@@ -3,14 +3,15 @@ Utility functions for circuit generation and state management.
 Contains helpers for tag counters and terminal management.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from dataclasses import replace
 
 from pyschemaelectrical.model.state import GenerationState
 
 
-def set_tag_counter(
-    state: GenerationState, prefix: str, value: int
-) -> GenerationState:
+def set_tag_counter(state: GenerationState, prefix: str, value: int) -> GenerationState:
     """
     Sets the counter for a specific tag prefix to a given value.
     The next call to next_tag() will return value + 1.
@@ -59,9 +60,7 @@ def set_terminal_counter(
     )
 
 
-def get_terminal_counter(
-    state: GenerationState, terminal_tag: str
-) -> int:
+def get_terminal_counter(state: GenerationState, terminal_tag: str) -> int:
     """
     Get the current pin counter for a terminal (0 if unused).
 
@@ -108,3 +107,30 @@ def merge_terminals(target: list, source: list) -> list:
         A new list containing all items from both lists.
     """
     return target + source
+
+
+def fixed_tag(tag: str) -> Callable[[GenerationState], tuple[GenerationState, str]]:
+    """Return a tag generator that always emits the given fixed tag.
+
+    Useful for ``tag_generators`` when a relay or contactor tag must stay
+    constant across multiple circuit instances.
+
+    Args:
+        tag: The tag string to always return (e.g. ``"K1"``).
+
+    Returns:
+        A callable ``(state) -> (state, tag)`` suitable for use as a
+        ``tag_generators`` value in
+        :meth:`~pyschemaelectrical.builder.CircuitBuilder.build`.
+
+    Example::
+
+        from pyschemaelectrical import fixed_tag, CircuitBuilder
+
+        result = builder.build(count=3, tag_generators={"K": fixed_tag("K1")})
+    """
+
+    def _gen(state: GenerationState) -> tuple[GenerationState, str]:
+        return state, tag
+
+    return _gen

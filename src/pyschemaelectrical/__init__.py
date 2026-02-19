@@ -2,50 +2,62 @@
 PySchemaElectrical Library.
 """
 
-from .system.system import Circuit, add_symbol, render_system, merge_circuits  # noqa: E402
+from . import std_circuits  # noqa: E402, I001 — must be last to avoid circular imports
 from .builder import BuildResult, CircuitBuilder, ComponentRef, PortRef
+from .descriptors import build_from_descriptors, comp, ref, term
+from .exceptions import (
+    CircuitValidationError,
+    ComponentNotFoundError,
+    PortNotFoundError,
+    TagReuseError,
+    # Backward-compatible aliases (deprecated)
+    TagReuseExhausted,
+    TerminalReuseError,
+    TerminalReuseExhausted,
+    WireLabelCountMismatch,
+    WireLabelMismatchError,
+)
+from .field_devices import DeviceTemplate, PinDef, generate_field_connections
+from .model.constants import (
+    CircuitLayoutConfig,
+    CircuitLayouts,
+    LayoutDefaults,
+    PinSet,
+    SpacingConfig,
+    StandardCircuitKeys,
+    StandardPins,
+    StandardSpacing,
+    StandardTags,
+)
+from .model.core import SymbolFactory
+from .model.state import GenerationState, create_initial_state
+from .plc import PlcMapper
+from .project import Project
+from .system.connection_registry import export_registry_to_csv, get_registry
+from .system.system import (  # noqa: E402
+    Circuit,
+    add_symbol,
+    merge_circuits,
+    render_system,
+)
+from .terminal import Terminal
 from .utils.autonumbering import create_autonumberer, get_tag_number, next_terminal_pins
-from .utils.utils import set_tag_counter, set_terminal_counter, get_terminal_counter, apply_start_indices, merge_terminals
 from .utils.export_utils import export_terminal_list, merge_terminal_csv
 from .utils.terminal_bridges import (
     BridgeRange,
     ConnectionDef,
     expand_range_to_pins,
-    get_connection_groups_for_terminal,
     generate_internal_connections_data,
+    get_connection_groups_for_terminal,
     parse_terminal_pins_from_csv,
     update_csv_with_internal_connections,
 )
-from .system.connection_registry import get_registry, export_registry_to_csv
-from .model.constants import (
-    StandardSpacing,
-    StandardTags,
-    StandardPins,
-    StandardCircuitKeys,
-    SpacingConfig,
-    PinSet,
-    LayoutDefaults,
-    CircuitLayoutConfig,
-    CircuitLayouts,
+from .utils.utils import (
+    apply_start_indices,
+    fixed_tag,
+    get_terminal_counter,
+    merge_terminals,
+    set_tag_counter,
+    set_terminal_counter,
 )
-from .model.core import SymbolFactory
-from .model.state import create_initial_state, GenerationState
-from .exceptions import (
-    CircuitValidationError,
-    PortNotFoundError,
-    ComponentNotFoundError,
-    TagReuseError,
-    TerminalReuseError,
-    WireLabelMismatchError,
-    # Backward-compatible aliases (deprecated)
-    TagReuseExhausted,
-    TerminalReuseExhausted,
-    WireLabelCountMismatch,
-)
-from .terminal import Terminal
 from .wire import wire
-from .descriptors import ref, comp, term, build_from_descriptors
-from .plc import PlcMapper
-from .project import Project
-from .field_devices import PinDef, DeviceTemplate, generate_field_connections
-from . import std_circuits  # noqa: E402, I001 — must be last to avoid circular imports
