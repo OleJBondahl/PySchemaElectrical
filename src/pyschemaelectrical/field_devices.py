@@ -113,6 +113,63 @@ class PinDef:
 
 
 @dataclass(frozen=True)
+class SequentialPin(PinDef):
+    """Auto-numbered terminal slot.
+
+    Cannot have pin_prefix or terminal_pin — both must be empty.
+    Terminal pin is assigned automatically as "1", "2", "3"...
+    """
+
+    def __post_init__(self) -> None:
+        if self.pin_prefix:
+            raise ValueError(
+                f"SequentialPin '{self.device_pin}': pin_prefix must be empty "
+                f"(use PrefixedPin for prefix-numbered pins)"
+            )
+        if self.terminal_pin:
+            raise ValueError(
+                f"SequentialPin '{self.device_pin}': terminal_pin must be empty "
+                f"(use FixedPin for literal pin names)"
+            )
+
+
+@dataclass(frozen=True)
+class PrefixedPin(PinDef):
+    """Prefix-numbered terminal slot (e.g. 'L1:1', 'L2:1').
+
+    Requires pin_prefix; cannot have terminal_pin.
+    Terminal pin is formatted as "{pin_prefix}:{group_index}".
+    """
+
+    def __post_init__(self) -> None:
+        if not self.pin_prefix:
+            raise ValueError(f"PrefixedPin '{self.device_pin}': pin_prefix is required")
+        if self.terminal_pin:
+            raise ValueError(
+                f"PrefixedPin '{self.device_pin}': terminal_pin must be empty "
+                f"(use FixedPin for literal pin names)"
+            )
+
+
+@dataclass(frozen=True)
+class FixedPin(PinDef):
+    """Fixed terminal pin name (e.g. 'L1', 'PE').
+
+    Requires terminal_pin; cannot have pin_prefix.
+    Terminal pin is used literally without any auto-numbering.
+    """
+
+    def __post_init__(self) -> None:
+        if not self.terminal_pin:
+            raise ValueError(f"FixedPin '{self.device_pin}': terminal_pin is required")
+        if self.pin_prefix:
+            raise ValueError(
+                f"FixedPin '{self.device_pin}': pin_prefix must be empty "
+                f"(use PrefixedPin for prefix-numbered pins)"
+            )
+
+
+@dataclass(frozen=True)
 class DeviceTemplate:
     """
     Reusable connection pattern for a field device type.
@@ -175,9 +232,7 @@ def _resolve_terminal_pin(
     if terminal_key in reuse_iters:
         return next(reuse_iters[terminal_key])
 
-    sequential_counters[terminal_key] = (
-        sequential_counters.get(terminal_key, 0) + 1
-    )
+    sequential_counters[terminal_key] = sequential_counters.get(terminal_key, 0) + 1
     return str(sequential_counters[terminal_key])
 
 
@@ -201,9 +256,7 @@ def _build_reuse_iters(
             reuse_iters[str_key] = iter(source)
         else:
             # Assume BuildResult-like object with terminal_pin_map
-            reuse_iters[str_key] = iter(
-                source.terminal_pin_map.get(str_key, [])
-            )
+            reuse_iters[str_key] = iter(source.terminal_pin_map.get(str_key, []))
     return reuse_iters
 
 

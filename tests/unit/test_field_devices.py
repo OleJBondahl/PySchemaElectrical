@@ -7,13 +7,15 @@ function with all three pin numbering modes: sequential, prefixed, and fixed.
 
 import pytest
 
-from pyschemaelectrical.terminal import Terminal
 from pyschemaelectrical.field_devices import (
     DeviceTemplate,
+    FixedPin,
     PinDef,
+    PrefixedPin,
+    SequentialPin,
     generate_field_connections,
 )
-
+from pyschemaelectrical.terminal import Terminal
 
 # ---------------------------------------------------------------------------
 # Fixtures: reusable terminals and templates
@@ -106,6 +108,103 @@ class TestDeviceTemplate:
 
 
 # ---------------------------------------------------------------------------
+# PinDef typed subclasses
+# ---------------------------------------------------------------------------
+
+
+class TestPinDefSubclasses:
+    """Tests for SequentialPin, PrefixedPin, and FixedPin typed subclasses."""
+
+    # SequentialPin
+
+    def test_sequential_pin_valid_creation(self, signal_terminal):
+        """SequentialPin can be created with just device_pin."""
+        pin = SequentialPin("Sig+", signal_terminal)
+        assert pin.device_pin == "Sig+"
+        assert pin.pin_prefix == ""
+        assert pin.terminal_pin == ""
+        assert isinstance(pin, PinDef)
+
+    def test_sequential_pin_rejects_pin_prefix(self, signal_terminal):
+        """SequentialPin raises ValueError if pin_prefix is set."""
+        with pytest.raises(ValueError, match="pin_prefix must be empty"):
+            SequentialPin("Sig+", signal_terminal, pin_prefix="L1")
+
+    def test_sequential_pin_rejects_terminal_pin(self, signal_terminal):
+        """SequentialPin raises ValueError if terminal_pin is set."""
+        with pytest.raises(ValueError, match="terminal_pin must be empty"):
+            SequentialPin("Sig+", signal_terminal, terminal_pin="L1")
+
+    # PrefixedPin
+
+    def test_prefixed_pin_valid_creation(self, power_terminal):
+        """PrefixedPin can be created with device_pin and pin_prefix."""
+        pin = PrefixedPin("L1", power_terminal, pin_prefix="L1")
+        assert pin.device_pin == "L1"
+        assert pin.pin_prefix == "L1"
+        assert pin.terminal_pin == ""
+        assert isinstance(pin, PinDef)
+
+    def test_prefixed_pin_requires_pin_prefix(self, power_terminal):
+        """PrefixedPin raises ValueError if pin_prefix is empty."""
+        with pytest.raises(ValueError, match="pin_prefix is required"):
+            PrefixedPin("L1", power_terminal)
+
+    def test_prefixed_pin_rejects_terminal_pin(self, power_terminal):
+        """PrefixedPin raises ValueError if terminal_pin is set."""
+        with pytest.raises(ValueError, match="terminal_pin must be empty"):
+            PrefixedPin("L1", power_terminal, pin_prefix="L1", terminal_pin="L1")
+
+    # FixedPin
+
+    def test_fixed_pin_valid_creation(self, signal_terminal):
+        """FixedPin can be created with device_pin and terminal_pin."""
+        pin = FixedPin("U1", signal_terminal, terminal_pin="L1")
+        assert pin.device_pin == "U1"
+        assert pin.terminal_pin == "L1"
+        assert pin.pin_prefix == ""
+        assert isinstance(pin, PinDef)
+
+    def test_fixed_pin_requires_terminal_pin(self, signal_terminal):
+        """FixedPin raises ValueError if terminal_pin is empty."""
+        with pytest.raises(ValueError, match="terminal_pin is required"):
+            FixedPin("U1", signal_terminal)
+
+    def test_fixed_pin_rejects_pin_prefix(self, signal_terminal):
+        """FixedPin raises ValueError if pin_prefix is set."""
+        with pytest.raises(ValueError, match="pin_prefix must be empty"):
+            FixedPin("U1", signal_terminal, terminal_pin="L1", pin_prefix="L1")
+
+    # Mixed template
+
+    def test_subclasses_work_in_device_template(
+        self, signal_terminal, power_terminal, plc_ai
+    ):
+        """DeviceTemplate mixing all three subclasses works with generate_field_connections."""  # noqa: E501
+        template = DeviceTemplate(
+            mpn="Complex Device",
+            pins=(
+                SequentialPin("Sig+", signal_terminal, plc_ai),
+                SequentialPin("GND", signal_terminal),
+                PrefixedPin("L1", power_terminal, pin_prefix="L1"),
+                PrefixedPin("L2", power_terminal, pin_prefix="L2"),
+                FixedPin("PE", power_terminal, terminal_pin="PE"),
+            ),
+        )
+        rows = generate_field_connections([("DEV-01", template)])
+
+        assert len(rows) == 5
+        # SequentialPin rows: auto-numbered on signal_terminal
+        assert rows[0] == ("DEV-01", "Sig+", signal_terminal, "1", "PLC:AI", "")
+        assert rows[1] == ("DEV-01", "GND", signal_terminal, "2", "", "")
+        # PrefixedPin rows: group 1 on power_terminal
+        assert rows[2] == ("DEV-01", "L1", power_terminal, "L1:1", "", "")
+        assert rows[3] == ("DEV-01", "L2", power_terminal, "L2:1", "", "")
+        # FixedPin row: literal "PE"
+        assert rows[4] == ("DEV-01", "PE", power_terminal, "PE", "", "")
+
+
+# ---------------------------------------------------------------------------
 # Sequential pin numbering (default mode)
 # ---------------------------------------------------------------------------
 
@@ -138,10 +237,12 @@ class TestSequentialPins:
                 PinDef("GND", signal_terminal),
             ),
         )
-        rows = generate_field_connections([
-            ("PT-01", template),
-            ("PT-02", template),
-        ])
+        rows = generate_field_connections(
+            [
+                ("PT-01", template),
+                ("PT-02", template),
+            ]
+        )
 
         assert len(rows) == 4
         # First device gets pins 1, 2
@@ -160,10 +261,12 @@ class TestSequentialPins:
                 PinDef("2", ext_gnd),
             ),
         )
-        rows = generate_field_connections([
-            ("LS-01", template),
-            ("LS-02", template),
-        ])
+        rows = generate_field_connections(
+            [
+                ("LS-01", template),
+                ("LS-02", template),
+            ]
+        )
 
         assert len(rows) == 4
         # X100 pins: 1, 2 (from LS-01 pin "1" and LS-02 pin "1")
@@ -213,10 +316,12 @@ class TestPrefixedPins:
                 PinDef("L3", terminal, pin_prefix="L3"),
             ),
         )
-        rows = generate_field_connections([
-            ("Feed A", template),
-            ("Feed B", template),
-        ])
+        rows = generate_field_connections(
+            [
+                ("Feed A", template),
+                ("Feed B", template),
+            ]
+        )
 
         assert len(rows) == 6
         # First device: group 1
@@ -247,10 +352,12 @@ class TestPrefixedPins:
                 PinDef("A2", terminal, pin_prefix="L1"),
             ),
         )
-        rows = generate_field_connections([
-            ("Dev A", template_full),
-            ("Dev B", template_n_only),
-        ])
+        rows = generate_field_connections(
+            [
+                ("Dev A", template_full),
+                ("Dev B", template_n_only),
+            ]
+        )
 
         # Dev A: all prefixes get group 1
         assert rows[0][3] == "L1:1"
@@ -293,23 +400,21 @@ class TestFixedPins:
         terminal = Terminal("X500", "Motor terminal")
         fixed_template = DeviceTemplate(
             mpn="Motor",
-            pins=(
-                PinDef("U1", terminal, terminal_pin="L1"),
-            ),
+            pins=(PinDef("U1", terminal, terminal_pin="L1"),),
         )
         seq_template = DeviceTemplate(
             mpn="Sensor",
-            pins=(
-                PinDef("1", terminal),
-            ),
+            pins=(PinDef("1", terminal),),
         )
-        rows = generate_field_connections([
-            ("M-01", fixed_template),
-            ("S-01", seq_template),
-        ])
+        rows = generate_field_connections(
+            [
+                ("M-01", fixed_template),
+                ("S-01", seq_template),
+            ]
+        )
 
         assert rows[0][3] == "L1"  # fixed
-        assert rows[1][3] == "1"   # sequential starts at 1
+        assert rows[1][3] == "1"  # sequential starts at 1
 
 
 # ---------------------------------------------------------------------------
@@ -438,7 +543,7 @@ class TestReuseTerminals:
         )
 
         assert rows[0][3] == "99"  # reused
-        assert rows[1][3] == "1"   # sequential
+        assert rows[1][3] == "1"  # sequential
 
 
 # ---------------------------------------------------------------------------
@@ -491,12 +596,12 @@ class TestConnectionRowStructure:
         )
         rows = generate_field_connections([("D-01", template)])
         row = rows[0]
-        assert isinstance(row[0], str)           # tag
-        assert isinstance(row[1], str)           # device_pin
-        assert row[2] is signal_terminal         # terminal object
-        assert isinstance(row[3], str)           # terminal_pin
-        assert isinstance(row[4], str)           # plc_tag
-        assert isinstance(row[5], str)           # reserved (empty)
+        assert isinstance(row[0], str)  # tag
+        assert isinstance(row[1], str)  # device_pin
+        assert row[2] is signal_terminal  # terminal object
+        assert isinstance(row[3], str)  # terminal_pin
+        assert isinstance(row[4], str)  # plc_tag
+        assert isinstance(row[5], str)  # reserved (empty)
         assert row[5] == ""
 
 

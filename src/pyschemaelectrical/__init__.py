@@ -24,7 +24,10 @@ from .field_devices import (
     ConnectionRow,
     DeviceEntry,
     DeviceTemplate,
+    FixedPin,
     PinDef,
+    PrefixedPin,
+    SequentialPin,
     generate_field_connections,
 )
 from .model.constants import (
