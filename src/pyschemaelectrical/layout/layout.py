@@ -208,15 +208,15 @@ def layout_vertical_chain(
 
 
 def layout_horizontal(
-    start_state: dict[str, Any],
+    start_state: Any,
     start_x: float,
     start_y: float,
     spacing: float,
     count: int,
     generate_func: Callable[
-        [dict[str, Any], float, float], tuple[dict[str, Any], list[Element]]
+        [Any, float, float], tuple[Any, list[Element]]
     ],
-) -> tuple[dict[str, Any], list[Element]]:
+) -> tuple[Any, list[Element]]:
     """
     Layout multiple copies of a circuit horizontally, propagating state.
 
@@ -248,19 +248,19 @@ def layout_horizontal(
 
 
 def create_horizontal_layout(
-    state: dict[str, Any],
+    state: Any,
     start_x: float,
     start_y: float,
     count: int,
     spacing: float,
     generator_func_single: Callable[
-        [dict[str, Any], float, float, dict[str, Any], dict[str, Any], int],
-        tuple[dict[str, Any], Any],
+        [Any, float, float, dict[str, Any], dict[str, Any], int],
+        tuple[Any, Any],
     ],
     default_tag_generators: dict[str, Callable],
     tag_generators: dict[str, Callable] | None = None,
     terminal_maps: dict[str, Any] | None = None,
-) -> tuple[dict[str, Any], list[Any]]:
+) -> tuple[Any, list[Any]]:
     """
     Generic function to create multiple circuit instances arranged horizontally.
 

@@ -115,7 +115,7 @@ class ComponentRef:
 class BuildResult:
     """Result of a circuit build operation."""
 
-    state: dict[str, Any]
+    state: Any  # GenerationState (typed as Any to avoid import cycle)
     circuit: Circuit
     used_terminals: list[Any]
     component_map: dict[str, list[str]] = field(default_factory=dict)
@@ -134,12 +134,12 @@ class BuildResult:
         tags = iter(self.component_map.get(prefix, []))
 
         def generator(state):
-            from pyschemaelectrical.exceptions import TagReuseExhausted
+            from pyschemaelectrical.exceptions import TagReuseError
 
             try:
                 return state, next(tags)
             except StopIteration:
-                raise TagReuseExhausted(
+                raise TagReuseError(
                     prefix, list(self.component_map.get(prefix, []))
                 ) from None
 
@@ -155,14 +155,14 @@ class BuildResult:
         pins = iter(self.terminal_pin_map.get(key, []))
 
         def generator(state, poles):
-            from pyschemaelectrical.exceptions import TerminalReuseExhausted
+            from pyschemaelectrical.exceptions import TerminalReuseError
 
             result = []
             for _ in range(poles):
                 try:
                     result.append(next(pins))
                 except StopIteration:
-                    raise TerminalReuseExhausted(
+                    raise TerminalReuseError(
                         key, list(self.terminal_pin_map.get(key, []))
                     ) from None
             return state, tuple(result)
@@ -171,12 +171,33 @@ class BuildResult:
 
 
 class CircuitBuilder:
-    """
-    Unified builder for 1-pole, 2-pole, and 3-pole circuits.
-    Now acts as a fluent builder for CircuitSpec.
+    """Fluent builder for constructing custom linear circuits.
+
+    CircuitBuilder is one of the intentional mutable builder classes in the
+    library. It accumulates component specifications, connections, and layout
+    settings via method chaining, then produces a ``BuildResult`` when
+    ``.build()`` is called.
+
+    Typical usage::
+
+        builder = CircuitBuilder(state)
+        tm_top = builder.add_terminal("X1", poles=3)
+        cb = builder.add_component(circuit_breaker_symbol, "Q", poles=3,
+                                   pins=("1","2","3","4","5","6"))
+        builder.build(count=2, wire_labels=["BK", "BK", "BK"])
+
+    Warning:
+        Do not share builder instances across multiple build contexts.
+        Each builder should be used for a single ``.build()`` call.
     """
 
-    def __init__(self, state: Any):
+    def __init__(self, state: Any) -> None:
+        """Initialize a CircuitBuilder with autonumbering state.
+
+        Args:
+            state: The autonumbering state dict (from ``create_autonumberer()``
+                or returned by a previous ``BuildResult.state``).
+        """
         self._initial_state = state
         self._spec = CircuitSpec()
         # Fixed tag generators added by add_reference()
@@ -185,7 +206,17 @@ class CircuitBuilder:
     def set_layout(
         self, x: float = 0, y: float = 0, spacing: float = 150, symbol_spacing: float = 50
     ) -> "CircuitBuilder":
-        """Configure the layout settings."""
+        """Configure the layout geometry for the circuit.
+
+        Args:
+            x: Starting X coordinate in mm.
+            y: Starting Y coordinate in mm.
+            spacing: Horizontal distance between circuit instances in mm.
+            symbol_spacing: Vertical distance between components in mm.
+
+        Returns:
+            self for method chaining.
+        """
         self._spec.layout = LayoutConfig(
             start_x=x, start_y=y, spacing=spacing, symbol_spacing=symbol_spacing
         )
@@ -206,22 +237,29 @@ class CircuitBuilder:
         connection_side: str | None = None,
         **kwargs,
     ) -> "ComponentRef":
-        """
-        Add a terminal block.
+        """Add a terminal block to the circuit chain.
 
         Args:
-            label_pos: Position of tag label ('left' or 'right').
-            pin_label_pos: Position of pin number label ('left' or 'right').
-                Defaults to label_pos if None.
+            tm_id: Terminal identifier (str or ``Terminal`` instance).
+            poles: Number of poles (default 1).
+            pins: Explicit pin labels. If None, auto-numbered.
             pin_prefixes: Override the terminal's default pin_prefixes for
                 auto-allocation. E.g. ``("L1", "N")`` to select specific
                 prefixes from a terminal that has ``("L1","L2","L3","N")``.
-            connection_side: Override the auto-determined side ('top' or 'bottom')
-                for the terminal CSV from/to column. If None, determined by
-                component order in the builder chain.
+            label_pos: Position of tag label ('left' or 'right').
+            pin_label_pos: Position of pin number label ('left' or 'right').
+                Defaults to label_pos if None.
+            logical_name: Register this terminal under a logical key in
+                the terminal map (e.g. "MAIN" or "OUTPUT").
+            x_offset: Horizontal offset from the default X position in mm.
+            y_increment: Vertical spacing override in mm. If None, uses
+                ``symbol_spacing``.
+            auto_connect_next: Auto-connect to next component (default True).
+            connection_side: Override the auto-determined side ('top' or
+                'bottom') for the terminal CSV from/to column.
 
-        Returns: ComponentRef (supports tuple unpacking:
-            _, idx = builder.add_terminal(...))
+        Returns:
+            ComponentRef for the added terminal.
         """
         if logical_name:
             self._spec.terminal_map[logical_name] = tm_id
@@ -259,11 +297,21 @@ class CircuitBuilder:
         auto_connect_next: bool = True,
         **kwargs,
     ) -> "ComponentRef":
-        """
-        Add a generic component/symbol.
+        """Add a generic component to the circuit chain.
 
-        Returns: ComponentRef (supports tuple unpacking:
-            _, idx = builder.add_component(...))
+        Args:
+            symbol_func: Symbol factory function (e.g. ``circuit_breaker_symbol``).
+            tag_prefix: Tag prefix for autonumbering (e.g. "F", "Q", "K").
+            poles: Number of poles (default 1).
+            pins: Explicit pin labels. If None, auto-numbered.
+            x_offset: Horizontal offset from the default X position in mm.
+            y_increment: Vertical spacing override in mm. If None, uses
+                ``symbol_spacing``.
+            auto_connect_next: Auto-connect to next component (default True).
+            **kwargs: Passed to the symbol factory function.
+
+        Returns:
+            ComponentRef for the added component.
         """
         spec = ComponentSpec(
             func=symbol_func,
@@ -558,9 +606,21 @@ class CircuitBuilder:
         side_a: str = "bottom",
         side_b: str = "top",
     ) -> "CircuitBuilder":
-        """
-        Add an explicit connection between components (by index in builder list).
-        Indices are 0-based.
+        """Add an explicit connection between components by index.
+
+        Low-level connection API. Prefer ``connect()`` for pin-based
+        connections using ``ComponentRef`` / ``PortRef``.
+
+        Args:
+            comp_idx_a: Source component index (0-based).
+            pole_idx_a: Source pole index (0-based).
+            comp_idx_b: Target component index (0-based).
+            pole_idx_b: Target pole index (0-based).
+            side_a: Connection side on component a ('top' or 'bottom').
+            side_b: Connection side on component b ('top' or 'bottom').
+
+        Returns:
+            self for method chaining.
         """
         self._spec.manual_connections.append(
             (comp_idx_a, pole_idx_a, comp_idx_b, pole_idx_b, side_a, side_b)
@@ -617,6 +677,12 @@ class CircuitBuilder:
         Returns:
             BuildResult with state, circuit, used_terminals, component_map,
             and terminal_pin_map.
+
+        Raises:
+            ComponentNotFoundError: If a connection references an invalid index.
+            PortNotFoundError: If a connection references an invalid port.
+            TagReuseError: If reuse_tags runs out of tags from the source.
+            TerminalReuseError: If reuse_terminals runs out of pins.
         """
         self._validate_connections()
         state = self._initial_state
@@ -688,10 +754,9 @@ class CircuitBuilder:
         c = Circuit(elements=elements)
 
         # Apply wire labels if provided
-        if wire_labels is not None:
-            from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+        from pyschemaelectrical.layout.wire_labels import apply_wire_labels
 
-            c = add_wire_labels_to_circuit(c, wire_labels)
+        c = apply_wire_labels(c, wire_labels)
 
         # Extract used terminals
         used_terminals = []
@@ -714,7 +779,7 @@ class CircuitBuilder:
 
 
 def _create_single_circuit_from_spec(
-    state: dict[str, Any],
+    state: Any,  # GenerationState
     x: float,
     y: float,
     spec: CircuitSpec,
@@ -786,7 +851,12 @@ def _create_single_circuit_from_spec(
             # Tag generation
             # 1. Check tag_generators
             prefix = component_spec.tag_prefix
-            if tag_generators and prefix and prefix in tag_generators:
+            if prefix is None:
+                raise ValueError(
+                    f"tag_prefix is required for component of kind "
+                    f"'{component_spec.kind}'"
+                )
+            if tag_generators and prefix in tag_generators:
                 # Generator signature: s -> (s, tag)
                 state, tag = tag_generators[prefix](state)
             else:

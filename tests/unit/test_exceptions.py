@@ -6,8 +6,8 @@ from pyschemaelectrical.exceptions import (
     CircuitValidationError,
     ComponentNotFoundError,
     PortNotFoundError,
-    TagReuseExhausted,
-    WireLabelCountMismatch,
+    TagReuseError,
+    WireLabelMismatchError,
 )
 
 
@@ -30,8 +30,8 @@ def test_component_not_found_message():
 
 
 def test_tag_reuse_exhausted_message():
-    """TagReuseExhausted should include prefix and source tags."""
-    err = TagReuseExhausted("K", ["K1", "K2"])
+    """TagReuseError should include prefix and source tags."""
+    err = TagReuseError("K", ["K1", "K2"])
     assert "K" in str(err)
     assert "K1" in str(err)
     assert "K2" in str(err)
@@ -41,8 +41,8 @@ def test_tag_reuse_exhausted_message():
 
 
 def test_wire_label_count_mismatch_message():
-    """WireLabelCountMismatch should include expected/actual counts."""
-    err = WireLabelCountMismatch(expected=5, actual=3, circuit_key="pumps")
+    """WireLabelMismatchError should include expected/actual counts."""
+    err = WireLabelMismatchError(expected=5, actual=3, circuit_key="pumps")
     assert "5" in str(err)
     assert "3" in str(err)
     assert "pumps" in str(err)
@@ -51,8 +51,8 @@ def test_wire_label_count_mismatch_message():
 
 
 def test_wire_label_count_mismatch_no_circuit_key():
-    """WireLabelCountMismatch should work without circuit_key."""
-    err = WireLabelCountMismatch(expected=5, actual=3)
+    """WireLabelMismatchError should work without circuit_key."""
+    err = WireLabelMismatchError(expected=5, actual=3)
     assert "5" in str(err)
     assert "3" in str(err)
 
@@ -61,8 +61,8 @@ def test_all_inherit_from_circuit_validation_error():
     """All custom exceptions should inherit from CircuitValidationError."""
     assert issubclass(PortNotFoundError, CircuitValidationError)
     assert issubclass(ComponentNotFoundError, CircuitValidationError)
-    assert issubclass(TagReuseExhausted, CircuitValidationError)
-    assert issubclass(WireLabelCountMismatch, CircuitValidationError)
+    assert issubclass(TagReuseError, CircuitValidationError)
+    assert issubclass(WireLabelMismatchError, CircuitValidationError)
 
 
 def test_circuit_validation_error_is_exception():

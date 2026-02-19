@@ -3,7 +3,7 @@
 import pytest
 
 from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.exceptions import TagReuseExhausted
+from pyschemaelectrical.exceptions import TagReuseError
 from pyschemaelectrical.symbols.coils import coil_symbol
 from pyschemaelectrical.symbols.contacts import normally_open_symbol
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
@@ -31,7 +31,7 @@ def test_reuse_tags_yields_tags_from_source():
 
 
 def test_reuse_tags_exhaustion_raises():
-    """Building more instances than source tags should raise TagReuseExhausted."""
+    """Building more instances than source tags should raise TagReuseError."""
     state = create_autonumberer()
 
     coil_builder = CircuitBuilder(state)
@@ -43,7 +43,7 @@ def test_reuse_tags_exhaustion_raises():
     contact_builder.set_layout(x=0, y=0, spacing=80)
     contact_builder.add_component(normally_open_symbol, "K", pins=("13", "14"))
 
-    with pytest.raises(TagReuseExhausted):
+    with pytest.raises(TagReuseError):
         contact_builder.build(count=3, reuse_tags={"K": coil_result})
 
 

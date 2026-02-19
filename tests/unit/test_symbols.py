@@ -1,22 +1,41 @@
+import pytest
+
 from pyschemaelectrical.model.core import Symbol
 from pyschemaelectrical.symbols.actuators import turn_switch_symbol
 from pyschemaelectrical.symbols.assemblies import (
     contactor_symbol,
     turn_switch_assembly_symbol,
 )
+from pyschemaelectrical.symbols.blocks import dynamic_block_symbol, terminal_box_symbol
+from pyschemaelectrical.symbols.breakers import (
+    circuit_breaker_symbol,
+    three_pole_circuit_breaker_symbol,
+    two_pole_circuit_breaker_symbol,
+)
 from pyschemaelectrical.symbols.coils import coil_symbol
 from pyschemaelectrical.symbols.contacts import (
+    multi_pole_spdt_symbol,
     normally_closed_symbol,
     normally_open_symbol,
+    spdt_contact_symbol,
     three_pole_normally_open_symbol,
 )
 from pyschemaelectrical.symbols.motors import motor_symbol, three_pole_motor_symbol
-from pyschemaelectrical.symbols.protection import three_pole_thermal_overload_symbol
+from pyschemaelectrical.symbols.protection import (
+    fuse_symbol,
+    three_pole_thermal_overload_symbol,
+)
 
 # Imports from symbol library - assuming they are exposed correctly or via submodule
 from pyschemaelectrical.symbols.terminals import (
+    TerminalBlock,
+    multi_pole_terminal_symbol,
     terminal_symbol,
     three_pole_terminal_symbol,
+)
+from pyschemaelectrical.symbols.transducers import (
+    current_transducer_assembly_symbol,
+    current_transducer_symbol,
 )
 
 
@@ -154,3 +173,728 @@ class TestSymbolsUnit:
         # Ports always use internal IDs "1" and "2", pins are just visual labels
         assert "1" in sym.ports
         assert "2" in sym.ports
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Circuit Breaker Symbols (breakers.py)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestCircuitBreakerSymbol:
+    """Tests for circuit_breaker_symbol (single pole)."""
+
+    def test_basic_creation(self):
+        """Single-pole circuit breaker returns a Symbol with 2 ports."""
+        sym = circuit_breaker_symbol(label="F1", pins=("1", "2"))
+        assert isinstance(sym, Symbol)
+        assert sym.label == "F1"
+        assert "1" in sym.ports
+        assert "2" in sym.ports
+        assert len(sym.ports) == 2
+
+    def test_elements_include_cross(self):
+        """Circuit breaker should have more elements than a plain NO contact
+        because of the cross (X) at the interruption point."""
+        sym = circuit_breaker_symbol(label="F1", pins=("1", "2"))
+        # 2 lead lines + blade + 2 cross lines + label text + 2 pin labels = 8
+        # Without checking exact count, verify there are at least 5 geometric elements
+        # (leads, blade, cross_line_1, cross_line_2)
+        assert len(sym.elements) >= 5
+
+    def test_port_positions_vertical(self):
+        """Port 1 should be above port 2 (smaller Y value)."""
+        sym = circuit_breaker_symbol()
+        p1 = sym.ports["1"].position
+        p2 = sym.ports["2"].position
+        assert p1.y < p2.y
+        # Both ports should be centered on x=0
+        assert abs(p1.x) < 0.001
+        assert abs(p2.x) < 0.001
+
+    def test_port_directions(self):
+        """Port 1 direction should point upward, port 2 downward."""
+        sym = circuit_breaker_symbol()
+        assert sym.ports["1"].direction.dy == -1
+        assert sym.ports["2"].direction.dy == 1
+
+    def test_label_present_in_elements(self):
+        """When a label is provided, a text element should be among the elements."""
+        sym_with = circuit_breaker_symbol(label="F1")
+        sym_without = circuit_breaker_symbol(label="")
+        assert len(sym_with.elements) > len(sym_without.elements)
+
+    def test_no_label(self):
+        """Empty label should produce a symbol with label=''."""
+        sym = circuit_breaker_symbol()
+        assert sym.label == ""
+
+    def test_no_pins(self):
+        """When pins are empty, no pin label elements are added."""
+        sym_no_pins = circuit_breaker_symbol(label="F1", pins=())
+        sym_with_pins = circuit_breaker_symbol(label="F1", pins=("1", "2"))
+        assert len(sym_with_pins.elements) > len(sym_no_pins.elements)
+
+    def test_pin_labels_added(self):
+        """Providing pins should add pin label text elements."""
+        sym = circuit_breaker_symbol(label="", pins=("3", "4"))
+        # Without pins: 5 elements (2 leads + blade + 2 cross lines)
+        sym_bare = circuit_breaker_symbol(label="", pins=())
+        assert len(sym.elements) > len(sym_bare.elements)
+
+
+class TestTwoPoleCircuitBreakerSymbol:
+    """Tests for two_pole_circuit_breaker_symbol."""
+
+    def test_basic_creation(self):
+        """Two-pole breaker returns a Symbol with 4 ports."""
+        sym = two_pole_circuit_breaker_symbol(label="F1", pins=("1", "2", "3", "4"))
+        assert isinstance(sym, Symbol)
+        assert sym.label == "F1"
+        assert len(sym.ports) == 4
+
+    def test_has_expected_ports(self):
+        """Should have ports 1-4 for two poles."""
+        sym = two_pole_circuit_breaker_symbol()
+        for port_id in ("1", "2", "3", "4"):
+            assert port_id in sym.ports, f"Port '{port_id}' missing"
+
+    def test_pole_spacing(self):
+        """Second pole should be offset from first by DEFAULT_POLE_SPACING (10mm)."""
+        sym = two_pole_circuit_breaker_symbol()
+        p1_x = sym.ports["1"].position.x
+        p3_x = sym.ports["3"].position.x
+        assert abs(p3_x - p1_x - 10.0) < 0.001
+
+    def test_no_label(self):
+        sym = two_pole_circuit_breaker_symbol()
+        assert sym.label == ""
+
+    def test_elements_present(self):
+        sym = two_pole_circuit_breaker_symbol(label="F2")
+        assert len(sym.elements) > 0
+
+
+class TestThreePoleCircuitBreakerSymbol:
+    """Tests for three_pole_circuit_breaker_symbol."""
+
+    def test_basic_creation(self):
+        """Three-pole breaker returns a Symbol with 6 ports."""
+        sym = three_pole_circuit_breaker_symbol(
+            label="Q1", pins=("1", "2", "3", "4", "5", "6")
+        )
+        assert isinstance(sym, Symbol)
+        assert sym.label == "Q1"
+        assert len(sym.ports) == 6
+
+    def test_has_expected_ports(self):
+        """Should have ports 1 through 6."""
+        sym = three_pole_circuit_breaker_symbol()
+        for port_id in ("1", "2", "3", "4", "5", "6"):
+            assert port_id in sym.ports, f"Port '{port_id}' missing"
+
+    def test_pole_spacing(self):
+        """Poles should be spaced at DEFAULT_POLE_SPACING (10mm) intervals."""
+        sym = three_pole_circuit_breaker_symbol()
+        p1_x = sym.ports["1"].position.x
+        p3_x = sym.ports["3"].position.x
+        p5_x = sym.ports["5"].position.x
+        assert abs(p3_x - p1_x - 10.0) < 0.001
+        assert abs(p5_x - p3_x - 10.0) < 0.001
+
+    def test_top_bottom_alignment(self):
+        """Top ports (1,3,5) should be above bottom ports (2,4,6)."""
+        sym = three_pole_circuit_breaker_symbol()
+        for top, bot in [("1", "2"), ("3", "4"), ("5", "6")]:
+            assert sym.ports[top].position.y < sym.ports[bot].position.y
+
+    def test_no_label(self):
+        sym = three_pole_circuit_breaker_symbol()
+        assert sym.label == ""
+
+    def test_elements_present(self):
+        sym = three_pole_circuit_breaker_symbol(label="Q1")
+        assert len(sym.elements) > 0
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Fuse Symbol (protection.py)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestFuseSymbol:
+    """Tests for fuse_symbol."""
+
+    def test_basic_creation(self):
+        """Fuse returns a Symbol with 2 ports."""
+        sym = fuse_symbol(label="F1", pins=("1", "2"))
+        assert isinstance(sym, Symbol)
+        assert sym.label == "F1"
+        assert "1" in sym.ports
+        assert "2" in sym.ports
+        assert len(sym.ports) == 2
+
+    def test_port_positions_vertical(self):
+        """Port 1 (top) should be above port 2 (bottom)."""
+        sym = fuse_symbol()
+        p1 = sym.ports["1"].position
+        p2 = sym.ports["2"].position
+        assert p1.y < p2.y
+        # Both centered on x=0
+        assert abs(p1.x) < 0.001
+        assert abs(p2.x) < 0.001
+
+    def test_port_directions(self):
+        """Port 1 should point up, port 2 should point down."""
+        sym = fuse_symbol()
+        assert sym.ports["1"].direction.dy == -1
+        assert sym.ports["2"].direction.dy == 1
+
+    def test_has_elements(self):
+        """Fuse should have at least a box and an internal line."""
+        sym = fuse_symbol()
+        assert len(sym.elements) >= 2
+
+    def test_label_present_in_elements(self):
+        """A label adds an element compared to no label."""
+        sym_with = fuse_symbol(label="F1")
+        sym_without = fuse_symbol(label="")
+        assert len(sym_with.elements) > len(sym_without.elements)
+
+    def test_no_label(self):
+        """Empty label produces symbol with label=''."""
+        sym = fuse_symbol()
+        assert sym.label == ""
+
+    def test_no_pins(self):
+        """No pins means no pin label elements."""
+        sym_no_pins = fuse_symbol(label="F1", pins=())
+        sym_with_pins = fuse_symbol(label="F1", pins=("1", "2"))
+        assert len(sym_with_pins.elements) > len(sym_no_pins.elements)
+
+    def test_pin_labels_added(self):
+        """Providing pins adds pin label text elements."""
+        sym = fuse_symbol(label="", pins=("3", "4"))
+        sym_bare = fuse_symbol(label="", pins=())
+        assert len(sym.elements) > len(sym_bare.elements)
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  SPDT Contact Symbols (contacts.py)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestSpdtContactSymbol:
+    """Tests for spdt_contact_symbol (single pole double throw)."""
+
+    def test_basic_creation(self):
+        """SPDT contact returns a Symbol with 3 ports."""
+        sym = spdt_contact_symbol(label="-K1", pins=("1", "2", "4"))
+        assert isinstance(sym, Symbol)
+        assert sym.label == "-K1"
+        assert len(sym.ports) == 3
+
+    def test_port_ids(self):
+        """Ports should be '1' (common), '2' (NC), '4' (NO) per IEC convention."""
+        sym = spdt_contact_symbol()
+        assert "1" in sym.ports  # Common
+        assert "2" in sym.ports  # NC
+        assert "4" in sym.ports  # NO
+
+    def test_standard_orientation_positions(self):
+        """In standard orientation, common is bottom, NC/NO are top."""
+        sym = spdt_contact_symbol(inverted=False)
+        com_y = sym.ports["1"].position.y
+        nc_y = sym.ports["2"].position.y
+        no_y = sym.ports["4"].position.y
+        # Common is at bottom (larger Y)
+        assert com_y > nc_y
+        assert com_y > no_y
+
+    def test_inverted_orientation_positions(self):
+        """In inverted orientation, common is top, NC/NO are bottom."""
+        sym = spdt_contact_symbol(inverted=True)
+        com_y = sym.ports["1"].position.y
+        nc_y = sym.ports["2"].position.y
+        no_y = sym.ports["4"].position.y
+        # Common is at top (smaller Y)
+        assert com_y < nc_y
+        assert com_y < no_y
+
+    def test_nc_left_no_right_standard(self):
+        """In standard orientation, NC is left of NO."""
+        sym = spdt_contact_symbol(inverted=False)
+        nc_x = sym.ports["2"].position.x
+        no_x = sym.ports["4"].position.x
+        assert nc_x < no_x
+
+    def test_nc_left_no_right_inverted(self):
+        """In inverted orientation, NC is still left of NO."""
+        sym = spdt_contact_symbol(inverted=True)
+        nc_x = sym.ports["2"].position.x
+        no_x = sym.ports["4"].position.x
+        assert nc_x < no_x
+
+    def test_label_present_in_elements(self):
+        sym_with = spdt_contact_symbol(label="-K1")
+        sym_without = spdt_contact_symbol(label="")
+        assert len(sym_with.elements) > len(sym_without.elements)
+
+    def test_no_label(self):
+        sym = spdt_contact_symbol(label="")
+        assert sym.label == ""
+
+    def test_elements_present(self):
+        sym = spdt_contact_symbol()
+        # Should have at least: l_com, l_no, l_nc, seat_nc, blade = 5 elements
+        assert len(sym.elements) >= 5
+
+    def test_pin_labels_added(self):
+        """Providing pins should add text elements for the pin labels."""
+        sym_with = spdt_contact_symbol(pins=("1", "2", "4"))
+        sym_without = spdt_contact_symbol(pins=())
+        assert len(sym_with.elements) > len(sym_without.elements)
+
+    def test_no_pins(self):
+        """Empty pins tuple produces fewer elements."""
+        sym = spdt_contact_symbol(pins=())
+        # Only geometric elements + no pin labels
+        assert len(sym.elements) >= 5
+
+
+class TestMultiPoleSpdtSymbol:
+    """Tests for multi_pole_spdt_symbol."""
+
+    def test_basic_three_pole(self):
+        """Three-pole SPDT returns a Symbol with 9 ports (3 per pole)."""
+        sym = multi_pole_spdt_symbol(poles=3, label="-K1")
+        assert isinstance(sym, Symbol)
+        assert sym.label == "-K1"
+        assert len(sym.ports) == 9
+
+    def test_port_naming_convention(self):
+        """Ports should be named {pole}_{type}: 1_com, 1_nc, 1_no, etc."""
+        sym = multi_pole_spdt_symbol(poles=3)
+        for pole in range(1, 4):
+            assert f"{pole}_com" in sym.ports
+            assert f"{pole}_nc" in sym.ports
+            assert f"{pole}_no" in sym.ports
+
+    def test_two_pole(self):
+        """Two-pole SPDT should have 6 ports."""
+        sym = multi_pole_spdt_symbol(poles=2, label="-K2")
+        assert len(sym.ports) == 6
+        assert "1_com" in sym.ports
+        assert "2_com" in sym.ports
+
+    def test_single_pole(self):
+        """Single-pole via multi_pole should have 3 ports."""
+        sym = multi_pole_spdt_symbol(poles=1)
+        assert len(sym.ports) == 3
+        assert "1_com" in sym.ports
+        assert "1_nc" in sym.ports
+        assert "1_no" in sym.ports
+
+    def test_pole_horizontal_spacing(self):
+        """Each successive pole should be offset by SPDT_POLE_SPACING (40mm)."""
+        sym = multi_pole_spdt_symbol(poles=3)
+        x1 = sym.ports["1_com"].position.x
+        x2 = sym.ports["2_com"].position.x
+        x3 = sym.ports["3_com"].position.x
+        # SPDT_POLE_SPACING = 40.0
+        assert abs(x2 - x1 - 40.0) < 0.001
+        assert abs(x3 - x2 - 40.0) < 0.001
+
+    def test_default_pins(self):
+        """Default pins follow IEC numbering: 11,12,14, 21,22,24, 31,32,34."""
+        sym = multi_pole_spdt_symbol(poles=3)
+        # Should not raise and should have 9 ports
+        assert len(sym.ports) == 9
+
+    def test_custom_pins(self):
+        """Custom pin labels should be accepted."""
+        pins = ("A", "B", "C", "D", "E", "F", "G", "H", "I")
+        sym = multi_pole_spdt_symbol(poles=3, pins=pins)
+        assert len(sym.ports) == 9
+
+    def test_no_label(self):
+        sym = multi_pole_spdt_symbol(poles=2)
+        assert sym.label == ""
+
+    def test_elements_present(self):
+        sym = multi_pole_spdt_symbol(poles=3, label="-K1")
+        assert len(sym.elements) > 0
+
+    def test_short_pins_padded(self):
+        """If fewer pins than expected are provided, they should be padded."""
+        # 3 poles need 9 pins; provide only 6
+        sym = multi_pole_spdt_symbol(poles=3, pins=("1", "2", "4", "5", "6", "7"))
+        assert len(sym.ports) == 9
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Multi-Pole Terminal Symbol (terminals.py)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestMultiPoleTerminalSymbol:
+    """Tests for multi_pole_terminal_symbol."""
+
+    def test_basic_two_pole(self):
+        """Two-pole terminal returns a TerminalBlock with 4 ports."""
+        sym = multi_pole_terminal_symbol(label="X1", pins=("1", "2"), poles=2)
+        assert isinstance(sym, TerminalBlock)
+        assert isinstance(sym, Symbol)
+        assert sym.label == "X1"
+        # 2 poles x 2 ports (top + bottom) = 4
+        assert len(sym.ports) == 4
+
+    def test_port_ids_sequential(self):
+        """Ports should be numbered sequentially: 1,2,3,4 for 2 poles."""
+        sym = multi_pole_terminal_symbol(pins=("A", "B"), poles=2)
+        assert "1" in sym.ports  # pole 1 top
+        assert "2" in sym.ports  # pole 1 bottom
+        assert "3" in sym.ports  # pole 2 top
+        assert "4" in sym.ports  # pole 2 bottom
+
+    def test_four_pole(self):
+        """Four-pole terminal should have 8 ports."""
+        sym = multi_pole_terminal_symbol(
+            label="X2", pins=("1", "2", "3", "4"), poles=4
+        )
+        assert len(sym.ports) == 8
+
+    def test_pole_spacing(self):
+        """Poles should be spaced at DEFAULT_POLE_SPACING (10mm)."""
+        sym = multi_pole_terminal_symbol(pins=("1", "2", "3"), poles=3)
+        # Ports 1, 3, 5 are the top ports of poles 1, 2, 3
+        x1 = sym.ports["1"].position.x
+        x3 = sym.ports["3"].position.x
+        x5 = sym.ports["5"].position.x
+        assert abs(x3 - x1 - 10.0) < 0.001
+        assert abs(x5 - x3 - 10.0) < 0.001
+
+    def test_no_label(self):
+        sym = multi_pole_terminal_symbol(poles=2)
+        assert sym.label == ""
+
+    def test_elements_present(self):
+        sym = multi_pole_terminal_symbol(label="X1", pins=("1", "2"), poles=2)
+        assert len(sym.elements) > 0
+
+    def test_pins_padded_if_short(self):
+        """If fewer pins than poles are given, padding with empty strings."""
+        sym = multi_pole_terminal_symbol(pins=("1",), poles=3)
+        assert len(sym.ports) == 6  # 3 poles x 2 ports
+
+    def test_invalid_poles_raises(self):
+        """poles < 1 should raise ValueError."""
+        with pytest.raises(ValueError):
+            multi_pole_terminal_symbol(poles=0)
+
+    def test_invalid_label_pos_raises(self):
+        """Invalid label_pos should raise ValueError."""
+        with pytest.raises(ValueError):
+            multi_pole_terminal_symbol(poles=2, label_pos="center")
+
+    def test_label_pos_right(self):
+        """label_pos='right' should be accepted without error."""
+        sym = multi_pole_terminal_symbol(label="X1", poles=2, label_pos="right")
+        assert sym.label == "X1"
+
+    def test_pin_label_pos_right(self):
+        """pin_label_pos='right' should be accepted."""
+        sym = multi_pole_terminal_symbol(
+            label="X1", pins=("1", "2"), poles=2, pin_label_pos="right"
+        )
+        assert len(sym.ports) == 4
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Terminal Box Symbol (blocks.py)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestTerminalBoxSymbol:
+    """Tests for terminal_box_symbol."""
+
+    def test_basic_creation(self):
+        """Terminal box with 3 pins returns a Symbol with 3 ports."""
+        sym = terminal_box_symbol(label="TB1", num_pins=3)
+        assert isinstance(sym, Symbol)
+        assert sym.label == "TB1"
+        assert len(sym.ports) == 3
+
+    def test_port_ids_from_start_number(self):
+        """Default pins should be numbered from start_pin_number."""
+        sym = terminal_box_symbol(num_pins=3, start_pin_number=1)
+        assert "1" in sym.ports
+        assert "2" in sym.ports
+        assert "3" in sym.ports
+
+    def test_custom_start_pin_number(self):
+        """Custom start_pin_number should shift the port IDs."""
+        sym = terminal_box_symbol(num_pins=2, start_pin_number=5)
+        assert "5" in sym.ports
+        assert "6" in sym.ports
+
+    def test_explicit_pins(self):
+        """Explicit pins parameter overrides num_pins and start_pin_number."""
+        sym = terminal_box_symbol(pins=("A", "B", "C"))
+        assert len(sym.ports) == 3
+        assert "A" in sym.ports
+        assert "B" in sym.ports
+        assert "C" in sym.ports
+
+    def test_single_pin(self):
+        """A single-pin terminal box should work."""
+        sym = terminal_box_symbol(num_pins=1)
+        assert len(sym.ports) == 1
+
+    def test_ports_point_upward(self):
+        """All ports should have direction pointing upward (dy=-1)."""
+        sym = terminal_box_symbol(num_pins=3)
+        for port in sym.ports.values():
+            assert port.direction.dy == -1
+
+    def test_pin_spacing(self):
+        """Pins should be spaced at the given pin_spacing (default 10mm)."""
+        sym = terminal_box_symbol(num_pins=3, pin_spacing=10.0)
+        port_xs = sorted(p.position.x for p in sym.ports.values())
+        assert abs(port_xs[1] - port_xs[0] - 10.0) < 0.001
+        assert abs(port_xs[2] - port_xs[1] - 10.0) < 0.001
+
+    def test_custom_pin_spacing(self):
+        """Custom spacing should be respected."""
+        sym = terminal_box_symbol(num_pins=2, pin_spacing=20.0)
+        port_xs = sorted(p.position.x for p in sym.ports.values())
+        assert abs(port_xs[1] - port_xs[0] - 20.0) < 0.001
+
+    def test_label_present_in_elements(self):
+        sym_with = terminal_box_symbol(label="TB1", num_pins=2)
+        sym_without = terminal_box_symbol(label="", num_pins=2)
+        assert len(sym_with.elements) > len(sym_without.elements)
+
+    def test_no_label(self):
+        sym = terminal_box_symbol(num_pins=2)
+        assert sym.label == ""
+
+    def test_elements_present(self):
+        """Should have at least the box rectangle plus pin lines and labels."""
+        sym = terminal_box_symbol(num_pins=3)
+        # 1 rect + 3 pin lines + 3 pin labels = 7 minimum
+        assert len(sym.elements) >= 7
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Dynamic Block Symbol (blocks.py)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestDynamicBlockSymbol:
+    """Tests for dynamic_block_symbol."""
+
+    def test_basic_creation(self):
+        """Dynamic block with top and bottom pins returns correct ports."""
+        sym = dynamic_block_symbol(
+            label="U1", top_pins=("L", "N", "PE"), bottom_pins=("24V", "GND")
+        )
+        assert isinstance(sym, Symbol)
+        assert sym.label == "U1"
+
+    def test_top_pin_ports(self):
+        """Top pin labels should appear as port IDs."""
+        sym = dynamic_block_symbol(top_pins=("L", "N", "PE"))
+        assert "L" in sym.ports
+        assert "N" in sym.ports
+        assert "PE" in sym.ports
+
+    def test_bottom_pin_ports(self):
+        """Bottom pin labels should appear as port IDs."""
+        sym = dynamic_block_symbol(bottom_pins=("24V", "GND"))
+        assert "24V" in sym.ports
+        assert "GND" in sym.ports
+
+    def test_standard_aliases(self):
+        """Standard numeric aliases should be created for top/bottom pins."""
+        sym = dynamic_block_symbol(
+            top_pins=("L", "N", "PE"), bottom_pins=("24V", "GND")
+        )
+        # Top pins get odd aliases: 1, 3, 5
+        assert "1" in sym.ports
+        assert "3" in sym.ports
+        assert "5" in sym.ports
+        # Bottom pins get even aliases: 2, 4
+        assert "2" in sym.ports
+        assert "4" in sym.ports
+
+    def test_top_pins_point_upward(self):
+        """Top pin ports should point upward (dy=-1)."""
+        sym = dynamic_block_symbol(top_pins=("L", "N"))
+        assert sym.ports["L"].direction.dy == -1
+        assert sym.ports["N"].direction.dy == -1
+
+    def test_bottom_pins_point_downward(self):
+        """Bottom pin ports should point downward (dy=1)."""
+        sym = dynamic_block_symbol(bottom_pins=("24V", "GND"))
+        assert sym.ports["24V"].direction.dy == 1
+        assert sym.ports["GND"].direction.dy == 1
+
+    def test_top_pin_above_bottom_pin(self):
+        """Top pins should be above (smaller Y) than bottom pins."""
+        sym = dynamic_block_symbol(top_pins=("L",), bottom_pins=("24V",))
+        top_y = sym.ports["L"].position.y
+        bot_y = sym.ports["24V"].position.y
+        assert top_y < bot_y
+
+    def test_no_pins(self):
+        """Block with no pins should still create a minimal symbol."""
+        sym = dynamic_block_symbol(label="U1")
+        assert isinstance(sym, Symbol)
+        assert len(sym.ports) == 0
+
+    def test_only_top_pins(self):
+        """Block with only top pins should work."""
+        sym = dynamic_block_symbol(top_pins=("A", "B"))
+        assert "A" in sym.ports
+        assert "B" in sym.ports
+        assert len(sym.ports) >= 2
+
+    def test_only_bottom_pins(self):
+        """Block with only bottom pins should work."""
+        sym = dynamic_block_symbol(bottom_pins=("X", "Y"))
+        assert "X" in sym.ports
+        assert "Y" in sym.ports
+        assert len(sym.ports) >= 2
+
+    def test_pin_spacing(self):
+        """Pins should be spaced at pin_spacing intervals."""
+        sym = dynamic_block_symbol(top_pins=("A", "B", "C"), pin_spacing=15.0)
+        xa = sym.ports["A"].position.x
+        xb = sym.ports["B"].position.x
+        xc = sym.ports["C"].position.x
+        assert abs(xb - xa - 15.0) < 0.001
+        assert abs(xc - xb - 15.0) < 0.001
+
+    def test_explicit_top_pin_positions(self):
+        """Explicit pin positions override uniform spacing."""
+        sym = dynamic_block_symbol(
+            top_pins=("A", "B", "C"), top_pin_positions=(0.0, 10.0, 30.0)
+        )
+        assert abs(sym.ports["A"].position.x - 0.0) < 0.001
+        assert abs(sym.ports["B"].position.x - 10.0) < 0.001
+        assert abs(sym.ports["C"].position.x - 30.0) < 0.001
+
+    def test_explicit_bottom_pin_positions(self):
+        """Explicit bottom pin positions override uniform spacing."""
+        sym = dynamic_block_symbol(
+            bottom_pins=("X", "Y"), bottom_pin_positions=(5.0, 25.0)
+        )
+        assert abs(sym.ports["X"].position.x - 5.0) < 0.001
+        assert abs(sym.ports["Y"].position.x - 25.0) < 0.001
+
+    def test_mismatched_pin_positions_raises(self):
+        """Mismatched top_pin_positions length should raise ValueError."""
+        with pytest.raises(ValueError):
+            dynamic_block_symbol(
+                top_pins=("A", "B"), top_pin_positions=(0.0, 10.0, 20.0)
+            )
+
+    def test_mismatched_bottom_pin_positions_raises(self):
+        """Mismatched bottom_pin_positions length should raise ValueError."""
+        with pytest.raises(ValueError):
+            dynamic_block_symbol(
+                bottom_pins=("X",), bottom_pin_positions=(0.0, 10.0)
+            )
+
+    def test_no_label(self):
+        sym = dynamic_block_symbol(top_pins=("L",))
+        assert sym.label == ""
+
+    def test_label_present_in_elements(self):
+        sym_with = dynamic_block_symbol(label="U1", top_pins=("L",))
+        sym_without = dynamic_block_symbol(label="", top_pins=("L",))
+        assert len(sym_with.elements) > len(sym_without.elements)
+
+    def test_elements_present(self):
+        sym = dynamic_block_symbol(
+            label="U1", top_pins=("L", "N"), bottom_pins=("24V",)
+        )
+        assert len(sym.elements) > 0
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Current Transducer Symbols (transducers.py)
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestCurrentTransducerSymbol:
+    """Tests for current_transducer_symbol."""
+
+    def test_basic_creation(self):
+        """Current transducer returns a Symbol with no ports."""
+        sym = current_transducer_symbol()
+        assert isinstance(sym, Symbol)
+        assert len(sym.ports) == 0
+
+    def test_label_empty(self):
+        """Current transducer always has empty label."""
+        sym = current_transducer_symbol()
+        assert sym.label == ""
+
+    def test_has_elements(self):
+        """Should have at least a circle and a line."""
+        sym = current_transducer_symbol()
+        assert len(sym.elements) == 2
+
+
+class TestCurrentTransducerAssemblySymbol:
+    """Tests for current_transducer_assembly_symbol."""
+
+    def test_basic_creation(self):
+        """Assembly returns a Symbol with ports from the terminal box."""
+        sym = current_transducer_assembly_symbol(label="CT1", pins=("1", "2"))
+        assert isinstance(sym, Symbol)
+        assert sym.label == "CT1"
+        assert len(sym.ports) > 0
+
+    def test_has_ports_from_terminal_box(self):
+        """Ports should come from the terminal box (transducer has none)."""
+        sym = current_transducer_assembly_symbol(pins=("1", "2"))
+        assert "1" in sym.ports
+        assert "2" in sym.ports
+
+    def test_skip_auto_connect(self):
+        """Assembly should have skip_auto_connect=True."""
+        sym = current_transducer_assembly_symbol()
+        assert sym.skip_auto_connect is True
+
+    def test_combined_elements(self):
+        """Assembly should have elements from both transducer and terminal box."""
+        ct = current_transducer_symbol()
+        box_sym = terminal_box_symbol(pins=("1", "2"))
+        assembly = current_transducer_assembly_symbol(pins=("1", "2"))
+        # Assembly should have at least as many elements as both sub-symbols combined
+        assert len(assembly.elements) >= len(ct.elements) + len(box_sym.elements)
+
+    def test_no_label(self):
+        sym = current_transducer_assembly_symbol()
+        assert sym.label == ""
+
+    def test_custom_pins(self):
+        """Custom pins should be passed through to the terminal box."""
+        sym = current_transducer_assembly_symbol(pins=("A", "B", "C"))
+        assert "A" in sym.ports
+        assert "B" in sym.ports
+        assert "C" in sym.ports
+
+    def test_elements_present(self):
+        sym = current_transducer_assembly_symbol(label="CT1", pins=("1", "2"))
+        assert len(sym.elements) > 0
+
+    def test_port_positions_offset_left(self):
+        """Terminal box ports should be to the left of the transducer origin."""
+        sym = current_transducer_assembly_symbol(pins=("1", "2"))
+        for port in sym.ports.values():
+            # All terminal box ports should be to the left of x=0
+            # (transducer circle center)
+            assert port.position.x < 0

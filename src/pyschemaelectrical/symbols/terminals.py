@@ -23,7 +23,7 @@ IEC 60617 Terminal Symbols.
 
 
 @dataclass(frozen=True)
-class Terminal(Symbol):
+class TerminalSymbol(Symbol):
     """
     Specific symbol type for Terminals.
     Distinct from generic Symbols to allow for specialized
@@ -34,6 +34,10 @@ class Terminal(Symbol):
     """
 
     terminal_number: str | None = None
+
+
+# Backward-compatible alias (deprecated)
+Terminal = TerminalSymbol
 
 
 @dataclass(frozen=True)
@@ -50,7 +54,7 @@ def terminal_symbol(
     pins: tuple[str, ...] = (),
     label_pos: str = "left",
     pin_label_pos: str | None = None,
-) -> Terminal:
+) -> TerminalSymbol:
     """
     Create an IEC 60617 Terminal symbol.
 
@@ -114,7 +118,7 @@ def terminal_symbol(
             )
         )
 
-    return Terminal(
+    return TerminalSymbol(
         elements=elements, ports=ports, label=label, terminal_number=term_num
     )
 
@@ -167,7 +171,7 @@ def multi_pole_terminal_symbol(
             new_ports[out_id] = replace(pole.ports["2"], id=out_id)
 
     return TerminalBlock(
-        elements=tuple(all_elements), ports=new_ports, label=label
+        elements=list(all_elements), ports=new_ports, label=label
     )
 
 

@@ -1,19 +1,16 @@
 """
 Utility functions for circuit generation and state management.
-Contains helpers for tag counters and contact pin management.
+Contains helpers for tag counters and terminal management.
 """
 
-from __future__ import annotations
+from dataclasses import replace
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from pyschemaelectrical.model.state import GenerationState
+from pyschemaelectrical.model.state import GenerationState
 
 
 def set_tag_counter(
-    state: dict[str, Any] | GenerationState, prefix: str, value: int
-) -> dict[str, Any]:
+    state: GenerationState, prefix: str, value: int
+) -> GenerationState:
     """
     Sets the counter for a specific tag prefix to a given value.
     The next call to next_tag() will return value + 1.
@@ -26,15 +23,13 @@ def set_tag_counter(
     Returns:
         Updated state.
     """
-    new_state = state.copy()
-    new_state["tags"] = state.get("tags", {}).copy()
-    new_state["tags"][prefix] = value
-    return new_state
+    new_tags = {**state.tags, prefix: value}
+    return replace(state, tags=new_tags)
 
 
 def set_terminal_counter(
-    state: dict[str, Any] | GenerationState, terminal_tag: str, value: int
-) -> dict[str, Any]:
+    state: GenerationState, terminal_tag: str, value: int
+) -> GenerationState:
     """
     Sets the pin counter for a specific terminal tag.
     The next call to next_terminal_pins() will start from value + 1.
@@ -43,60 +38,29 @@ def set_terminal_counter(
     so that prefixed allocations respect the new floor.
     """
     tag_key = str(terminal_tag)
-    new_state = state.copy()
 
     # Update legacy shared counter
-    new_state["terminal_counters"] = state.get("terminal_counters", {}).copy()
-    new_state["terminal_counters"][tag_key] = value
+    new_counters = {**state.terminal_counters, tag_key: value}
 
     # Update per-prefix counters to match
-    prefix_counters = state.get("terminal_prefix_counters", {}).copy()
+    prefix_counters = state.terminal_prefix_counters
     if tag_key in prefix_counters:
         new_tag_prefixes = prefix_counters[tag_key].copy()
         for p in new_tag_prefixes:
             new_tag_prefixes[p] = value
-        prefix_counters[tag_key] = new_tag_prefixes
-    new_state["terminal_prefix_counters"] = prefix_counters
+        new_prefix_counters = {**prefix_counters, tag_key: new_tag_prefixes}
+    else:
+        new_prefix_counters = prefix_counters
 
-    return new_state
-
-
-def next_contact_pins(
-    state: dict[str, Any] | GenerationState, tag: str
-) -> tuple[dict[str, Any], tuple[str, str, str]]:
-    """
-    Get the next set of pins for a contact (SPDT/Changeover) for a given tag.
-    Increments the channel counter for that tag.
-
-    Pins are generated as: (X1, X2, X4) where X is the channel number.
-    e.g. Channel 1: ("11", "12", "14")
-         Channel 2: ("21", "22", "24")
-
-    Args:
-        state: The autonumbering state.
-        tag: The component tag (e.g. "K1").
-
-    Returns:
-        (updated_state, (pin_com, pin_nc, pin_no))
-    """
-    # Use a new 'contact_channels' dict in state to track usage
-    channel_map = state.get("contact_channels", {})
-    current_channel = channel_map.get(tag, 0) + 1
-
-    # Generate pins
-    pins = (f"{current_channel}1", f"{current_channel}2", f"{current_channel}4")
-
-    # Update state
-    new_state = state.copy()
-    new_channel_map = channel_map.copy()
-    new_channel_map[tag] = current_channel
-    new_state["contact_channels"] = new_channel_map
-
-    return new_state, pins
+    return replace(
+        state,
+        terminal_counters=new_counters,
+        terminal_prefix_counters=new_prefix_counters,
+    )
 
 
 def get_terminal_counter(
-    state: dict[str, Any] | GenerationState, terminal_tag: str
+    state: GenerationState, terminal_tag: str
 ) -> int:
     """
     Get the current pin counter for a terminal (0 if unused).
@@ -108,13 +72,13 @@ def get_terminal_counter(
     Returns:
         Current pin counter value for this terminal.
     """
-    return state.get("terminal_counters", {}).get(str(terminal_tag), 0)
+    return state.terminal_counters.get(str(terminal_tag), 0)
 
 
 def apply_start_indices(
-    state: dict[str, Any] | GenerationState,
+    state: GenerationState,
     start_indices: dict[str, int] | None = None,
-) -> dict[str, Any]:
+) -> GenerationState:
     """
     Apply start indices to tag counters.
 

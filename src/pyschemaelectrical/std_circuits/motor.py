@@ -6,8 +6,6 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from pyschemaelectrical.builder import BuildResult
@@ -31,7 +29,7 @@ from pyschemaelectrical.symbols.terminals import (
 from pyschemaelectrical.symbols.transducers import current_transducer_assembly_symbol
 from pyschemaelectrical.system.connection_registry import register_connection
 from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
-from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
+from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins, resolve_terminal_pins
 
 
 def dol_starter(
@@ -124,19 +122,13 @@ def dol_starter(
 
         # Resolve per-instance bottom terminal
         instance_tm_bot = tm_bot_list[instance] if tm_bot_list else tm_bot
+        assert isinstance(instance_tm_bot, str), (
+            f"instance_tm_bot must be str, got {type(instance_tm_bot).__name__}"
+        )
 
         # Get terminal pins (auto-number if not provided)
-        if tm_top_pins is None:
-            s, input_pins = next_terminal_pins(s, tm_top, poles)
-        else:
-            input_pins = tm_top_pins
-        pin_accumulator.setdefault(str(tm_top), []).extend(input_pins)
-
-        if tm_bot_pins is None:
-            s, output_pins = next_terminal_pins(s, instance_tm_bot, poles)
-        else:
-            output_pins = tm_bot_pins
-        pin_accumulator.setdefault(str(instance_tm_bot), []).extend(output_pins)
+        s, input_pins = resolve_terminal_pins(s, tm_top, poles, tm_top_pins, pin_accumulator)
+        s, output_pins = resolve_terminal_pins(s, instance_tm_bot, poles, tm_bot_pins, pin_accumulator)
 
         # Get component tags
         s, breaker_tag = next_tag(s, breaker_tag_prefix)
@@ -282,10 +274,9 @@ def dol_starter(
     circuit = Circuit(elements=all_elements)
 
     # Apply wire labels if provided
-    if wire_labels is not None:
-        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+    from pyschemaelectrical.layout.wire_labels import apply_wire_labels
 
-        circuit = add_wire_labels_to_circuit(circuit, wire_labels)
+    circuit = apply_wire_labels(circuit, wire_labels)
 
     # Collect used terminals
     bot_list = tm_bot_list if tm_bot_list else [tm_bot]

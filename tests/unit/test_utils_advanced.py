@@ -1,13 +1,7 @@
+from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.utils.autonumbering import (
-    auto_coil_pins,
-    auto_contact_pins,
-    auto_terminal_pins,
-    auto_thermal_pins,
     create_autonumberer,
-    format_tag,
-    generate_pin_range,
     get_tag_number,
-    increment_tag,
     next_tag,
     next_terminal_pins,
 )
@@ -19,12 +13,13 @@ class TestAutonumberingAdvanced:
     def test_state_immutability(self):
         """Test that state modifications don't affect original state."""
         state1 = create_autonumberer()
-        state2 = increment_tag(state1, "F")
+        state1, _ = next_tag(state1, "F")  # F1
+        state2, _ = next_tag(state1, "F")  # F2
 
         # Original state should be unchanged
-        assert get_tag_number(state1, "F") == 0
+        assert get_tag_number(state1, "F") == 1
         # New state should have incremented value
-        assert get_tag_number(state2, "F") == 1
+        assert get_tag_number(state2, "F") == 2
 
     def test_multiple_prefixes(self):
         """Test handling multiple component prefixes."""
@@ -73,69 +68,21 @@ class TestAutonumberingAdvanced:
         assert pins5 == ("2",)
 
         # Verify independent counters
-        assert state["terminal_counters"]["X1"] == 6
-        assert state["terminal_counters"]["X2"] == 3
-        assert state["terminal_counters"]["X10"] == 2
-
-    def test_generate_pin_range_variations(self):
-        """Test pin range generation with various parameters."""
-        # Standard sequential
-        pins = generate_pin_range(1, 4)
-        assert pins == ("1", "2", "3", "4")
-
-        # Starting from different number
-        pins = generate_pin_range(10, 3)
-        assert pins == ("10", "11", "12")
-
-        # Skip odd
-        pins = generate_pin_range(1, 8, skip_odd=True)
-        assert pins == ("", "2", "", "4", "", "6", "", "8")
-
-        # Skip odd starting from even
-        pins = generate_pin_range(2, 4, skip_odd=True)
-        assert pins == ("2", "", "4", "")
-
-    def test_auto_functions_variations(self):
-        """Test all auto_* helper functions with various parameters."""
-        # Terminal pins with different poles
-        assert auto_terminal_pins(1, 1) == ("1", "2")
-        assert auto_terminal_pins(1, 2) == ("1", "2", "3", "4")
-        assert auto_terminal_pins(5, 2) == ("5", "6", "7", "8")
-
-        # Contact pins
-        assert auto_contact_pins(1, 1) == ("1", "2")
-        assert auto_contact_pins(10, 3) == ("10", "11", "12", "13", "14", "15")
-
-        # Thermal pins (4 poles)
-        pins = auto_thermal_pins(2, 4)
-        assert len(pins) == 8
-        assert pins[1] == "2"
-        assert pins[3] == "4"
-        assert pins[5] == "6"
-        assert pins[7] == "8"
-        assert pins[0] == ""
-        assert pins[2] == ""
-
-        # Coil pins (always the same)
-        assert auto_coil_pins() == ("A1", "A2")
-
-    def test_format_tag_edge_cases(self):
-        """Test tag formatting with edge cases."""
-        assert format_tag("F", 0) == "F0"
-        assert format_tag("Q", 99) == "Q99"
-        assert format_tag("X", 1000) == "X1000"
-        assert format_tag("", 5) == "5"
+        assert state.terminal_counters["X1"] == 6
+        assert state.terminal_counters["X2"] == 3
+        assert state.terminal_counters["X10"] == 2
 
     def test_state_structure(self):
         """Test the structure of autonumbering state."""
         state = create_autonumberer()
 
-        # Verify initial state structure
-        assert "tags" in state
-        assert "terminal_counters" in state
+        # Verify initial state is a GenerationState with expected attributes
+        assert isinstance(state, GenerationState)
+        assert hasattr(state, "tags")
+        assert hasattr(state, "terminal_counters")
 
-        assert isinstance(state["tags"], dict)
-        assert isinstance(state["terminal_counters"], dict)
+        assert isinstance(state.tags, dict)
+        assert isinstance(state.terminal_counters, dict)
 
     def test_zero_poles(self):
         """Test terminal pins with zero poles (edge case)."""
@@ -143,7 +90,7 @@ class TestAutonumberingAdvanced:
         state, pins = next_terminal_pins(state, "X1", poles=0)
 
         assert pins == ()
-        assert state["terminal_counters"]["X1"] == 0
+        assert state.terminal_counters["X1"] == 0
 
     def test_large_number_of_poles(self):
         """Test terminal pins with large number of poles."""
@@ -152,7 +99,7 @@ class TestAutonumberingAdvanced:
 
         assert len(pins) == 10
         assert pins == ("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
-        assert state["terminal_counters"]["X1"] == 10
+        assert state.terminal_counters["X1"] == 10
 
     def test_sequential_workflow(self):
         """Test a realistic sequential workflow like in pump_example.py."""

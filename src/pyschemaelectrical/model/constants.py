@@ -39,6 +39,10 @@ PIN_LABEL_OFFSET_Y_ADJUST = 0.0  # mm, adjustment for up/down ports
 
 # Layout
 DEFAULT_POLE_SPACING = 2 * GRID_SIZE  # 10.0mm
+SPDT_POLE_SPACING = DEFAULT_POLE_SPACING * 4.0  # 40.0mm, between poles in multi-pole SPDT
+CHANGEOVER_POLE_SPACING = GRID_SIZE * 8  # 40.0mm, between poles in changeover circuits
+CHANGEOVER_POLE_OFFSET = GRID_SUBDIVISION  # 2.5mm, NC/NO/COM offset from pole center
+SPDT_PIN_LABEL_OFFSET = 2.0  # 2.0mm, pin label offset for SPDT contacts
 DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 0.1  # 0.1mm strict tolerance for port matching
 WIRE_LABEL_OFFSET_X = -GRID_SIZE / 2  # -2.5mm, horizontal offset for wire labels
 

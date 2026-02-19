@@ -33,6 +33,10 @@ from .exceptions import (
     CircuitValidationError,
     PortNotFoundError,
     ComponentNotFoundError,
+    TagReuseError,
+    TerminalReuseError,
+    WireLabelMismatchError,
+    # Backward-compatible aliases (deprecated)
     TagReuseExhausted,
     TerminalReuseExhausted,
     WireLabelCountMismatch,

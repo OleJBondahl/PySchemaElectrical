@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import csv
 from dataclasses import dataclass
 
@@ -7,7 +5,7 @@ from typing import Any
 
 from pyschemaelectrical.model.core import Element, Point, Symbol
 from pyschemaelectrical.model.primitives import Line
-from pyschemaelectrical.symbols.terminals import Terminal, TerminalBlock
+from pyschemaelectrical.symbols.terminals import TerminalSymbol, TerminalBlock
 
 # Tolerance for connection (should match layout.py)
 TOLERANCE = 0.1
@@ -119,7 +117,7 @@ def trace_connection(
 def _get_terminal_channels(term: Element) -> list[dict[str, str]]:
     """Extract channels (pin, from_port, to_port) from a terminal element."""
     channels = []
-    if isinstance(term, Terminal):
+    if isinstance(term, TerminalSymbol):
         channels.append(
             {"pin": term.terminal_number or "", "from_port": "1", "to_port": "2"}
         )
@@ -182,7 +180,7 @@ def export_terminals_to_csv(elements: list[Element], filename: str):
     """
     graph = build_connectivity_graph(elements)
 
-    terminals = [e for e in elements if isinstance(e, (Terminal, TerminalBlock))]
+    terminals = [e for e in elements if isinstance(e, (TerminalSymbol, TerminalBlock))]
     terminals.sort(key=lambda t: t.label if t.label else "")
 
     rows = []

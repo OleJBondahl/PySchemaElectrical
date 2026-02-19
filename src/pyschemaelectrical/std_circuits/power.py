@@ -6,12 +6,12 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 from pyschemaelectrical.model.constants import (
+    CHANGEOVER_POLE_OFFSET,
+    CHANGEOVER_POLE_SPACING,
     DEFAULT_POLE_SPACING,
     GRID_SIZE,
     LayoutDefaults,
@@ -159,10 +159,9 @@ def psu(
         current_x += spacing
 
     # Apply wire labels if provided
-    if wire_labels is not None:
-        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+    from pyschemaelectrical.layout.wire_labels import apply_wire_labels
 
-        system_circuit = add_wire_labels_to_circuit(system_circuit, wire_labels)
+    system_circuit = apply_wire_labels(system_circuit, wire_labels)
 
     return BuildResult(
         state=state,
@@ -230,7 +229,7 @@ def changeover(
     # - Port "4" (NO): at (2.5, -5.0) relative to pole center
     # - Port "1" (COM): at (2.5, 5.0) relative to pole center
 
-    pole_spacing = GRID_SIZE * 8  # 40mm between poles
+    pole_spacing = CHANGEOVER_POLE_SPACING
 
     def create_single_changeover(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single changeover instance with single terminals."""
@@ -263,7 +262,7 @@ def changeover(
             pole_id = i + 1
 
             # Top Left: NC terminal for input_1
-            nc_x = pole_x - 2.5
+            nc_x = pole_x - CHANGEOVER_POLE_OFFSET
             nc_y = switch_y - symbol_spacing
             nc_sym = terminal_symbol(
                 tm_top_left, pins=(input1_pins[i],), label_pos="left" if i == 0 else ""
@@ -276,7 +275,7 @@ def changeover(
             )
 
             # Top Right: NO terminal for input_2
-            no_x = pole_x + 2.5
+            no_x = pole_x + CHANGEOVER_POLE_OFFSET
             no_y = switch_y - symbol_spacing
             no_sym = terminal_symbol(
                 tm_top_right, pins=(input2_pins[i],), label_pos="right", pin_label_pos="right"
@@ -289,7 +288,7 @@ def changeover(
             )
 
             # Bottom: Common terminal for output
-            com_x = pole_x + 2.5
+            com_x = pole_x + CHANGEOVER_POLE_OFFSET
             com_y = switch_y + symbol_spacing
             com_sym = terminal_symbol(
                 tm_bot, pins=(output_pins[i],), label_pos="left" if i == 0 else ""
@@ -318,10 +317,9 @@ def changeover(
     circuit = Circuit(elements=all_elements)
 
     # Apply wire labels if provided
-    if wire_labels is not None:
-        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+    from pyschemaelectrical.layout.wire_labels import apply_wire_labels
 
-        circuit = add_wire_labels_to_circuit(circuit, wire_labels)
+    circuit = apply_wire_labels(circuit, wire_labels)
 
     used_terminals = [tm_top_left, tm_top_right, tm_bot]
 

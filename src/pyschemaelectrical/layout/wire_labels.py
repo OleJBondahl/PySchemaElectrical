@@ -257,3 +257,21 @@ def add_wire_labels_to_circuit(
         symbols=circuit.symbols,
         elements=list(circuit.elements) + new_elements,
     )
+
+
+def apply_wire_labels(circuit: "Circuit", wire_labels: list[str] | None) -> "Circuit":
+    """Apply wire labels to a circuit if labels are provided.
+
+    Convenience wrapper that handles the None check before calling
+    add_wire_labels_to_circuit.
+
+    Args:
+        circuit: The Circuit to add labels to.
+        wire_labels: List of wire label strings, or None to skip.
+
+    Returns:
+        Circuit with wire labels added, or the original circuit if labels is None.
+    """
+    if wire_labels is not None:
+        return add_wire_labels_to_circuit(circuit, wire_labels)
+    return circuit

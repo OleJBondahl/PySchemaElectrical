@@ -11,8 +11,6 @@ electrical symbols according to IEC 60617 standards. It includes:
 All constants are imported from the constants module.
 """
 
-from __future__ import annotations
-
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -84,7 +82,7 @@ def create_pin_label_text(
             fill=COLOR_BLACK,
             font_family=TEXT_FONT_FAMILY_AUX,
         ),
-        text_anchor=anchor,
+        anchor=anchor,
     )
 
 
@@ -163,7 +161,7 @@ def create_extended_blade(
     target: Point,
     style: Style,
     extension: float = GRID_SIZE / 4,
-) -> Line:
+) -> "Line":
     """
     Create a blade line extended past the target by `extension` mm.
 

@@ -9,8 +9,8 @@ it to a multi-page PDF.
 
 import os
 import shutil
-from dataclasses import dataclass, field
 from collections.abc import Callable
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pyschemaelectrical.builder import BuildResult
@@ -67,8 +67,14 @@ class _PageDef:
 
 
 class Project:
-    """
-    Declarative project definition for electrical schematic drawing sets.
+    """Declarative project builder for electrical schematic drawing sets.
+
+    Project is one of the intentional mutable builder classes in the library.
+    It accumulates terminal definitions, circuit registrations, and page
+    layouts, then compiles everything to a multi-page PDF via ``.build()``.
+
+    State is threaded automatically between circuits in registration order,
+    so terminal pin numbers auto-increment correctly across the drawing set.
 
     Example::
 
@@ -88,6 +94,10 @@ class Project:
         project.page("Motor Circuits", "motors")
         project.terminal_report()
         project.build("output.pdf")
+
+    Warning:
+        Do not share Project instances across multiple build contexts.
+        Each Project should be used for a single ``.build()`` call.
 
     Args:
         title: Drawing title (appears in title block).
@@ -128,66 +138,127 @@ class Project:
     # ------------------------------------------------------------------
 
     def terminals(self, *terminals: Terminal):
-        """
-        Register terminal block definitions for this project.
+        """Register terminal block definitions for this project.
 
         Terminals carry metadata (description, bridge info, reference flag)
-        used for reports and auto-generation.
+        used for reports and auto-generation. Must be called before
+        registering circuits that reference these terminals.
+
+        Args:
+            *terminals: One or more ``Terminal`` instances.
         """
         for t in terminals:
             self._terminals[str(t)] = t
 
     def set_pin_start(self, terminal_id: str, pin: int) -> None:
-        """
-        Seed the pin counter for a terminal so auto-allocation starts at *pin*.
+        """Seed the pin counter for a terminal so auto-allocation starts at *pin*.
 
         Also updates per-prefix counters for this terminal so that
         prefixed allocations respect the new floor.
+
+        Args:
+            terminal_id: Terminal tag (e.g. "X1").
+            pin: Starting pin number (subsequent auto-allocations will
+                begin at ``pin + 1``).
         """
         tag_key = str(terminal_id)
 
-        counters = self._state.get("terminal_counters", {}).copy()
-        counters[tag_key] = pin
-        self._state["terminal_counters"] = counters
+        new_counters = {**self._state.terminal_counters, tag_key: pin}
 
-        prefix_counters = self._state.get("terminal_prefix_counters", {}).copy()
+        prefix_counters = self._state.terminal_prefix_counters
         if tag_key in prefix_counters:
             new_tag_prefixes = prefix_counters[tag_key].copy()
             for p in new_tag_prefixes:
                 new_tag_prefixes[p] = pin
-            prefix_counters[tag_key] = new_tag_prefixes
-        self._state["terminal_prefix_counters"] = prefix_counters
+            new_prefix_counters = {**prefix_counters, tag_key: new_tag_prefixes}
+        else:
+            new_prefix_counters = prefix_counters
+
+        self._state = replace(
+            self._state,
+            terminal_counters=new_counters,
+            terminal_prefix_counters=new_prefix_counters,
+        )
 
     # ------------------------------------------------------------------
     # Standard circuit registration
     # ------------------------------------------------------------------
 
     def dol_starter(self, key: str, count: int = 1, **kwargs):
-        """Register a DOL starter circuit."""
+        """Register a DOL starter motor circuit.
+
+        Args:
+            key: Unique circuit identifier.
+            count: Number of instances.
+            **kwargs: Passed to ``std_circuits.dol_starter()``
+                (tm_top, tm_bot, poles, etc.).
+        """
         self._add_std_circuit(key, "dol_starter", count, **kwargs)
 
     def psu(self, key: str, count: int = 1, **kwargs):
-        """Register a PSU circuit."""
+        """Register a PSU (power supply unit) circuit.
+
+        Args:
+            key: Unique circuit identifier.
+            count: Number of instances.
+            **kwargs: Passed to ``std_circuits.psu()``
+                (tm_top, tm_bot_left, tm_bot_right, etc.).
+        """
         self._add_std_circuit(key, "psu", count, **kwargs)
 
     def changeover(self, key: str, count: int = 1, **kwargs):
-        """Register a changeover circuit."""
+        """Register a changeover switch circuit.
+
+        Args:
+            key: Unique circuit identifier.
+            count: Number of instances.
+            **kwargs: Passed to ``std_circuits.changeover()``
+                (tm_top_left, tm_top_right, tm_bot, poles, etc.).
+        """
         self._add_std_circuit(key, "changeover", count, **kwargs)
 
     def spdt(self, key: str, count: int = 1, **kwargs):
-        """Register an SPDT relay circuit."""
+        """Register an SPDT relay circuit.
+
+        Args:
+            key: Unique circuit identifier.
+            count: Number of instances.
+            **kwargs: Passed to ``std_circuits.spdt()``
+                (tm_top, tm_bot_left, tm_bot_right, etc.).
+        """
         self._add_std_circuit(key, "spdt", count, **kwargs)
 
     def coil(self, key: str, count: int = 1, **kwargs):
-        """Register a coil circuit."""
+        """Register a coil circuit.
+
+        Args:
+            key: Unique circuit identifier.
+            count: Number of instances.
+            **kwargs: Passed to ``std_circuits.coil()``
+                (tm_top, tm_bot, etc.).
+        """
         self._add_std_circuit(key, "coil", count, **kwargs)
 
     def emergency_stop(self, key: str, count: int = 1, **kwargs):
-        """Register an emergency stop circuit."""
+        """Register an emergency stop circuit.
+
+        Args:
+            key: Unique circuit identifier.
+            count: Number of instances.
+            **kwargs: Passed to ``std_circuits.emergency_stop()``
+                (tm_top, tm_bot, etc.).
+        """
         self._add_std_circuit(key, "emergency_stop", count, **kwargs)
 
     def no_contact(self, key: str, count: int = 1, **kwargs):
-        """Register a normally-open contact circuit."""
+        """Register a normally-open contact circuit.
+
+        Args:
+            key: Unique circuit identifier.
+            count: Number of instances.
+            **kwargs: Passed to ``std_circuits.no_contact()``
+                (tm_top, tm_bot, etc.).
+        """
         self._add_std_circuit(key, "no_contact", count, **kwargs)
 
     # ------------------------------------------------------------------
@@ -253,25 +324,48 @@ class Project:
     # ------------------------------------------------------------------
 
     def page(self, title: str, circuit_key: str):
-        """Add a schematic page to the PDF output."""
+        """Add a schematic page to the PDF output.
+
+        Args:
+            title: Page title displayed in the title block.
+            circuit_key: Key of a registered circuit to render.
+        """
         self._pages.append(
             _PageDef(page_type="schematic", title=title, circuit_key=circuit_key)
         )
 
     def front_page(self, md_path: str, notice: str | None = None):
-        """Add a front page from a Markdown file."""
+        """Add a front page rendered from a Markdown file.
+
+        Args:
+            md_path: Path to the Markdown source file.
+            notice: Optional notice text displayed on the front page.
+        """
         self._pages.append(_PageDef(page_type="front", md_path=md_path, notice=notice))
 
     def terminal_report(self):
-        """Add an auto-generated system terminal report page."""
+        """Add an auto-generated system terminal report page.
+
+        Includes all registered terminals with bridge/connection info
+        and descriptions from ``terminals()``.
+        """
         self._pages.append(_PageDef(page_type="terminal_report"))
 
     def plc_report(self, csv_path: str = ""):
-        """Add a PLC connections report page."""
+        """Add a PLC connections report page.
+
+        Args:
+            csv_path: Path to the PLC connections CSV file.
+        """
         self._pages.append(_PageDef(page_type="plc_report", csv_path=csv_path))
 
     def custom_page(self, title: str, typst_content: str):
-        """Add a page with raw Typst content."""
+        """Add a page with raw Typst markup content.
+
+        Args:
+            title: Page title displayed in the title block.
+            typst_content: Raw Typst source code for the page body.
+        """
         self._pages.append(
             _PageDef(page_type="custom", title=title, typst_content=typst_content)
         )
@@ -472,6 +566,11 @@ class Project:
         self, cdef: _CircuitDef, resolved_reuse: dict | None
     ) -> BuildResult:
         """Build a circuit from inline descriptors."""
+        if cdef.components is None:
+            raise ValueError(
+                f"Circuit '{cdef.key}' uses descriptor mode but has no "
+                f"components defined"
+            )
         return build_from_descriptors(
             self._state,
             cdef.components,
@@ -487,6 +586,11 @@ class Project:
 
     def _build_custom_circuit(self, cdef: _CircuitDef) -> BuildResult:
         """Build a circuit via user-provided builder function."""
+        if cdef.builder_fn is None:
+            raise ValueError(
+                f"Circuit '{cdef.key}' uses custom mode but has no "
+                f"builder_fn defined"
+            )
         result = cdef.builder_fn(self._state, **cdef.params)
         if isinstance(result, BuildResult):
             return result

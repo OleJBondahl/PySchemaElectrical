@@ -6,8 +6,6 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder
@@ -23,7 +21,7 @@ from pyschemaelectrical.symbols.references import ref_symbol
 from pyschemaelectrical.symbols.terminals import terminal_symbol
 from pyschemaelectrical.system.connection_registry import register_connection
 from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
-from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
+from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins, resolve_terminal_pins
 from pyschemaelectrical.utils.transform import translate
 
 
@@ -141,17 +139,8 @@ def spdt(
             dynamic_contact_pins = contact_pins
 
         # --- Pins (Terminals) ---
-        if tm_top_pins is None:
-            s, p_top = next_terminal_pins(s, tm_top, 1)
-        else:
-            p_top = tm_top_pins
-        pin_accumulator.setdefault(str(tm_top), []).extend(p_top)
-
-        if tm_bot_left_pins is None:
-            s, p_left = next_terminal_pins(s, tm_bot_left, 1)
-        else:
-            p_left = tm_bot_left_pins
-        pin_accumulator.setdefault(str(tm_bot_left), []).extend(p_left)
+        s, p_top = resolve_terminal_pins(s, tm_top, 1, tm_top_pins, pin_accumulator)
+        s, p_left = resolve_terminal_pins(s, tm_bot_left, 1, tm_bot_left_pins, pin_accumulator)
 
         # --- Coordinates ---
         # Vertical Stack
@@ -269,10 +258,9 @@ def spdt(
     circuit = Circuit(elements=all_elements)
 
     # Apply wire labels if provided
-    if wire_labels is not None:
-        from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+    from pyschemaelectrical.layout.wire_labels import apply_wire_labels
 
-        circuit = add_wire_labels_to_circuit(circuit, wire_labels)
+    circuit = apply_wire_labels(circuit, wire_labels)
 
     # Exclude tm_bot_right because it is a reference symbol, not a terminal strip
     used_terminals = [tm_top, tm_bot_left]

@@ -4,6 +4,8 @@ from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
     GRID_SIZE,
+    SPDT_PIN_LABEL_OFFSET,
+    SPDT_POLE_SPACING,
     TEXT_FONT_FAMILY_AUX,
     TEXT_SIZE_PIN,
 )
@@ -285,7 +287,7 @@ def spdt_contact_symbol(
 
         common_pin, nc_pin, no_pin = p_safe[0], p_safe[1], p_safe[2]
 
-        offset = 2.0  # mm
+        offset = SPDT_PIN_LABEL_OFFSET
 
         if common_pin and "1" in ports:
             pos = ports["1"].position
@@ -369,7 +371,7 @@ def multi_pole_spdt_symbol(
     if len(pins) < expected:
         pins = tuple(list(pins) + [""] * (expected - len(pins)))
 
-    spacing = DEFAULT_POLE_SPACING * 4.0
+    spacing = SPDT_POLE_SPACING
 
     pole_syms = []
     all_elements = []

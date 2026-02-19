@@ -105,7 +105,7 @@ def factory(
 - **`model/primitives.py`** — Geometric primitives: `Line`, `Circle`, `Text`, `Path`, `Group`, `Polygon`. All frozen dataclasses inheriting from `Element`.
 - **`model/state.py`** — `GenerationState` dataclass and `create_initial_state()`. Provides typed state management (currently coexists with raw `dict[str, Any]` — see todo.md Q4).
 - **`symbols/`** — IEC symbol factory functions (terminals, contacts, coils, breakers, protection, motors, blocks, transducers, assemblies, references). Each returns a `Symbol`.
-- **`system/system.py`** — `Circuit` container (**mutable** — the one exception to the immutability rule), `add_symbol`, `auto_connect_circuit`, `render_system`, `merge_circuits`.
+- **`system/system.py`** — `Circuit` container (**mutable** — see "Intentional Mutable Builders"), `add_symbol`, `auto_connect_circuit`, `render_system`, `merge_circuits`.
 - **`system/connection_registry.py`** — `TerminalRegistry` (frozen dataclass) for immutable terminal-to-component connection tracking. `register_connection()` returns a new registry.
 - **`std_circuits/`** — High-level circuit factories: `dol_starter`, `psu`, `changeover`, `power_distribution`, `spdt`, `no_contact`, `coil`, `emergency_stop`. All return `BuildResult`.
 - **`builder.py`** — `CircuitBuilder` fluent API for constructing custom linear circuits. Also defines `BuildResult`, `ComponentRef`, `PortRef`, `LayoutConfig`, `ComponentSpec`.
@@ -143,21 +143,23 @@ Exception
 └── CircuitValidationError          — base for all validation errors
     ├── PortNotFoundError            — bad port ID on a component
     ├── ComponentNotFoundError       — component index out of bounds
-    ├── TagReuseExhausted            — reuse_tags ran out of source tags
-    ├── TerminalReuseExhausted       — reuse_terminals ran out of source pins
-    └── WireLabelCountMismatch       — wire label count ≠ vertical wire count
+    ├── TagReuseError                — reuse_tags ran out of source tags
+    ├── TerminalReuseError           — reuse_terminals ran out of source pins
+    └── WireLabelMismatchError       — wire label count ≠ vertical wire count
 ```
+
+**Backward compatibility:** The old names (`TagReuseExhausted`, `TerminalReuseExhausted`, `WireLabelCountMismatch`) are kept as aliases in `exceptions.py` and will continue to work in `except` clauses. Prefer the new `*Error` names in new code.
 
 When adding new exceptions, inherit from `CircuitValidationError` and include enough context (component tag, available options) to help users diagnose the issue.
 
 ### Name Collision Warning: `Terminal`
 
-Two classes share the name `Terminal`:
+Two classes are related to the name `Terminal`:
 
 1. **`terminal.py:Terminal(str)`** — The primary `Terminal` type. An immutable `str` subclass carrying metadata (`description`, `bridge`, `reference`, `pin_prefixes`). This is what users import and use.
-2. **`symbols/terminals.py:Terminal(Symbol)`** — A frozen dataclass representing a rendered terminal *symbol*. Internal to the symbols layer.
+2. **`symbols/terminals.py:TerminalSymbol(Symbol)`** — A frozen dataclass representing a rendered terminal *symbol*. Internal to the symbols layer. (Renamed from `Terminal` to `TerminalSymbol` to eliminate the collision. The old name `Terminal` is kept as a deprecated alias in `symbols/terminals.py`.)
 
-These can shadow each other on import. The public API exports only (1). Be aware of this when working in `symbols/terminals.py` — use the fully qualified name if both are needed.
+The public API exports only (1). The rename to `TerminalSymbol` resolves the previous shadowing issue, but be aware of the deprecated alias if maintaining older code.
 
 ### Port ID Conventions
 
@@ -172,11 +174,26 @@ When creating new symbols, choose port IDs that match the IEC designation for th
 
 ### Design Principles to Follow
 
-- **Immutability**: All `Symbol` objects are frozen dataclasses. Never mutate; always return new instances. `Circuit` is the **one exception** — it is a mutable accumulator.
+- **Immutability**: All `Symbol` objects are frozen dataclasses. Never mutate; always return new instances. Four top-level builder classes (`Circuit`, `Project`, `CircuitBuilder`, `PlcMapper`) are intentionally mutable — see the "Intentional Mutable Builders" section below.
 - **Functional state threading**: State is an explicit `dict[str, Any]` passed into and returned from functions. No global mutable state. (A `GenerationState` dataclass exists for typed access but currently coexists with the dict form — see `todo.md` Q4.)
 - **Pure core**: Functions should be deterministic. Side effects (file I/O) are pushed to boundaries (rendering).
 - **Grid-based coordinates**: Base grid is 5mm (`GRID_SIZE`). Origin is top-left (0,0), Y increases downward. All coordinates are in mm.
 - **Terminal sharing**: Multiple circuits can share the same terminal tag (e.g., "X1"). State ensures pin numbers auto-increment correctly across circuits.
+
+### Intentional Mutable Builders
+
+While the library follows immutable/functional patterns at its core, four top-level classes use mutable builder patterns intentionally:
+
+| Class | Location | Purpose |
+| --- | --- | --- |
+| `Circuit` | `system/system.py` | Mutable accumulator for symbols and elements during circuit construction |
+| `Project` | `project.py` | Mutable builder for multi-page project definitions (pages, title block, metadata) |
+| `CircuitBuilder` | `builder.py` | Mutable fluent builder for circuit specifications (components, layout, wiring) |
+| `PlcMapper` | `plc.py` | Mutable builder for PLC module/sensor definitions and connection table generation |
+
+These are the highest-level imperative API classes. The rest of the library follows functional/immutable patterns.
+
+**Warning:** Do not share builder instances across multiple build contexts. Each builder accumulates state for a single output (one circuit, one project, one PLC mapping). Create a fresh instance for each independent build.
 
 ### Testing
 
@@ -184,7 +201,7 @@ When creating new symbols, choose port IDs that match the IEC designation for th
 - SVG **snapshot testing** via the `snapshot_svg` fixture in `tests/conftest.py` — compares generated SVG strings against stored `.svg` files in `tests/snapshots/`.
 - Set `PYTEST_UPDATE_SNAPSHOTS=1` to update snapshots when rendering changes are intentional.
 - pytest config is in `pyproject.toml` with `--verbose --cov=src --cov-report=term-missing` as default options.
-- **Current baseline**: 219 tests, 79% line coverage, all passing.
+- **Current baseline**: 773 tests, 96% line coverage, all passing.
 - When changing symbol rendering or layout, always run `pytest` and check snapshot diffs.
 
 ### Type Checking
@@ -194,7 +211,6 @@ Run `uv run ty check` for type checking. Known diagnostic categories in the curr
 - **`possibly-unbound-attribute`** on `Terminal.__slots__` attributes — a limitation of ty with `str` subclasses using `__slots__` + `object.__setattr__` in `__new__`. These are false positives.
 - **`invalid-argument-type`** on `Point` / `Style` used as `Element` — the type hierarchy uses structural compatibility that ty doesn't fully resolve.
 - **`unresolved-attribute`** on dynamically resolved attributes — some attributes are set via `object.__setattr__` which ty cannot track.
-- **`unknown-argument`** on `text_anchor=` in `model/parts.py:85` — this is a **real bug** (see `todo.md` Section 2 / Q1).
 
 Current baseline: ~54 diagnostics. When fixing type issues, verify the count decreases.
 

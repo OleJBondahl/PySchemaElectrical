@@ -1,16 +1,18 @@
 """Unit tests for GenerationState."""
 
 from pyschemaelectrical.model.state import GenerationState, create_initial_state
+from pyschemaelectrical.system.connection_registry import TerminalRegistry
 
 
 def test_create_initial_state():
-    """Initial state should have all required keys."""
+    """Initial state should be a GenerationState with default values."""
     state = create_initial_state()
-    assert "tags" in state
-    assert "terminal_counters" in state
-    assert "contact_channels" in state
-    assert "terminal_registry" in state
-    assert "pin_counter" in state
+    assert isinstance(state, GenerationState)
+    assert state.tags == {}
+    assert state.terminal_counters == {}
+    assert state.contact_channels == {}
+    assert isinstance(state.terminal_registry, TerminalRegistry)
+    assert state.pin_counter == 0
 
 
 def test_generation_state_to_dict_round_trip():
@@ -25,7 +27,15 @@ def test_generation_state_to_dict_round_trip():
     assert gs2.contact_channels == {}
     # terminal_registry defaults to TerminalRegistry()
     # which is comparable to another empty instance
-    from pyschemaelectrical.system.connection_registry import TerminalRegistry
-
     assert gs2.terminal_registry == TerminalRegistry()
     assert gs2.pin_counter == 10
+
+
+def test_generation_state_is_frozen():
+    """GenerationState should be immutable (frozen dataclass)."""
+    gs = GenerationState()
+    try:
+        gs.tags = {"K": 1}
+        assert False, "Should have raised FrozenInstanceError"
+    except AttributeError:
+        pass  # Expected for frozen dataclass

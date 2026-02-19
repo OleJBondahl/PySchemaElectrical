@@ -6,8 +6,6 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder

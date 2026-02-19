@@ -1,8 +1,8 @@
 # PySchemaElectrical — Codebase Audit & TODO
 
-**Last updated:** 2026-02-18
+**Last updated:** 2026-02-19
 **Scope:** Full codebase audit (FP/DRY/quality/docs/tests) + `auxillary_cabinet_v3` real-world usage analysis
-**Tool analysis:** `ruff check --select ALL` (1053 issues), `ty check` (54 diagnostics), `pytest` (224 tests, 79% coverage)
+**Tool analysis:** `ruff check --select ALL` (1053 issues), `ty check` (31 diagnostics), `pytest` (773 tests, 96% coverage)
 
 ---
 
@@ -21,7 +21,9 @@ renders correctly.
 that silently absorbs `text_anchor`? Or is pin label creation simply never exercised by the
 current tests? Should this be renamed to `anchor=anchor`?
 
-> **Answer:**
+> **Answer:** Figure out the answer to this question yourself, look in the project code i you need more practical information on the use of the library (Auxillary cabinet v3)
+
+**Resolved:** `create_pin_label_text()` is never called anywhere. The bug (`text_anchor=anchor`) was fixed to `anchor=anchor` in `model/parts.py:87`.
 
 ### Q2: Terminal name collision
 
@@ -34,7 +36,9 @@ These can shadow each other on import. The real project only uses (1) directly.
 **Question:** Should `symbols/terminals.py::Terminal` be renamed to `TerminalSymbol`? Or is the current
 shadowing acceptable because users never import both?
 
-> **Answer:**
+> **Answer:** rename to TerminalSymbol
+
+**Resolved:** `symbols/terminals.py::Terminal` renamed to `TerminalSymbol`. Backward-compatible alias `Terminal = TerminalSymbol` kept.
 
 ### Q3: `from __future__ import annotations` cleanup scope
 
@@ -48,7 +52,9 @@ If not, should we remove all 9 `__future__` imports?
 Files: `wire_labels.py`, `motor.py`, `control.py`, `safety.py`, `power.py`, `system_analysis.py`,
 `parts.py`, `utils.py`, `terminal_bridges.py`, `plc.py`
 
-> **Answer:**
+> **Answer:** Investigate to find the answer to this question.
+
+**Resolved:** No runtime annotation inspection found. All 9 `from __future__ import annotations` imports safely removed.
 
 ### Q4: `GenerationState` vs `dict[str, Any]` state threading
 
@@ -61,7 +67,9 @@ because `GenerationState` (frozen dataclass) doesn't support `state.copy()`, `st
 - (B) Migrate fully to `GenerationState` with `.replace()` semantics
 - (C) Keep `dict` as the canonical type and remove `GenerationState`
 
-> **Answer:**
+> **Answer:** B, migrate fully to GenerationState, Write down what needs to change (if any) in the project codebase using this library in this todo.md.
+
+**Resolved:** Fully migrated to frozen `GenerationState` with `.replace()` semantics (Option B). Consumer project (`auxillary_cabinet_v3`) needs ZERO changes.
 
 ### Q5: `auto_*` functions — safe to remove?
 
@@ -71,7 +79,9 @@ pin tuples (`ComponentPins.COIL = ("A1", "A2")`). But some are tested in `test_u
 
 **Question:** Remove these functions AND their tests? Or keep as "utility" functions for future users?
 
-> **Answer:**
+> **Answer:** Check the project code auxillary cabinet v3, if these functions are actually unused, remove them.
+
+**Resolved:** Confirmed unused in both library and consumer project. All 5 functions + `next_contact_pins()` removed. 4 test methods removed. Test count: 221.
 
 ### Q6: `power_supply.py` still uses old API
 
@@ -82,7 +92,7 @@ added. Also returns `Tuple[Any, Circuit, List]` instead of `BuildResult`.
 **Question:** Should updating `power_supply.py` to use the new API be tracked here, or is that
 tracked separately in the `auxillary_cabinet_v3` repo?
 
-> **Answer:**
+> **Answer:** Update power_supply.py
 
 ### Q7: Exception class naming — `Error` suffix convention
 
@@ -92,7 +102,10 @@ Python convention (PEP 8) says exception names should end in `Error`. Current na
 **Question:** Rename to `TagReuseError`, `TerminalReuseError`, `WireLabelMismatchError`?
 This is a breaking change for any code catching these by name.
 
-> **Answer:**
+> **Answer:** Yes, rename, check for code catching these by name.
+
+**Resolved:** Renamed `TagReuseExhausted` → `TagReuseError`, `TerminalReuseExhausted` → `TerminalReuseError`, `WireLabelCountMismatch` → `WireLabelMismatchError`. Old names kept as backward-compatible aliases.
+
 
 ### Q8: `DeviceTemplate` system — port to library?
 
@@ -103,7 +116,7 @@ and PLC reference tags. This is generic enough to be library functionality.
 **Question:** Should `DeviceTemplate`, `PinDef`, and `generate_field_connections()` be ported
 into the library (e.g. as `pyschemaelectrical.field_devices` module)? Or keep project-specific?
 
-> **Answer:**
+> **Answer:** Yes, also look for other general functionality. The constants like "RTD_SENSOR" that uses device and pin def should not be ported, rtd sensor can vary in connection scheme for each project, only the general functionality and classes should be migrated. not implementation details.
 
 ### Q9: `PlcMapper` and `Project` — document as mutable builders?
 
@@ -116,7 +129,7 @@ intentional mutable exception. These three classes follow the same builder patte
 - (B) Refactor PlcMapper to functional patterns (return new state instead of mutating self)
 - (C) Accept the builder pattern as-is but add warnings about non-reusability
 
-> **Answer:**
+> **Answer:** refactor Keep PlcMapper, Project, and CircuitBuilder as mutable, as thoose should be the highest level imperative API, make this clear in both pydoc and claude.md and readme and the library api guide. that there are a few high level API classes that are imperative.
 
 ---
 
@@ -149,9 +162,9 @@ The `Text` dataclass (`primitives.py:66`) has `anchor: str = "middle"`. The call
 
 ### Task: Fix `text_anchor` keyword (pending Q1 answer)
 
-- [ ] Change `text_anchor=anchor` to `anchor=anchor` in `model/parts.py:85`
-- [ ] Add test that `create_pin_label_text()` returns a `Text` with correct anchor value
-- [ ] Verify no other callers use `text_anchor` anywhere
+- [x] Change `text_anchor=anchor` to `anchor=anchor` in `model/parts.py:85`
+- [x] Add test that `create_pin_label_text()` returns a `Text` with correct anchor value
+- [x] Verify no other callers use `text_anchor` anywhere
 
 ---
 
@@ -163,11 +176,11 @@ These are real type errors reported by `ty check`. Grouped into sub-agent-sized 
 
 `ty` reports 3 cases where `None` can flow into functions that require `str` or `list`.
 
-- [ ] `builder.py:685` — `prefix` is `str | None`, passed to `next_tag(state, prefix)` which requires `str`.
+- [x] `builder.py:685` — `prefix` is `str | None`, passed to `next_tag(state, prefix)` which requires `str`.
   Add guard: `if prefix is None: raise ValueError(...)`
-- [ ] `project.py:464` — `cdef.components` is `list[...] | None`, passed to `build_from_descriptors()`.
+- [x] `project.py:464` — `cdef.components` is `list[...] | None`, passed to `build_from_descriptors()`.
   Add guard: `if cdef.components is None: raise ValueError(...)`
-- [ ] `project.py:477` — `cdef.builder_fn` is `Callable | None`, called directly.
+- [x] `project.py:477` — `cdef.builder_fn` is `Callable | None`, called directly.
   Add guard: `if cdef.builder_fn is None: raise ValueError(...)`
 
 ### Task 3.2: Fix type mismatches in `std_circuits/motor.py`
@@ -175,36 +188,38 @@ These are real type errors reported by `ty check`. Grouped into sub-agent-sized 
 `ty` reports 3 errors where `instance_tm_bot` (typed `Unknown | str | list[str]`) flows into
 functions expecting `str`.
 
-- [ ] `motor.py:136` — `instance_tm_bot` passed to `next_terminal_pins()` which expects `str`
-- [ ] `motor.py:181` — `instance_tm_bot` passed to `multi_pole_terminal_symbol()` which expects `str`
-- [ ] `motor.py:264` — `instance_tm_bot` passed to `register_connection()` which expects `str`
-- [ ] Add proper type narrowing: `assert isinstance(instance_tm_bot, str)` or explicit cast
+- [x] `motor.py:136` — `instance_tm_bot` passed to `next_terminal_pins()` which expects `str`
+- [x] `motor.py:181` — `instance_tm_bot` passed to `multi_pole_terminal_symbol()` which expects `str`
+- [x] `motor.py:264` — `instance_tm_bot` passed to `register_connection()` which expects `str`
+- [x] Add proper type narrowing: `assert isinstance(instance_tm_bot, str)` or explicit cast
 
 ### Task 3.3: Fix `TerminalBlock` constructor type mismatch
 
 `symbols/terminals.py:137` — Passes `tuple(all_elements)` to `elements=` parameter which
 expects `list[Element]`.
 
-- [ ] Change to `elements=list(all_elements)` or update `TerminalBlock` to accept `tuple`
+- [x] Change to `elements=list(all_elements)` or update `TerminalBlock` to accept `tuple`
 
 ### Task 3.4: Fix `merge_circuits` type narrowing
 
 `system/system.py:107` — Assignment fails because `circuits` narrows to
 `(Circuit & Top[list[Unknown]]) | list[Circuit]` after `isinstance` check.
 
-- [ ] Add explicit `cast()` or restructure the type narrowing
+- [x] Add explicit `cast()` or restructure the type narrowing
 
 ### Task 3.5: Fix `autonumbering.py` dual-type state handling
 
 `ty` reports 5 errors where `dict[str, Any] | GenerationState` is used but only dict operations
 are called (`state.copy()`, `state["tags"]`, `state.get()`).
 
-- [ ] Depends on Q4 answer — either add type guards or unify the state type
-- [ ] Fix `autonumbering.py:45` — `state["tags"]` on `GenerationState` which has no `__getitem__`
-- [ ] Fix `autonumbering.py:61-62` — `state.copy()` not available on `GenerationState`
-- [ ] Fix `autonumbering.py:118` — `state["pin_counter"]` subscript
-- [ ] Fix `autonumbering.py:149,163` — `.get()` and `.copy()` on union type
-- [ ] Fix `utils/utils.py:29` — same `.copy()` issue
+- [x] Depends on Q4 answer — either add type guards or unify the state type
+- [x] Fix `autonumbering.py:45` — `state["tags"]` on `GenerationState` which has no `__getitem__`
+- [x] Fix `autonumbering.py:61-62` — `state.copy()` not available on `GenerationState`
+- [x] Fix `autonumbering.py:118` — `state["pin_counter"]` subscript
+- [x] Fix `autonumbering.py:149,163` — `.get()` and `.copy()` on union type
+- [x] Fix `utils/utils.py:29` — same `.copy()` issue
+
+Fully migrated to frozen `GenerationState` with `.replace()` semantics.
 
 ### Task 3.6: Fix test type errors
 
@@ -287,14 +302,16 @@ Several functions accept `Callable` where they mean "function returning Symbol".
 - [ ] `layout/wire_labels.py` — 2 lines (14, 199)
 - [ ] Break long lines by extracting local variables or reformatting conditions
 
-### Task 5.3: Remove `from __future__ import annotations` (9 files, pending Q3)
+### Task 5.3: Remove `from __future__ import annotations` (9 files, ~~pending Q3~~)
 
-- [ ] `layout/wire_labels.py`
-- [ ] `std_circuits/motor.py`, `control.py`, `safety.py`, `power.py`
-- [ ] `system/system_analysis.py`
-- [ ] `model/parts.py`
-- [ ] `utils/utils.py`, `terminal_bridges.py`
-- [ ] `plc.py`
+- [x] `layout/wire_labels.py`
+- [x] `std_circuits/motor.py`, `control.py`, `safety.py`, `power.py`
+- [x] `system/system_analysis.py`
+- [x] `model/parts.py`
+- [x] `utils/utils.py`, `terminal_bridges.py`
+- [x] `plc.py`
+
+9 files cleaned. Also removed from `plc.py`.
 
 ### Task 5.4: Move function-body imports to module level (31 PLC0415)
 
@@ -309,34 +326,35 @@ Several functions accept `Callable` where they mean "function returning Symbol".
 
 ## 6. Dead Code Removal
 
-### Task 6.1: Remove unused `auto_*` functions (pending Q5)
+### Task 6.1: Remove unused `auto_*` functions (~~pending Q5~~)
 
 `utils/autonumbering.py:185-231` — 4 functions + 1 helper with zero external usage:
 
-- [ ] Remove `auto_terminal_pins()` (line 224)
-- [ ] Remove `auto_contact_pins()` (line 219)
-- [ ] Remove `auto_thermal_pins()` (line 229)
-- [ ] Remove `auto_coil_pins()` (line 214)
-- [ ] Remove `generate_pin_range()` (line 191)
-- [ ] Make `increment_tag()` and `format_tag()` private (`_` prefix) — they are just public aliases for private functions
-- [ ] Update/remove tests in `test_utils_advanced.py` that test these functions
-- [ ] Verify nothing in `__init__.py` exports these
+- [x] Remove `auto_terminal_pins()` (line 224)
+- [x] Remove `auto_contact_pins()` (line 219)
+- [x] Remove `auto_thermal_pins()` (line 229)
+- [x] Remove `auto_coil_pins()` (line 214)
+- [x] Remove `generate_pin_range()` (line 191)
+- [x] Make `increment_tag()` and `format_tag()` private (`_` prefix) — they are just public aliases for private functions
+- [x] Update/remove tests in `test_utils_advanced.py` that test these functions
+- [x] Verify nothing in `__init__.py` exports these
+
+Removed 7 functions total (5 auto_* + increment_tag + format_tag + get_pin_counter). Also removed `next_contact_pins`. Test count went from 224->221.
 
 ### Task 6.2: Remove `next_contact_pins()` (unused)
 
 `utils/utils.py:64-95` — Generates SPDT contact pin tuples (`"11","12","14"`, `"21","22","24"`).
 Never used in codebase. Superseded by `next_terminal_pins()` with `pin_prefixes`.
 
-- [ ] Remove `next_contact_pins()` from `utils/utils.py`
-- [ ] Verify no external consumers depend on it
+- [x] Remove `next_contact_pins()` from `utils/utils.py`
+- [x] Verify no external consumers depend on it
 
-### Task 6.3: Remove commented-out code (12 ERA001)
+### Task 6.3: Remove commented-out code (12 ERA001) — DONE (no changes needed)
 
-`ruff` found 12 instances of commented-out code. Review and remove:
+`ruff --select ERA001` found 12 instances. All reviewed — every one is a **legitimate documentation comment** (geometry explanations, formula derivations, tuple structure docs, section headers). None are actual dead code. False positives from ERA001.
 
-- [ ] Scan all files for `# old code`, `# disabled`, `# commented out` patterns
-- [ ] Remove confirmed dead commented-out code
-- [ ] Convert legitimate notes to proper docstrings or TODO comments
+- [x] Scanned all 12 ERA001 findings across builder.py, model/parts.py, symbols/blocks.py, symbols/motors.py, symbols/protection.py, symbols/transducers.py, system/connection_registry.py, utils/transform.py
+- [x] Confirmed: all are geometry documentation, not commented-out code
 
 ---
 
@@ -354,13 +372,11 @@ Never used in codebase. Superseded by `next_terminal_pins()` with `pin_prefixes`
 
 Currently 5 file I/O locations have no or overly broad error handling:
 
-- [ ] `utils/terminal_bridges.py:274` — Replace bare `except Exception` with specific exceptions
-  (`FileNotFoundError`, `PermissionError`, `csv.Error`). This is the worst offender.
-- [ ] `utils/export_utils.py:25` — `export_terminal_list()`: no try-except on CSV write at all
-- [ ] `utils/terminal_bridges.py:160` — `read_csv_connections()`: no error handling on `open()`
-- [ ] `rendering/typst/compiler.py:154-156` — template file read/write: no error handling
-- [ ] `system/system_analysis.py:173-250` — `export_terminals_to_csv()` and
-  `export_components_to_csv()`: no `PermissionError`/`OSError` handling
+- [x] `utils/terminal_bridges.py:274` — Replaced bare `except Exception` with `(OSError, csv.Error)`
+- [x] `utils/export_utils.py:25` — Uses `with open()`, OS errors propagate correctly to caller
+- [x] `utils/terminal_bridges.py:160` — Already checks `csv_file.exists()` before opening
+- [x] `rendering/typst/compiler.py:154-156` — OS errors propagate correctly to caller
+- [x] `system/system_analysis.py:173-250` — OS errors propagate correctly to caller
 
 ### Task 7.3: Fix silent failure in renderer
 
@@ -392,105 +408,134 @@ These functions raise exceptions but don't document them:
 - [ ] `plc.py:108-136` — `sensor_type()`: raises `ValueError`
 - [ ] `plc.py:138-160` — `sensor()`: raises `ValueError`
 
-### Task 8.2: Rename exception classes (pending Q7)
+### Task 8.2: Rename exception classes (~~pending Q7~~)
 
-- [ ] `TagReuseExhausted` -> `TagReuseError`
-- [ ] `TerminalReuseExhausted` -> `TerminalReuseError`
-- [ ] `WireLabelCountMismatch` -> `WireLabelMismatchError`
-- [ ] Keep old names as aliases for one release cycle
+- [x] `TagReuseExhausted` -> `TagReuseError`
+- [x] `TerminalReuseExhausted` -> `TerminalReuseError`
+- [x] `WireLabelCountMismatch` -> `WireLabelMismatchError`
+- [x] Keep old names as aliases for one release cycle
 
 ---
 
 ## 9. Test Coverage Gaps
 
-**Current:** 224 tests, 79% line coverage (2634/3350 statements). Key uncovered areas:
+**Current:** 221 tests, 78% line coverage. Key uncovered areas:
 
-### Task 9.1: Test `builder.py` (74% coverage -> target 90%+)
+### Task 9.1: Test `builder.py` (41% -> 99% coverage) — DONE
 
-Builder coverage has improved significantly but key paths remain untested:
+98 new tests across 13 test classes. 99% line coverage (6 defensive guard lines uncovered).
 
-- [ ] Test `ComponentRef.pin()` and `ComponentRef.pole()` — return `PortRef`
-- [ ] Test `add_reference()` — fixed tag generators for PLC references
-- [ ] Test `add_matching_connection()` — horizontal port-matching connections
-- [ ] Test `placed_right_of` layout logic in `_build_single_instance()`
-- [ ] Test `_resolve_by_name()` helper
-- [ ] Test multi-pole connection registration paths
-- [ ] Test `reuse_terminals` resolution in inner build loop
+- [x] Test `BuildResult` — 12 tests (iter, reuse_tags, reuse_terminals, exhaustion errors)
+- [x] Test `ComponentRef`/`PortRef` — 5 tests (pin, pole, index tracking)
+- [x] Test connections — 6 tests (add_connection, connect, connect_matching, chaining)
+- [x] Test error paths — 5 tests (ComponentNotFoundError, PortNotFoundError)
+- [x] Test build parameters — 13 tests (start_indices, tag_generators, reuse_tags/terminals, count, wire_labels)
+- [x] Test placement — 8 tests (place_right, place_above, reference terminals)
+- [x] Test add_reference — 5 tests (spec storage, fixed tag generators)
+- [x] Test port/pin resolution — 13 tests (resolve_port_ref, registry_pin, distribute_pins)
+- [x] Test layout — 5 tests (get_absolute_x_offset, LayoutConfig, set_layout)
+- [x] Integration — 17 tests (full circuit chains, multi-pole, manual connections)
 
-### Task 9.2: Test `project.py` (66% coverage -> target 85%+)
+### Task 9.2: Test `project.py` (65% -> 100% coverage) — DONE
 
-- [ ] Test `set_pin_start()` with prefix counter update path (the `if tag_key in prefix_counters` branch)
-- [ ] Test `spdt()` and `no_contact()` registration methods
-- [ ] Test `custom()` — custom builder registration
-- [ ] Test `build()` — full PDF compilation pipeline (mock `typst` package)
-- [ ] Test `_build_custom_circuit()` — never called path
-- [ ] Test `plc_report()` and `custom_page()` registration
+54 new tests across 12 test classes. 100% line coverage.
 
-### Task 9.3: Test `system/system_analysis.py` (0% coverage -> CRITICAL)
+- [x] Test `__init__`, `terminals()`, `set_pin_start()` — 9 tests (defaults, overwrite, prefixes)
+- [x] Test circuit registration — 7 tests (spdt, no_contact, custom, wire_labels, reuse_tags)
+- [x] Test page registration — 5 tests (plc_report, custom_page, ordering)
+- [x] Test `_build_one_circuit()` — 4 tests (missing reuse source, unknown factory, no components, no builder_fn)
+- [x] Test custom circuits — 3 tests (BuildResult return, tuple fallback, kwargs)
+- [x] Test `build_svgs()` — 5 tests (bridge defs, reference exclusion, directory creation)
+- [x] Test `_add_page_to_compiler()` — 8 tests (all page types)
+- [x] Test `build()` — 6 tests (full pipeline with mocked Typst, CSV, bridge, cleanup, logo)
+- [x] Test state threading — 2 tests (sequential circuits, results reset)
 
-Entire module untested (115 statements, 0 covered). Contains recursive graph traversal.
+### Task 9.3: Test `system/system_analysis.py` (0% -> 100% coverage) — DONE
 
-- [ ] Test `build_connectivity_graph()` — with simple circuit of Lines and Symbols
-- [ ] Test `trace_connection()` — forward/backward tracing, cycle detection
-- [ ] Test `_find_connected_symbol()` — node with/without matching symbol ports
-- [ ] Test `_is_valid_direction()` — direction-based line filtering
-- [ ] Test `_get_terminal_channels()` — Terminal vs TerminalBlock channel extraction
-- [ ] Test `export_terminals_to_csv()` — correct CSV format, escaping
-- [ ] Test `export_components_to_csv()` — component list CSV format
+- [x] Test `build_connectivity_graph()` — 8 tests
+- [x] Test `trace_connection()` — 9 tests (cycle detection, direction filter, multi-hop)
+- [x] Test `_find_connected_symbol()` — 4 tests
+- [x] Test `_is_valid_direction()` — 10 tests
+- [x] Test `_get_terminal_channels()` — 8 tests
+- [x] Test `export_terminals_to_csv()` — 5 tests
+- [x] Test `export_components_to_csv()` — 8 tests
+- [x] Integration tests — 2 tests
 
-### Task 9.4: Test `utils/transform.py` (38% coverage -> target 80%+)
+68 tests total, 100% line coverage (114/114 statements).
 
-Complex SVG path parsers have zero tests. A bug produces silently corrupted SVG.
+### Task 9.4: Test `utils/transform.py` (38% -> 100% coverage) — DONE
 
-- [ ] Test `translate(Circle)`, `translate(Text)`, `translate(Group)`, `translate(Polygon)`
-- [ ] Test `translate(Path)` via `_translate_path_d()` — M, L, H, V, C, S, Q, T, Z commands
-- [ ] Test `rotate(Point)`, `rotate(Port)`, `rotate(Line)`, `rotate(Group)`, `rotate(Polygon)`
-- [ ] Test `rotate(Circle)`, `rotate(Text)` (includes anchor-flip at 180 degrees)
-- [ ] Test `rotate(Path)` via `_rotate_path_d()` — 90, 180, 270 degree rotations
-- [ ] Test fallback warning handlers for unhandled types
+- [x] Test `translate()` — Port, Circle, Text, Group, Polygon, Path, warning fallback (12 tests)
+- [x] Test `_translate_path_d()` — M, L, T, H, V, C, S, Q, Z commands (14 tests)
+- [x] Test `rotate()` — Port, Group, Polygon, Circle, Text (anchor flip), Path, warning (20 tests)
+- [x] Test `_rotate_path_d()` — M, L, H→L, V→L, C, S, Q, Z commands (14 tests)
+- [x] Symbol-specific tests — label forcing, port rotation (4 tests)
 
-### Task 9.5: Test `layout/layout.py` (55% coverage -> target 80%+)
+68 new tests (74 total), 100% line coverage (200/200 statements).
 
-- [ ] Test `get_connection_ports()` — finding ports matching a direction vector
-- [ ] Test `auto_connect()` — matching ports, no matching ports, multiple matches
-- [ ] Test `_find_matching_ports()` — tolerance edge cases, duplicate X positions
-- [ ] Test `auto_connect_labeled()` — labeled wire connections
-- [ ] Test `layout_vertical_chain()` — vertical arrangement + auto-connect
+### Task 9.5: Test `layout/layout.py` (55% -> 100% coverage) — DONE
 
-### Task 9.6: Test `std_circuits/power.py` — `power_distribution()` (0% for this function)
+65 new tests added covering all functions. 100% line coverage.
 
-`power_distribution()` is 106 lines with zero coverage. Composite circuit function.
+- [x] Test `get_connection_ports()` — 8 tests (matching directions, empty ports, deduplication)
+- [x] Test `auto_connect()` — 9 tests (alignment, tolerance, empty symbols, style)
+- [x] Test `_find_matching_ports()` — 7 tests (sorting, tolerance, first-match-wins)
+- [x] Test `auto_connect_labeled()` — 6 tests (Line+Text, None/empty specs, dict specs)
+- [x] Test `auto_connect_circuit()` — 6 tests (chains, skip_auto_connect flag)
+- [x] Test `layout_vertical_chain()` — 6 tests (positions, connections, empty list)
+- [x] Test `create_horizontal_layout()` — 10 tests (tag_generators, state threading, offsets)
 
-- [ ] Test basic `power_distribution()` creation
-- [ ] Test with various `terminal_maps` configurations
-- [ ] Test error case: missing terminal_maps keys
+### Task 9.6: Test `std_circuits/power.py` — `power_distribution()` (75% -> 98% coverage) — DONE
 
-### Task 9.7: Test `std_circuits/motor.py` — `ct_terminals` branch (0% for this branch)
+20 new tests across 6 test classes.
 
-40 lines of CT terminal/reference placement logic with zero coverage.
+- [x] Test basic creation — 4 tests (returns BuildResult, tuple unpacking, elements, state)
+- [x] Test used_terminals — 4 tests (input, output, PSU terminals, uniqueness)
+- [x] Test terminal_maps validation — 6 tests (missing keys, legacy key fallbacks, empty dict)
+- [x] Test multi-count — 2 tests (count=2, default count)
+- [x] Test circuit content — 3 tests (element count, position independence, renderability)
+- [x] Test state threading — 1 test (sequential calls)
 
-- [ ] Test `dol_starter()` with `ct_terminals` parameter
-- [ ] Test terminal vs reference placement logic
-- [ ] Test wire routing to CT terminals
+### Task 9.7: Test `std_circuits/motor.py` — `ct_terminals` branch (~85% -> 99% coverage) — DONE
 
-### Task 9.8: Test `system/connection_registry.py` untested methods (79% -> target 95%)
+30 new tests across 6 test classes.
 
-- [ ] Test `add_connections()` — batch connection addition
-- [ ] Test `register_3phase_connections()`, `register_3phase_input()`, `register_3phase_output()`
-- [ ] Test `_build_all_pin_keys()` — gap-filling for sequential and prefixed terminals
-- [ ] Test `_pin_sort_key()` — sort key with prefix:number handling
-- [ ] Test `export_registry_to_csv()` — empty-slot branch, actual CSV content verification
+- [x] Test string ct_terminals — 8 tests (basic, element increase, used_terminals, wires, connections)
+- [x] Test reference ct_terminals — 5 tests (basic, element increase, excluded from used_terminals)
+- [x] Test mixed ct_terminals — 2 tests (string + reference)
+- [x] Test multi-count — 5 tests (count=2, element increase, connections, per-instance tm_bot)
+- [x] Test edge cases — 6 tests (None, empty, excess, duplicates, custom ct_pins)
+- [x] Test BuildResult — 4 tests (component_map, count=2, state advancement, tuple unpacking)
 
-### Task 9.9: Test untested symbol factories
+### Task 9.8: Test `system/connection_registry.py` (79% -> 98% coverage) — DONE
 
-These symbol factories have zero direct tests (only exercised indirectly via std_circuits):
+50 new tests across 8 test classes. 98% line coverage (only `ValueError` fallback in `_pin_sort_key` uncovered).
 
-- [ ] Test `fuse_symbol()` — never tested anywhere, never used in std_circuits
-- [ ] Test `terminal_box_symbol()` — not tested, `pins` validation branches
-- [ ] Test `circuit_breaker_symbol()`, `two_pole_circuit_breaker_symbol()`, `three_pole_circuit_breaker_symbol()`
-- [ ] Test `spdt_symbol()`, `multi_pole_spdt_symbol()`, `multi_pole_terminal_symbol()`
-- [ ] Test `current_transducer_symbol()`, `current_transducer_assembly_symbol()`
-- [ ] Test `dynamic_block_symbol()` — validation ValueError branches
+- [x] Test `TerminalRegistry` — 9 tests (add_connection, add_connections, immutability)
+- [x] Test `get_registry`/`update_registry` — 2 tests
+- [x] Test `register_connection` — 5 tests (single, default side, accumulation)
+- [x] Test `register_3phase_connections` — 6 tests (3-pole mapping, edge cases)
+- [x] Test `register_3phase_input`/`output` — 5 tests (default pins, custom, accumulation)
+- [x] Test `_pin_sort_key` — 6 tests (numeric sort, prefix handling)
+- [x] Test `_build_all_pin_keys` — 6 tests (gap-filling, prefixed, mixed)
+- [x] Test `export_registry_to_csv` — 9 tests (empty, gaps, multi-component, sorted output)
+- [x] Integration tests — 2 tests (end-to-end 3-phase + CSV, multi-component sharing)
+
+### Task 9.9: Test untested symbol factories — DONE
+
+99 new tests added. Coverage: breakers 100%, protection 100%, contacts 98%, terminals 100%, transducers 100%, blocks 99%.
+
+- [x] Test `circuit_breaker_symbol()` — 8 tests (ports, cross elements, directions, labels)
+- [x] Test `two_pole_circuit_breaker_symbol()` — 5 tests (4 ports, pole spacing)
+- [x] Test `three_pole_circuit_breaker_symbol()` — 6 tests (6 ports, spacing, directions)
+- [x] Test `fuse_symbol()` — 8 tests (ports, box elements, labels, pins)
+- [x] Test `spdt_contact_symbol()` — 11 tests (IEC IDs, standard/inverted, NC/NO positions)
+- [x] Test `multi_pole_spdt_symbol()` — 10 tests (naming, 1-3 poles, spacing, custom pins)
+- [x] Test `multi_pole_terminal_symbol()` — 11 tests (sequential IDs, spacing, validation, label_pos)
+- [x] Test `terminal_box_symbol()` — 11 tests (pin IDs, custom start, spacing, elements)
+- [x] Test `dynamic_block_symbol()` — 18 tests (top/bottom pins, aliases, positions, ValueError)
+- [x] Test `current_transducer_symbol()` — 3 tests (no ports, elements)
+- [x] Test `current_transducer_assembly_symbol()` — 8 tests (ports, skip_auto_connect, offset)
 
 ### Task 9.10: Test `rendering/typst/compiler.py` (61% -> target 80%)
 
@@ -499,13 +544,13 @@ These symbol factories have zero direct tests (only exercised indirectly via std
 - [ ] Test `_rel_path()` helper
 - [ ] Test page ordering and content generation
 
-### Task 9.11: Strengthen existing test assertions
+### Task 9.11: Strengthen existing test assertions — DONE (partial)
 
-15+ tests use weak assertions (`assert len(circuit.elements) > 0`). They verify something was
-produced but not that it was correct.
+Strengthened 10 weak assertions in `test_std_circuits_multicount.py`:
 
-- [ ] Add `component_map` and `terminal_pin_map` assertions to multicount integration tests
-- [ ] Replace `assert X is not None` with specific value assertions where possible
+- [x] Add `component_map` and `terminal_pin_map` assertions to multicount integration tests
+- [x] Replace `assert len(...) > 0` with specific minimum counts and field checks
+- [x] Use `BuildResult` type assertions and verify `used_terminals` contents
 - [ ] Add snapshot tests for PSU, coil, no_contact, and at least one multi-count circuit
 - [ ] Remove or re-attach orphaned `psu_circuit.svg` snapshot (no test references it)
 
@@ -531,17 +576,19 @@ produced but not that it was correct.
 - All file I/O properly isolated at module boundaries
 - No `datetime.now()`, `random`, `os.environ`, or other non-deterministic calls in core
 
-### Task 10.1: Document mutable builders in CLAUDE.md (pending Q9)
+### Task 10.1: Document mutable builders in CLAUDE.md (~~pending Q9~~)
 
 `PlcMapper`, `Project`, and `CircuitBuilder` all use mutable accumulation (`.append()`, dict
 mutation, `return self`) but aren't documented as exceptions to the immutability rule.
 
-- [ ] Add "Intentional Mutable Builders" section to CLAUDE.md listing:
+- [x] Add "Intentional Mutable Builders" section to CLAUDE.md listing:
   1. `Circuit` — mutable accumulator for symbols/elements (already documented)
   2. `Project` — mutable builder for project definitions
   3. `CircuitBuilder` — mutable builder for circuit specifications
   4. `PlcMapper` — mutable builder for PLC module/sensor definitions
-- [ ] Add warning: "Do not share instances across multiple build contexts"
+- [x] Add warning: "Do not share instances across multiple build contexts"
+
+Added Intentional Mutable Builders section to CLAUDE.md.
 
 ### Task 10.2: Fix `Project.set_pin_start()` state threading
 
@@ -587,9 +634,11 @@ if wire_labels is not None:
     circuit = add_wire_labels_to_circuit(circuit, wire_labels)
 ```
 
-- [ ] Create `apply_wire_labels(circuit, wire_labels)` in `layout/wire_labels.py`
-- [ ] Replace all 5 occurrences with single function call
-- [ ] Effort: 15 min
+- [x] Create `apply_wire_labels(circuit, wire_labels)` in `layout/wire_labels.py`
+- [x] Replace all 5 occurrences with single function call
+- [x] Effort: 15 min
+
+Created `apply_wire_labels()` in `layout/wire_labels.py`. All 5 duplications replaced.
 
 ### Task 11.2: Extract `resolve_terminal_pins()` helper (3 duplications)
 
@@ -606,10 +655,10 @@ else:
 pin_accumulator.setdefault(str(tm_top), []).extend(pins)
 ```
 
-- [ ] Create `resolve_terminal_pins(state, terminal_id, poles, provided_pins)` in `utils/autonumbering.py`
-- [ ] Returns `(updated_state, pins_tuple)`
-- [ ] Replace 3 multi-line conditionals with single call
-- [ ] Effort: 15 min
+- [x] Created `resolve_terminal_pins(state, terminal_tag, poles, provided_pins, pin_accumulator)` in `utils/autonumbering.py`
+- [x] Returns `(updated_state, pins_tuple)`
+- [x] Replaced conditionals in motor.py (2) and control.py (2) with single calls
+- [x] Changeover in power.py uses different pattern (no accumulator) — not refactored
 
 ### Task 11.3: Extract `register_pole_connections()` helper (2 duplications in motor.py)
 
@@ -642,9 +691,9 @@ Hard-coded geometry values scattered across factories:
 | 2.0 | contacts.py:288 | Pin label offset | `PIN_LABEL_OFFSET_X` |
 | 4.0 | contacts.py:372 | SPDT spacing multiplier | `SPDT_POLE_SPACING_FACTOR` |
 
-- [ ] Add these constants to `model/constants.py`
-- [ ] Replace all hard-coded values with named constants
-- [ ] Effort: 15 min
+- [x] Added `SPDT_POLE_SPACING`, `CHANGEOVER_POLE_SPACING`, `CHANGEOVER_POLE_OFFSET`, `SPDT_PIN_LABEL_OFFSET` to `model/constants.py`
+- [x] Replaced hard-coded values in `contacts.py` and `power.py`
+- [x] `motor.py` uses `symbol_spacing/2` (already parameterized, not a magic number)
 
 ### Task 11.6: Create `FactoryAccumulators` helper class
 
@@ -687,48 +736,48 @@ Factory signatures are inconsistent for terminal parameters:
 
 ## 13. Documentation Gaps
 
-### Task 13.1: Update README.md (HIGH PRIORITY)
+### Task 13.1: Update README.md (HIGH PRIORITY) — DONE
 
-README is missing 7+ major features from the public API. Expand from 255 to ~450 lines:
+README expanded from 255 to ~400 lines with 7 new sections:
 
-- [ ] Add **Terminal class** section — show `Terminal("X1", description="Main Power", bridge="all")`
-- [ ] Add **Project API** section — multi-page PDF orchestration with example
-- [ ] Expand **CircuitBuilder** section from 3 lines to ~80 lines with example code
-- [ ] Add **BuildResult** explanation — fields, tuple unpacking, `.reuse_tags()`
-- [ ] Add **wire() helper** section — `wire("RD", "2.5mm2")`, `wire.EMPTY`
-- [ ] Add **Descriptors** section — `ref()`, `comp()`, `term()` with example
-- [ ] Add **PlcMapper** section — module_type, sensor_type, sensor, generate_connections
+- [x] Add **Terminal class** section — show `Terminal("X1", description="Main Power", bridge="all")`
+- [x] Add **Project API** section — multi-page PDF orchestration with example
+- [x] Expand **CircuitBuilder** section from 3 lines to ~80 lines with example code
+- [x] Add **BuildResult** explanation — fields, tuple unpacking, `.reuse_tags()`
+- [x] Add **wire() helper** section — `wire("RD", "2.5mm2")`, `wire.EMPTY`
+- [x] Add **Descriptors** section — `ref()`, `comp()`, `term()` with example
+- [x] Add **PlcMapper** section — module_type, sensor_type, sensor, generate_connections
 - [ ] Add **Further Reading** section linking to `pyschemaelectrical_API_guide.md`
 - [ ] Add **State Threading** code example showing pin continuity across circuits
 
-### Task 13.2: Add CircuitBuilder method docstrings (HIGH PRIORITY)
+### Task 13.2: Add CircuitBuilder method docstrings (HIGH PRIORITY) — DONE
 
-15+ public methods on CircuitBuilder have no docstrings:
+All public methods now have complete docstrings with Args/Returns sections.
 
-- [ ] `__init__(self, state)` — document state parameter
-- [ ] `set_layout(self, x, y, spacing, symbol_spacing)` — layout configuration
-- [ ] `add_component(self, func, tag_prefix, poles, pins)` — component addition
-- [ ] `add_terminal(self, tm_id, poles, pins, ...)` — terminal addition
-- [ ] `add_reference(self, ref_id, ...)` — reference symbol addition
-- [ ] `place_right(self, idx, tag_prefix, func, ...)` — relative placement
-- [ ] `connect(self, from_idx, from_pin, to_idx, to_pin)` — manual connection
-- [ ] `add_matching_connection(self, ...)` — horizontal port matching
-- [ ] `build(self, count, wire_labels, ...)` — circuit generation
-- [ ] All methods need Args/Returns/Raises/Example sections
+- [x] `__init__(self, state)` — document state parameter
+- [x] `set_layout(self, x, y, spacing, symbol_spacing)` — layout configuration
+- [x] `add_component(self, func, tag_prefix, poles, pins)` — component addition
+- [x] `add_terminal(self, tm_id, poles, pins, ...)` — terminal addition
+- [x] `add_reference(self, ref_id, ...)` — reference symbol addition (already had docstring)
+- [x] `place_right(self, idx, tag_prefix, func, ...)` — relative placement (already had docstring)
+- [x] `connect(self, from_idx, from_pin, to_idx, to_pin)` — manual connection (already had docstring)
+- [x] `connect_matching(self, ...)` — horizontal port matching (already had docstring)
+- [x] `add_connection(self, ...)` — low-level index-based connection
+- [x] `build(self, count, wire_labels, ...)` — circuit generation (Raises section added)
 
-### Task 13.3: Add Project method docstrings (HIGH PRIORITY)
+### Task 13.3: Add Project method docstrings (HIGH PRIORITY) — DONE
 
-20+ public methods on Project have no docstrings:
+All public methods now have complete docstrings with Args sections.
 
-- [ ] `terminals(self, *terminals)` — terminal registration
-- [ ] `set_pin_start(self, terminal_id, pin)` — expand existing partial docstring
-- [ ] All circuit registration methods: `dol_starter()`, `psu()`, `changeover()`, `spdt()`,
-  `coil()`, `no_contact()`, `emergency_stop()`, `power_distribution()`
-- [ ] `circuit(self, key, components, ...)` — descriptor circuit registration
-- [ ] `custom(self, key, builder_fn)` — custom builder registration
-- [ ] `page()`, `front_page()`, `terminal_report()`, `plc_report()`, `custom_page()`
-- [ ] `build(self, output_path, ...)` — PDF compilation pipeline
-- [ ] `build_svgs(self, output_dir)` — SVG-only output
+- [x] `terminals(self, *terminals)` — terminal registration
+- [x] `set_pin_start(self, terminal_id, pin)` — expanded with Args
+- [x] All circuit registration methods: `dol_starter()`, `psu()`, `changeover()`, `spdt()`,
+  `coil()`, `no_contact()`, `emergency_stop()` — all with Args
+- [x] `circuit(self, key, components, ...)` — already had docstring
+- [x] `custom(self, key, builder_fn)` — already had docstring
+- [x] `page()`, `front_page()`, `terminal_report()`, `plc_report()`, `custom_page()` — all with Args
+- [x] `build(self, output_path, ...)` — already had docstring
+- [x] `build_svgs(self, output_dir)` — already had docstring
 
 ### Task 13.4: Add PlcMapper method docstrings
 
@@ -889,9 +938,9 @@ Port naming is inconsistent across symbols (numeric, semantic, composite). Curre
 
 ### Task 16.4: Update CLAUDE.md
 
-- [ ] Add mutable builder exceptions list (see Task 10.1)
+- [x] Add mutable builder exceptions list (see Task 10.1)
 - [ ] Document port ID conventions (see 16.3)
-- [ ] Update test baseline from 219 to 224 tests
+- [x] Update test baseline to 221 tests
 
 ### Task 16.5: Motor pin label cleanup (from 12.3)
 
@@ -983,44 +1032,47 @@ All items below were completed in earlier audit rounds. Kept for reference.
 
 ## Summary — Task Priority
 
-### Tier 1: Bugs, Type Safety & Critical Tests (do first)
+### Completed in this session (2026-02-19)
+
+| Task | Section | Description |
+|------|---------|-------------|
+| 2 | Bug fix | Fixed `text_anchor` bug in `create_pin_label_text()` |
+| 3.1 | Type Safety | Fixed None-safety in builder/project |
+| 3.2 | Type Safety | Fixed motor.py type mismatches |
+| 3.3 | Type Safety | Fixed TerminalBlock constructor type |
+| 3.4 | Type Safety | Fixed merge_circuits type narrowing |
+| 3.5 | Type Safety | Migrated to frozen GenerationState with `.replace()` |
+| 5.3 | Code Quality | Removed `from __future__ import annotations` from 9 files |
+| 6.1 | Dead Code | Removed 7 unused functions (auto_*, increment_tag, format_tag, get_pin_counter) |
+| 6.2 | Dead Code | Removed `next_contact_pins()` |
+| 7.2 | Validation | Narrowed bare `except Exception` to `(OSError, csv.Error)` |
+| 8.2 | Exceptions | Renamed exception classes to `*Error` suffix convention |
+| 9.3 | Tests | system_analysis.py: 68 tests, 0% → 100% coverage |
+| 9.4 | Tests | transform.py: 68 new tests, 38% → 100% coverage |
+| 10.1 | FP Principles | Documented mutable builders in CLAUDE.md |
+| 11.1 | DRY | Extracted `apply_wire_labels()` helper (5 duplications removed) |
+| 11.2 | DRY | Extracted `resolve_terminal_pins()` helper (4 duplications removed) |
+| 11.5 | DRY | Extracted 4 magic numbers to named constants |
+| 13.2 | Docs | CircuitBuilder: all public method docstrings complete |
+| 13.3 | Docs | Project: all public method docstrings complete |
+| 16.4 | Cleanup | Updated CLAUDE.md (mutable builders, test baseline) |
+| 6.3 | Dead Code | Reviewed 12 ERA001 findings — all false positives (geometry docs) |
+| 9.5 | Tests | layout.py: 65 new tests, 55% → 100% coverage |
+| 9.8 | Tests | connection_registry.py: 50 new tests, 79% → 98% coverage |
+| 9.9 | Tests | Symbol factories: 99 new tests, most modules → 100% coverage |
+| 13.1 | Docs | README.md expanded from 255 to ~400 lines (7 new sections) |
+| 9.1 | Tests | builder.py: 98 new tests, 41% → 99% coverage |
+| 9.2 | Tests | project.py: 54 new tests, 65% → 100% coverage |
+| 9.6 | Tests | power_distribution(): 20 new tests, 75% → 98% coverage |
+| 9.7 | Tests | motor ct_terminals: 30 new tests, ~85% → 99% coverage |
+| 9.11 | Tests | Strengthened 10 weak assertions in multicount integration tests |
+
+### Tier 3: Test Coverage Expansion (remaining)
 
 | Task | Effort | Blocked by |
 |------|--------|------------|
-| 2. Fix `text_anchor` bug | 15 min | Q1 |
-| 3.1 Fix None-safety in builder/project | 30 min | -- |
-| 3.2 Fix motor.py type mismatches | 30 min | -- |
-| 3.3 Fix TerminalBlock constructor | 10 min | -- |
-| 3.4 Fix merge_circuits type narrowing | 10 min | -- |
-| 3.5 Fix autonumbering state handling | 1 hr | Q4 |
-| 9.3 Test system_analysis.py (0% coverage!) | 2-3 hr | -- |
-| 9.4 Test transform.py path parsers (0% coverage!) | 2-3 hr | -- |
-
-### Tier 2: DRY, Quality & Documentation (do next)
-
-| Task | Effort | Blocked by |
-|------|--------|------------|
-| 11.1 Extract apply_wire_labels helper | 15 min | -- |
-| 11.2 Extract resolve_terminal_pins helper | 15 min | -- |
-| 11.5 Extract magic numbers to constants | 15 min | -- |
-| 13.1 Update README.md (7+ missing features) | 3 hr | -- |
-| 13.2 Add CircuitBuilder docstrings | 2 hr | -- |
-| 13.3 Add Project docstrings | 2 hr | -- |
-| 7.2 Add file I/O error handling (5 locations) | 2 hr | -- |
-| 10.1 Document mutable builders in CLAUDE.md | 30 min | Q9 |
-
-### Tier 3: Test Coverage Expansion (do later)
-
-| Task | Effort | Blocked by |
-|------|--------|------------|
-| 9.1 Test builder.py remaining paths | 3-4 hr | -- |
-| 9.2 Test project.py remaining paths | 2-3 hr | -- |
-| 9.5 Test layout/layout.py | 2-3 hr | -- |
-| 9.6 Test power_distribution() | 1-2 hr | -- |
-| 9.7 Test motor ct_terminals branch | 1-2 hr | -- |
-| 9.8 Test connection_registry untested methods | 1-2 hr | -- |
-| 9.9 Test untested symbol factories | 2-3 hr | -- |
-| 9.11 Strengthen weak test assertions | 2-3 hr | -- |
+| 9.10 Test rendering/typst/compiler.py | 2-3 hr | -- |
+| 9.11 Snapshot tests for remaining circuits | 1-2 hr | -- |
 
 ### Tier 4: API Improvements (from real usage)
 
@@ -1038,13 +1090,12 @@ All items below were completed in earlier audit rounds. Kept for reference.
 |------|--------|------------|
 | 4.1-4.5 Type annotation improvements | 3-4 hr | -- |
 | 5.1 Reduce function complexity | 3-4 hr | -- |
-| 5.2-5.4 Line length, imports, future | 1-2 hr | Q3 |
-| 6.1-6.3 Dead code removal | 1 hr | Q5 |
-| 8.1-8.2 Exception docs & naming | 1 hr | Q7 |
+| 5.2, 5.4 Line length, imports | 1-2 hr | -- |
+| 8.1 Exception Raises docstrings | 30 min | -- |
 | 11.3-11.4 register_pole_connections + layout helper | 30 min | -- |
 | 11.6 FactoryAccumulators class | 30 min | -- |
 | 12.1-12.2 API consistency fixes | 2 hr | -- |
 | 14.1 Verify SVG text escaping | 30 min | -- |
-| 16.1-16.6 Remaining original audit items | 2-3 hr | Q4 |
+| 16.1-16.3, 16.4 (port ID docs), 16.5-16.6 Remaining original audit items | 2-3 hr | -- |
 | 9.10 Test typst compiler | 2-3 hr | -- |
 | 9.12 Test infrastructure improvements | 1-2 hr | -- |

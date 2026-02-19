@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Terminal Internal Connections (Bridges) Utilities.
 
@@ -271,7 +269,7 @@ def update_csv_with_internal_connections(
 
                 writer.writerow(row + [bridge_val])
 
-    except Exception as e:
+    except (OSError, csv.Error) as e:
         temp_file.close()
         Path(temp_file.name).unlink(missing_ok=True)
         raise e

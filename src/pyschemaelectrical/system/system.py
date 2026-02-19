@@ -103,10 +103,10 @@ def render_system(
 
     # Normalize to list
     circuit_list: list[Circuit]
-    if isinstance(circuits, list):
-        circuit_list = circuits
-    else:
+    if isinstance(circuits, Circuit):
         circuit_list = [circuits]
+    else:
+        circuit_list = circuits
 
     for c in circuit_list:
         all_elements.extend(c.elements)

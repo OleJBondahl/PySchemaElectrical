@@ -7,7 +7,7 @@ from pyschemaelectrical import (
     Terminal,
     create_autonumberer,
 )
-from pyschemaelectrical.exceptions import TerminalReuseExhausted
+from pyschemaelectrical.exceptions import TerminalReuseError
 
 
 TM_A = Terminal("XA", "Terminal A")
@@ -106,7 +106,7 @@ class TestReuseTerminals:
 
         # Try to reuse 2 pins for 3 instances
         builder_b = _simple_builder(res_a.state, TM_A)
-        with pytest.raises(TerminalReuseExhausted):
+        with pytest.raises(TerminalReuseError):
             builder_b.build(count=3, reuse_terminals={TM_A: res_a})
 
     def test_mixed_reuse_and_auto(self):

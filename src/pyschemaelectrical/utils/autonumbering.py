@@ -6,48 +6,45 @@ and terminals in electrical schematics. It uses a counter-based approach that
 generates sequential numbers for tags with the same prefix letter.
 
 Example:
-    >>> numberer = create_autonumberer()
-    >>> numberer = increment_tag(numberer, "F")
-    >>> get_tag_number(numberer, "F")
-    1
-    >>> numberer = increment_tag(numberer, "F")
-    >>> get_tag_number(numberer, "F")
-    2
+    >>> state = create_autonumberer()
+    >>> state, tag1 = next_tag(state, "F")
+    >>> tag1
+    'F1'
+    >>> state, tag2 = next_tag(state, "F")
+    >>> tag2
+    'F2'
 """
 
-from typing import Any
+from dataclasses import replace
 
 from pyschemaelectrical.model.state import GenerationState, create_initial_state
 
 
-def create_autonumberer() -> dict[str, Any]:
+def create_autonumberer() -> GenerationState:
     """
     Create a new autonumbering state.
 
     Returns:
-        dict[str, Any]: Dictionary with 'tags' for component numbers and
-                       'pin_counter' for sequential pin numbering.
+        GenerationState: Fresh state with all counters initialized to defaults.
     """
     return create_initial_state()
 
 
-def get_tag_number(state: dict[str, Any] | GenerationState, prefix: str) -> int:
+def get_tag_number(state: GenerationState, prefix: str) -> int:
     """
     Get the current number for a tag prefix.
 
     Args:
-        state: The autonumbering state dictionary.
+        state: The autonumbering state.
         prefix: The tag prefix (e.g., "F", "Q", "X").
 
     Returns:
         int: The current number for this prefix (0 if not yet used).
     """
-    return state["tags"].get(prefix, 0)
+    return state.tags.get(prefix, 0)
 
 
-def _increment_tag(
-    state: dict[str, Any] | GenerationState, prefix: str
-) -> dict[str, Any]:
+def _increment_tag(state: GenerationState, prefix: str) -> GenerationState:
     """
     Increment the counter for a tag prefix and return new state.
 
@@ -56,12 +53,10 @@ def _increment_tag(
         prefix: The tag prefix to increment.
 
     Returns:
-        dict[str, Any]: New state with incremented counter.
+        GenerationState: New state with incremented counter.
     """
-    new_state = state.copy()
-    new_state["tags"] = state["tags"].copy()
-    new_state["tags"][prefix] = get_tag_number(state, prefix) + 1
-    return new_state
+    new_tags = {**state.tags, prefix: get_tag_number(state, prefix) + 1}
+    return replace(state, tags=new_tags)
 
 
 def _format_tag(prefix: str, number: int) -> str:
@@ -79,8 +74,8 @@ def _format_tag(prefix: str, number: int) -> str:
 
 
 def next_tag(
-    state: dict[str, Any] | GenerationState, prefix: str
-) -> tuple[dict[str, Any], str]:
+    state: GenerationState, prefix: str
+) -> tuple[GenerationState, str]:
     """
     Get the next tag for a prefix and return updated state.
 
@@ -91,7 +86,7 @@ def next_tag(
         prefix: The tag prefix.
 
     Returns:
-        tuple[dict[str, Any], str]: Updated state and formatted tag.
+        tuple[GenerationState, str]: Updated state and formatted tag.
 
     Example:
         >>> state = create_autonumberer()
@@ -105,25 +100,12 @@ def next_tag(
     return new_state, tag
 
 
-def get_pin_counter(state: dict[str, Any] | GenerationState) -> int:
-    """
-    Get the current pin counter value.
-
-    Args:
-        state: The autonumbering state dictionary.
-
-    Returns:
-        int: Current pin counter value.
-    """
-    return state["pin_counter"]
-
-
 def next_terminal_pins(
-    state: dict[str, Any] | GenerationState,
+    state: GenerationState,
     terminal_tag: str,
     poles: int = 3,
     pin_prefixes: tuple[str, ...] | None = None,
-) -> tuple[dict[str, Any], tuple[str, ...]]:
+) -> tuple[GenerationState, tuple[str, ...]]:
     """
     Generate sequential terminal pins for a specific terminal strip.
 
@@ -152,7 +134,7 @@ def next_terminal_pins(
     """
     prefixes = pin_prefixes or getattr(terminal_tag, "pin_prefixes", None)
 
-    counters = state.get("terminal_counters", {})
+    counters = state.terminal_counters
     tag_key = str(terminal_tag)
 
     if prefixes and len(prefixes) >= poles:
@@ -161,7 +143,7 @@ def next_terminal_pins(
         # max(per-prefix counters for requested prefixes) + 1,
         # also respecting the legacy shared counter as a floor
         # (set only by set_terminal_counter, not auto-advanced here).
-        prefix_counters = state.get("terminal_prefix_counters", {})
+        prefix_counters = state.terminal_prefix_counters
         tag_prefixes = prefix_counters.get(tag_key, {})
         shared_floor = counters.get(tag_key, 0)
 
@@ -178,85 +160,51 @@ def next_terminal_pins(
         for p in requested:
             new_tag_prefixes[p] = new_group
 
-        new_state = state.copy()
-        new_prefix_counters = prefix_counters.copy()
-        new_prefix_counters[tag_key] = new_tag_prefixes
-        new_state["terminal_prefix_counters"] = new_prefix_counters
-        # Legacy shared counter is NOT advanced here — it serves only
+        new_prefix_counters = {**prefix_counters, tag_key: new_tag_prefixes}
+        # Legacy shared counter is NOT advanced here -- it serves only
         # as a floor set by set_terminal_counter().  Copy it unchanged.
-        new_state["terminal_counters"] = counters.copy()
+        new_state = replace(
+            state,
+            terminal_prefix_counters=new_prefix_counters,
+        )
     else:
         # Sequential: counter advances by number of poles
         current_pin = counters.get(tag_key, 0) + 1
         pins = tuple(str(current_pin + i) for i in range(poles))
         new_counter_val = current_pin + poles - 1
 
-        new_state = state.copy()
-        new_counters = counters.copy()
-        new_counters[tag_key] = new_counter_val
-        new_state["terminal_counters"] = new_counters
+        new_counters = {**counters, tag_key: new_counter_val}
+        new_state = replace(state, terminal_counters=new_counters)
 
     return new_state, pins
 
 
-# ---------------------------------------------------------------------------
-# Public aliases for private helpers
-# ---------------------------------------------------------------------------
+def resolve_terminal_pins(
+    state: GenerationState,
+    terminal_tag: str,
+    poles: int,
+    provided_pins: tuple[str, ...] | None,
+    pin_accumulator: dict[str, list[str]],
+) -> tuple[GenerationState, tuple[str, ...]]:
+    """
+    Resolve terminal pins: use provided pins or auto-generate them.
 
-def increment_tag(
-    state: dict[str, Any] | GenerationState, prefix: str
-) -> dict[str, Any]:
-    """Increment the counter for a tag prefix and return new state."""
-    return _increment_tag(state, prefix)
-
-
-def format_tag(prefix: str, number: int) -> str:
-    """Format a tag with prefix and number."""
-    return _format_tag(prefix, number)
-
-
-# ---------------------------------------------------------------------------
-# Pin-range helpers
-# ---------------------------------------------------------------------------
-
-def generate_pin_range(
-    start: int, count: int, skip_odd: bool = False
-) -> tuple[str, ...]:
-    """Generate a sequential range of pin number strings.
+    Combines the common pattern of conditionally calling next_terminal_pins()
+    and accumulating the result into a pin_accumulator dict.
 
     Args:
-        start: First pin number in the range.
-        count: How many pins to generate.
-        skip_odd: If True, odd-numbered pins are replaced with "".
+        state: The current autonumbering state.
+        terminal_tag: The terminal strip tag (e.g. "X1").
+        poles: Number of poles to generate.
+        provided_pins: Explicit pins to use, or None to auto-generate.
+        pin_accumulator: Dict to extend with the resolved pins.
 
     Returns:
-        Tuple of pin strings.
+        Tuple of (updated state, resolved pins).
     """
-    pins: list[str] = []
-    for i in range(count):
-        pin_num = start + i
-        if skip_odd and pin_num % 2 != 0:
-            pins.append("")
-        else:
-            pins.append(str(pin_num))
-    return tuple(pins)
-
-
-def auto_coil_pins() -> tuple[str, str]:
-    """Return the standard IEC coil pin pair."""
-    return ("A1", "A2")
-
-
-def auto_contact_pins(start: int, poles: int) -> tuple[str, ...]:
-    """Generate contact pins (2 pins per pole, sequential)."""
-    return generate_pin_range(start, poles * 2)
-
-
-def auto_terminal_pins(start: int, poles: int) -> tuple[str, ...]:
-    """Generate terminal pins (2 pins per pole, sequential)."""
-    return generate_pin_range(start, poles * 2)
-
-
-def auto_thermal_pins(start: int, poles: int) -> tuple[str, ...]:
-    """Generate thermal-overload pins (skip-odd pattern, 2 pins per pole)."""
-    return generate_pin_range(start - 1, poles * 2, skip_odd=True)
+    if provided_pins is None:
+        state, pins = next_terminal_pins(state, terminal_tag, poles)
+    else:
+        pins = provided_pins
+    pin_accumulator.setdefault(str(terminal_tag), []).extend(pins)
+    return state, pins

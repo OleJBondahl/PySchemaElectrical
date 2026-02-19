@@ -886,15 +886,7 @@ state, pins = next_terminal_pins(state, "X1", poles=3)  # ("1","2","3")
 
 ```python
 from pyschemaelectrical.utils.autonumbering import (
-    increment_tag,        # Increment counter without generating tag
-    format_tag,           # Format prefix + number: format_tag("K", 3) → "K3"
     next_tag,             # Get next tag and advance state: (state, "K1")
-    generate_pin_range,   # Generate pin range: generate_pin_range(1, 3) → ("1","2","3")
-    get_pin_counter,      # Get current global pin counter
-    auto_terminal_pins,   # Standard terminal pins: auto_terminal_pins(1, 3) → ("1","2","3")
-    auto_contact_pins,    # Standard contact pins: auto_contact_pins(1, 3) → ("1","3","5")
-    auto_thermal_pins,    # Thermal pins (even only): auto_thermal_pins(2, 3) → ("2","4","6")
-    auto_coil_pins,       # Coil pins: auto_coil_pins() → ("A1", "A2")
 )
 ```
 
@@ -902,9 +894,7 @@ from pyschemaelectrical.utils.autonumbering import (
 
 ```python
 from pyschemaelectrical.utils.utils import (
-    next_contact_pins,       # Get next SPDT contact pins: (state, ("11","12","14"))
     apply_start_indices,     # Apply start indices to tag counters
-    create_fixed_tag_generator,  # Create generator for fixed tag: create_fixed_tag_generator("K_PUMP")
     merge_terminals,         # Merge terminal lists (deduplicating)
 )
 ```
@@ -1300,8 +1290,8 @@ from pyschemaelectrical import (
     CircuitValidationError,    # Base class
     PortNotFoundError,         # Port 'X' not found on component 'Y'
     ComponentNotFoundError,    # Component index N is out of bounds
-    TagReuseExhausted,         # reuse_tags ran out of tags for prefix 'K'
-    WireLabelCountMismatch,    # Wire label count doesn't match vertical wire count
+    TagReuseError,             # reuse_tags ran out of tags for prefix 'K'
+    WireLabelMismatchError,    # Wire label count doesn't match vertical wire count
 )
 ```
 

@@ -433,17 +433,14 @@ __DESC_MAP__
         groups.insert(tag, current)
     }
 
-    // Helper to get bridge indicator for a pin
-    let get_bridge_indicator(tag, pin_str, row_idx, all_pins, bridge_groups) = {
+    // Helper to get bridge indicator for a row
+    let get_bridge_indicator(row_idx, bridge_groups) = {
         if bridge_groups == none { return none }
 
-        let pin = if pin_str.match(regex("^\d+$")) != none { int(pin_str) } else { return none }
-
         for (group_idx, group) in bridge_groups.enumerate() {
-            if pin in group {
-                let group_pins_in_table = group.filter(p => str(p) in all_pins)
-                let pos_in_group = group_pins_in_table.position(p => p == pin)
-                let group_size = group_pins_in_table.len()
+            if row_idx in group {
+                let pos_in_group = group.position(i => i == row_idx)
+                let group_size = group.len()
 
                 let colors = (blue.darken(20%), green.darken(20%), orange.darken(20%), purple.darken(20%))
                 let color = colors.at(calc.rem(group_idx, colors.len()))
@@ -472,21 +469,17 @@ __DESC_MAP__
                      let bridge_groups = ()
                      let bridge_map = (:)
 
-                     for row in group_rows {
+                     for (idx, row) in group_rows.enumerate() {
                          if row.len() > 6 {
                              let b_id = row.at(6)
-                             let p_str = row.at(3)
-                             if b_id != "" and p_str.match(regex("^\d+$")) != none {
-                                 let p = int(p_str)
+                             if b_id != "" {
                                  let current_group = bridge_map.at(b_id, default: ())
-                                 current_group.push(p)
+                                 current_group.push(idx)
                                  bridge_map.insert(b_id, current_group)
                              }
                          }
                      }
                      bridge_groups = bridge_map.values()
-
-                     let all_pins = group_rows.map(r => r.at(3))
 
                      table(
                         columns: (0.35fr, 0.35fr, 0.35fr, 0.35fr, 0.35fr, 0.15fr),
@@ -506,7 +499,7 @@ __DESC_MAP__
                             text(size: 9pt, weight: "bold")[Int],
                         ),
                         ..group_rows.enumerate().map(((idx, r)) => {
-                            let bridge = get_bridge_indicator(tag, r.at(3), idx, all_pins, bridge_groups)
+                            let bridge = get_bridge_indicator(idx, bridge_groups)
                             (
                                 text(size: 9pt)[#r.at(0)],
                                 text(size: 9pt)[#r.at(1)],

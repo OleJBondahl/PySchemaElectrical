@@ -1,6 +1,9 @@
 import csv
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass, field, replace
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.state import GenerationState
 
 
 @dataclass(frozen=True)
@@ -44,28 +47,26 @@ class TerminalRegistry:
         return TerminalRegistry(self.connections + tuple(conns))
 
 
-def get_registry(state: dict[str, Any]) -> TerminalRegistry:
-    """Retrieves or creates the TerminalRegistry from the state."""
-    return state.get("terminal_registry", TerminalRegistry())
+def get_registry(state: "GenerationState") -> TerminalRegistry:
+    """Retrieves the TerminalRegistry from the state."""
+    return state.terminal_registry
 
 
 def update_registry(
-    state: dict[str, Any], registry: TerminalRegistry
-) -> dict[str, Any]:
+    state: "GenerationState", registry: TerminalRegistry
+) -> "GenerationState":
     """Updates the state with the new registry."""
-    new_state = state.copy()
-    new_state["terminal_registry"] = registry
-    return new_state
+    return replace(state, terminal_registry=registry)
 
 
 def register_connection(
-    state: dict[str, Any],
+    state: "GenerationState",
     terminal_tag: str,
     terminal_pin: str,
     component_tag: str,
     component_pin: str,
     side: str = "bottom",
-) -> dict[str, Any]:
+) -> "GenerationState":
     """
     Functional helper to register a connection in the state.
     """
@@ -77,13 +78,13 @@ def register_connection(
 
 
 def register_3phase_connections(
-    state: dict[str, Any],
+    state: "GenerationState",
     terminal_tag: str,
     terminal_pins: tuple[str, ...],
     component_tag: str,
     component_pins: tuple[str, ...],
     side: str = "bottom",
-) -> dict[str, Any]:
+) -> "GenerationState":
     """
     Register all 3 phase connections between a terminal and a component.
 
@@ -121,12 +122,12 @@ def register_3phase_connections(
 
 
 def register_3phase_input(
-    state: dict[str, Any],
+    state: "GenerationState",
     terminal_tag: str,
     terminal_pins: tuple[str, ...],
     component_tag: str,
     component_pins: tuple[str, ...] = ("1", "3", "5"),
-) -> dict[str, Any]:
+) -> "GenerationState":
     """
     Register 3-phase input connections (terminal to component input pins).
 
@@ -148,12 +149,12 @@ def register_3phase_input(
 
 
 def register_3phase_output(
-    state: dict[str, Any],
+    state: "GenerationState",
     terminal_tag: str,
     terminal_pins: tuple[str, ...],
     component_tag: str,
     component_pins: tuple[str, ...] = ("2", "4", "6"),
-) -> dict[str, Any]:
+) -> "GenerationState":
     """
     Register 3-phase output connections (component output pins to terminal).
 
@@ -176,7 +177,7 @@ def register_3phase_output(
 
 def _build_all_pin_keys(
     grouped: dict,
-    state: dict[str, Any] | None,
+    state: "GenerationState | None",
 ) -> list[tuple[str, str]]:
     """Build a complete list of (terminal_tag, pin) keys including empty slots.
 
@@ -195,21 +196,19 @@ def _build_all_pin_keys(
     # Only fill gaps for terminals that have at least one registered connection.
     # This avoids generating empty rows for filtered-out terminals (e.g. PLC).
     registry_tags: set[str] = {tag for tag, _ in grouped}
-    prefix_counters: dict[str, dict[str, int]] = state.get(
-        "terminal_prefix_counters", {}
-    )
-    seq_counters: dict[str, int] = state.get("terminal_counters", {})
+    prefix_counters: dict[str, dict[str, int]] = state.terminal_prefix_counters
+    seq_counters: dict[str, int] = state.terminal_counters
 
     all_keys: set[tuple[str, str]] = set(grouped.keys())
 
     for tag in registry_tags:
         if tag in prefix_counters and prefix_counters[tag]:
-            # Prefixed terminal — enumerate prefix:1 .. prefix:max for each prefix
+            # Prefixed terminal -- enumerate prefix:1 .. prefix:max for each prefix
             for prefix, max_num in prefix_counters[tag].items():
                 for n in range(1, max_num + 1):
                     all_keys.add((tag, f"{prefix}:{n}"))
         elif tag in seq_counters:
-            # Sequential terminal — enumerate 1 .. max
+            # Sequential terminal -- enumerate 1 .. max
             for n in range(1, seq_counters[tag] + 1):
                 all_keys.add((tag, str(n)))
 
@@ -236,14 +235,14 @@ def _pin_sort_key(k: tuple[str, str]) -> tuple:
 def export_registry_to_csv(
     registry: TerminalRegistry,
     filepath: str,
-    state: dict[str, Any] | None = None,
+    state: "GenerationState | None" = None,
 ):
     """
     Exports the registry to the expected CSV format.
 
     When *state* is provided (containing ``terminal_counters`` and/or
     ``terminal_prefix_counters``), the export includes placeholder rows for
-    every allocated pin slot — even those without a registered connection —
+    every allocated pin slot -- even those without a registered connection --
     so the resulting CSV shows a contiguous pin list per terminal strip.
     """
     # Group by (Tag, Pin)
@@ -289,5 +288,5 @@ def export_registry_to_csv(
 
                 writer.writerow([from_comp, from_pin, t_tag, t_pin, to_comp, to_pin])
             else:
-                # Empty slot — pin was allocated but has no connections
+                # Empty slot -- pin was allocated but has no connections
                 writer.writerow(["", "", t_tag, t_pin, "", ""])

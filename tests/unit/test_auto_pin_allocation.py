@@ -22,7 +22,7 @@ def test_auto_pin_sequential():
     # The terminal counter for X008 should have advanced
     # 3 instances, each with 2 terminals using 1 pin each = 6 pins total
     # Pins: 1, 2, 3, 4, 5, 6 (sequential across instances)
-    assert result.state["terminal_counters"]["X008"] == 6
+    assert result.state.terminal_counters["X008"] == 6
 
 
 def test_auto_pin_with_seeded_start():
@@ -39,7 +39,7 @@ def test_auto_pin_with_seeded_start():
     result = builder.build(count=1)
 
     # Pins should start at 6 (counter was 5, next_terminal_pins adds 1)
-    assert result.state["terminal_counters"]["X008"] == 7
+    assert result.state.terminal_counters["X008"] == 7
 
 
 def test_explicit_pins_override():
@@ -56,7 +56,7 @@ def test_explicit_pins_override():
 
     # First terminal used explicit pin "42", so counter should be at 1
     # (only the second terminal auto-allocated pin "1")
-    assert result.state["terminal_counters"]["X008"] == 1
+    assert result.state.terminal_counters["X008"] == 1
 
 
 def test_auto_pin_across_builds():
@@ -71,7 +71,7 @@ def test_auto_pin_across_builds():
     builder1.add_terminal("X008")
     result1 = builder1.build(count=1)
 
-    assert result1.state["terminal_counters"]["X008"] == 2
+    assert result1.state.terminal_counters["X008"] == 2
 
     # Second build with state from first: should continue from pin 3
     builder2 = CircuitBuilder(result1.state)
@@ -81,7 +81,7 @@ def test_auto_pin_across_builds():
     builder2.add_terminal("X008")
     result2 = builder2.build(count=1)
 
-    assert result2.state["terminal_counters"]["X008"] == 4
+    assert result2.state.terminal_counters["X008"] == 4
 
 
 def test_mixed_auto_and_explicit():
@@ -97,7 +97,7 @@ def test_mixed_auto_and_explicit():
     result = builder.build(count=1)
 
     # Auto-allocated only 1 pin, explicit used "99"
-    assert result.state["terminal_counters"]["X008"] == 1
+    assert result.state.terminal_counters["X008"] == 1
 
 
 def test_auto_pin_different_terminals():
@@ -113,8 +113,8 @@ def test_auto_pin_different_terminals():
     result = builder.build(count=3)
 
     # Each terminal gets 1 pin per instance, 3 instances
-    assert result.state["terminal_counters"]["X003"] == 3
-    assert result.state["terminal_counters"]["X103"] == 3
+    assert result.state.terminal_counters["X003"] == 3
+    assert result.state.terminal_counters["X103"] == 3
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +131,7 @@ def test_prefixed_partial_allocation_does_not_advance_other_prefixes():
     assert pins == ("L1:1",)
 
     # L2/L3/N should still be at 0 (unadvanced)
-    prefix_counters = state["terminal_prefix_counters"]["X001"]
+    prefix_counters = state.terminal_prefix_counters["X001"]
     assert prefix_counters["L1"] == 1
     assert "L2" not in prefix_counters
     assert "L3" not in prefix_counters
@@ -143,32 +143,32 @@ def test_prefixed_partial_then_full_allocation():
     tm = Terminal("X001", "Test", pin_prefixes=("L1", "L2", "L3", "N"))
     state = create_autonumberer()
 
-    # Step 1: Full allocation (like changeover) — group 1
+    # Step 1: Full allocation (like changeover) -- group 1
     state, pins = next_terminal_pins(state, tm, poles=4)
     assert pins == ("L1:1", "L2:1", "L3:1", "N:1")
 
-    # Step 2: Partial L1 only (like K1 coil) — L1 advances to 2
+    # Step 2: Partial L1 only (like K1 coil) -- L1 advances to 2
     state, pins = next_terminal_pins(state, tm, poles=1, pin_prefixes=("L1",))
     assert pins == ("L1:2",)
 
-    # Step 3: Partial N only (like K1 coil bottom) — N advances to 2
+    # Step 3: Partial N only (like K1 coil bottom) -- N advances to 2
     state, pins = next_terminal_pins(state, tm, poles=1, pin_prefixes=("N",))
     assert pins == ("N:2",)
 
-    # Step 4: Another L1 (like K2 coil) — L1 advances to 3
+    # Step 4: Another L1 (like K2 coil) -- L1 advances to 3
     state, pins = next_terminal_pins(state, tm, poles=1, pin_prefixes=("L1",))
     assert pins == ("L1:3",)
 
-    # Step 5: Another N — N advances to 3
+    # Step 5: Another N -- N advances to 3
     state, pins = next_terminal_pins(state, tm, poles=1, pin_prefixes=("N",))
     assert pins == ("N:3",)
 
-    # Step 6: Full L1+L2+L3 (like pump DOL) — max(L1=3, L2=1, L3=1)+1 = 4
+    # Step 6: Full L1+L2+L3 (like pump DOL) -- max(L1=3, L2=1, L3=1)+1 = 4
     state, pins = next_terminal_pins(state, tm, poles=3)
     assert pins == ("L1:4", "L2:4", "L3:4")
 
     # L2 went from 1 directly to 4 (gap of 2 instead of old gap of 4)
-    prefix_counters = state["terminal_prefix_counters"]["X001"]
+    prefix_counters = state.terminal_prefix_counters["X001"]
     assert prefix_counters["L1"] == 4
     assert prefix_counters["L2"] == 4
     assert prefix_counters["L3"] == 4
@@ -190,7 +190,7 @@ def test_prefixed_full_allocation_consistent_groups():
     assert pins3 == ("L1:3", "L2:3", "L3:3")
 
     # All prefixes should be at 3
-    prefix_counters = state["terminal_prefix_counters"]["X001"]
+    prefix_counters = state.terminal_prefix_counters["X001"]
     assert prefix_counters == {"L1": 3, "L2": 3, "L3": 3}
 
 
@@ -201,13 +201,13 @@ def test_set_terminal_counter_respects_prefix_floor():
 
     # Allocate a group first to populate prefix counters
     state, _ = next_terminal_pins(state, tm, poles=3)
-    assert state["terminal_prefix_counters"]["X001"] == {"L1": 1, "L2": 1, "L3": 1}
+    assert state.terminal_prefix_counters["X001"] == {"L1": 1, "L2": 1, "L3": 1}
 
     # Set counter to 5
     state = set_terminal_counter(state, "X001", 5)
 
     # Per-prefix counters should also be updated
-    assert state["terminal_prefix_counters"]["X001"] == {"L1": 5, "L2": 5, "L3": 5}
+    assert state.terminal_prefix_counters["X001"] == {"L1": 5, "L2": 5, "L3": 5}
 
     # Next allocation should start at 6
     state, pins = next_terminal_pins(state, tm, poles=3)
