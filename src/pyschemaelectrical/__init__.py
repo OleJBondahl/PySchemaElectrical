@@ -19,7 +19,13 @@ from .exceptions import (
     WireLabelCountMismatch,
     WireLabelMismatchError,
 )
-from .field_devices import DeviceTemplate, PinDef, generate_field_connections
+from .field_devices import (
+    ConnectionRow,
+    DeviceEntry,
+    DeviceTemplate,
+    PinDef,
+    generate_field_connections,
+)
 from .model.constants import (
     CircuitLayoutConfig,
     CircuitLayouts,
