@@ -42,7 +42,11 @@ from .system.system import (  # noqa: E402
 )
 from .terminal import Terminal
 from .utils.autonumbering import create_autonumberer, get_tag_number, next_terminal_pins
-from .utils.export_utils import export_terminal_list, merge_terminal_csv
+from .utils.export_utils import (
+    export_terminal_list,
+    finalize_terminal_csv,
+    merge_terminal_csv,
+)
 from .utils.terminal_bridges import (
     BridgeRange,
     ConnectionDef,

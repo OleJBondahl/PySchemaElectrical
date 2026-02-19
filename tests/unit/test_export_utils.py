@@ -392,3 +392,57 @@ class TestMergeTerminalCsv:
             ]
         finally:
             os.unlink(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# _fill_empty_pin_slots
+# ---------------------------------------------------------------------------
+
+
+def test_fill_empty_pin_slots_inserts_missing_sequential_pins():
+    from pyschemaelectrical.utils.export_utils import _fill_empty_pin_slots
+    rows = [["A", "1", "X1", "1", "", "", ""], ["A", "1", "X1", "3", "", "", ""]]
+    result = _fill_empty_pin_slots(rows)
+    pins = {r[3] for r in result if r[2] == "X1"}
+    assert "2" in pins  # gap filled
+
+def test_fill_empty_pin_slots_inserts_missing_prefixed_pins():
+    from pyschemaelectrical.utils.export_utils import _fill_empty_pin_slots
+    rows = [["A", "1", "X1", "L1:1", "", "", ""], ["A", "1", "X1", "L1:3", "", "", ""]]
+    result = _fill_empty_pin_slots(rows)
+    pins = {r[3] for r in result if r[2] == "X1"}
+    assert "L1:2" in pins
+
+def test_apply_prefix_bridges_sets_group_numbers(tmp_path):
+    import csv
+    from pyschemaelectrical.utils.export_utils import _apply_prefix_bridges
+    csv_path = tmp_path / "test.csv"
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Comp From", "Pin From", "Terminal Tag", "Terminal Pin", "Comp To", "Pin To", "Internal Bridge"])
+        writer.writerow(["", "", "X101", "L1:1", "", "", ""])
+        writer.writerow(["", "", "X101", "L1:2", "", "", ""])
+        writer.writerow(["", "", "X101", "L2:1", "", "", ""])
+    _apply_prefix_bridges(str(csv_path), {"X101"})
+    with open(csv_path, newline="") as f:
+        rows = list(csv.reader(f))[1:]
+    l1_groups = {r[3]: r[6] for r in rows if r[2] == "X101" and r[3].startswith("L1:")}
+    l2_groups = {r[3]: r[6] for r in rows if r[2] == "X101" and r[3].startswith("L2:")}
+    assert l1_groups["L1:1"] == l1_groups["L1:2"]  # same group
+    assert l2_groups["L2:1"] != l1_groups["L1:1"]  # different group
+
+def test_finalize_terminal_csv_round_trip(tmp_path):
+    import csv
+    from pyschemaelectrical.utils.export_utils import finalize_terminal_csv
+    csv_path = tmp_path / "terminals.csv"
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Comp From", "Pin From", "Terminal Tag", "Terminal Pin", "Comp To", "Pin To", "Internal Bridge"])
+        writer.writerow(["A", "1", "X1", "1", "", "", ""])
+        writer.writerow(["", "", "X1", "3", "B", "2", ""])
+    finalize_terminal_csv(str(csv_path))
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        rows = list(csv.reader(f))[1:]
+    pins = [r[3] for r in rows if r[2] == "X1"]
+    assert "2" in pins  # gap filled
+    assert pins == sorted(pins, key=lambda p: int(p) if p.isdigit() else p)  # sorted
