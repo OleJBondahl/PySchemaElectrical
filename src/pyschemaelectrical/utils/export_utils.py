@@ -15,6 +15,11 @@ import os
 import re
 from collections import defaultdict
 
+from pyschemaelectrical.utils.terminal_bridges import (
+    ConnectionDef,
+    update_csv_with_internal_connections,
+)
+
 
 def export_terminal_list(
     filepath: str, used_terminals: list[str], descriptions: dict[str, str] | None = None
@@ -140,6 +145,13 @@ def merge_terminal_csv(csv_path: str) -> None:
 
     The ``Internal Bridge`` column is optional; if present it is preserved.
 
+    **Gap-filling:** After merging duplicates, this function inserts empty
+    placeholder rows for any missing pin slots in sequential pin sequences
+    (e.g. if pins 1 and 3 exist, pin 2 is inserted as an empty row). This
+    ensures the printed terminal strip renders as a complete, unbroken strip.
+    Intentional gaps in pin numbering will be filled — if sparse pin sequences
+    are required, do not call this function.
+
     This function is the library equivalent of the consumer project's
     ``_merge_and_sort_terminal_csv()`` utility, made generic so any project
     can call it after assembling a terminal CSV from multiple sources.
@@ -191,10 +203,10 @@ def merge_terminal_csv(csv_path: str) -> None:
 
 
 def _fill_empty_pin_slots(rows: list[list[str]]) -> list[list[str]]:
-    """Insert empty rows for pin slots that exist but have no connections.
+    """Return rows extended with empty placeholders for missing pin slots.
 
     Scans all rows to find the highest pin number per prefix per terminal,
-    then inserts placeholder rows for any missing slots from 1 up to that max.
+    then produces placeholder rows for any missing slots from 1 up to that max.
     This ensures the printed terminal strip looks complete.
 
     Args:
@@ -202,7 +214,8 @@ def _fill_empty_pin_slots(rows: list[list[str]]) -> list[list[str]]:
             index 2 and Terminal Pin at index 3.
 
     Returns:
-        The same rows list extended with placeholder rows for missing slots.
+        A new list containing all original rows plus placeholder rows for
+        any missing pin slots.
     """
     ncols = len(rows[0]) if rows else 7
 
@@ -230,6 +243,7 @@ def _fill_empty_pin_slots(rows: list[list[str]]) -> list[list[str]]:
             except ValueError:
                 pass
 
+    placeholders: list[list[str]] = []
     for (tag, prefix), max_num in max_pins.items():
         for n in range(1, max_num + 1):
             pin_str = f"{prefix}:{n}" if prefix else str(n)
@@ -237,10 +251,10 @@ def _fill_empty_pin_slots(rows: list[list[str]]) -> list[list[str]]:
                 empty_row = ["", "", tag, pin_str, "", ""]
                 while len(empty_row) < ncols:
                     empty_row.append("")
-                rows.append(empty_row)
+                placeholders.append(empty_row)
                 existing_keys.add((tag, pin_str))
 
-    return rows
+    return rows + placeholders
 
 
 def _build_prefix_groups(
@@ -302,7 +316,7 @@ def _apply_prefix_bridges(csv_path: str, terminal_tags: set[str]) -> None:
 
 def finalize_terminal_csv(
     csv_path: str,
-    bridge_defs: dict[str, str] | None = None,
+    bridge_defs: dict[str, ConnectionDef] | None = None,
     prefix_bridge_tags: set[str] | None = None,
     external_connections: list | None = None,
 ) -> None:
@@ -330,16 +344,10 @@ def finalize_terminal_csv(
             tuples to append before processing. These are the field
             wiring rows not captured in the registry.
     """
-    import csv as _csv
-
-    from pyschemaelectrical.utils.terminal_bridges import (
-        update_csv_with_internal_connections,
-    )
-
     # 1. Append external connections (field wiring)
     if external_connections:
         with open(csv_path, "a", newline="", encoding="utf-8") as f:
-            writer = _csv.writer(f)
+            writer = csv.writer(f)
             for row in external_connections:
                 writer.writerow(row)
 
