@@ -5,6 +5,7 @@ PySchemaElectrical Library.
 # system.system must be imported first — pre-loads layout.layout, breaking the
 # circular import chain that would otherwise form via builder.py → layout.layout.
 from .system.system import Circuit, add_symbol, merge_circuits, render_system  # noqa: E402
+from .layout.layout import auto_connect
 from .builder import BuildResult, CircuitBuilder, ComponentRef, PortRef
 from .descriptors import build_from_descriptors, comp, ref, term
 from .exceptions import (
@@ -43,7 +44,12 @@ from .plc import PlcMapper
 from .project import Project
 from .system.connection_registry import export_registry_to_csv, get_registry
 from .terminal import Terminal
-from .utils.autonumbering import create_autonumberer, get_tag_number, next_terminal_pins
+from .utils.autonumbering import (
+    create_autonumberer,
+    get_tag_number,
+    next_tag,
+    next_terminal_pins,
+)
 from .utils.export_utils import (
     export_terminal_list,
     finalize_terminal_csv,
