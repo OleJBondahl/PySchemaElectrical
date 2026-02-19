@@ -463,6 +463,25 @@ Additional utilities:
     - Terminals are virtual. Multiple circuits can "add" to the same Terminal Tag (e.g., "X1").
     - The `state` ensures pin numbers increment correctly across unconnected circuits (Circuit A uses X1:1,2,3; Circuit B uses X1:4,5,6).
 
+## When to Use What
+
+Choose the right API level for your task:
+
+| API | Use when… |
+|-----|-----------|
+| **`std_circuits`** | You need a pre-built standard circuit (DOL starter, PSU, motor, emergency stop, etc.) with one function call and automatic autonumbering. |
+| **`CircuitBuilder`** | You need a custom linear circuit that doesn't match a standard template, but want automatic layout, connections, and autonumbering. |
+| **Descriptors** (`ref`, `comp`, `term`) | You want a declarative, data-driven definition; especially useful with `count > 1` to stamp multiple identical instances. |
+| **`Project` API** | You need a complete multi-page PDF schematic with title block, terminal reports, PLC reports, and Typst compilation. |
+
+The four layers compose: `Project` calls `std_circuits` factories; `CircuitBuilder.build()` returns a `BuildResult` that `Project` accepts; Descriptors call the same factories under the hood.
+
+## Further Reading
+
+- **[API Guide](pyschemaelectrical_API_guide.md)** — Comprehensive reference covering every module, class, and function with examples.
+- **[Examples](examples/README.md)** — Runnable example scripts demonstrating each API layer.
+- **[CLAUDE.md](CLAUDE.md)** — Architecture notes and development guidelines for contributors.
+
 ## Examples
 
 Check the `examples/` directory for full working scripts.

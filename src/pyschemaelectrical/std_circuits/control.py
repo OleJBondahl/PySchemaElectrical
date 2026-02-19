@@ -6,10 +6,13 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 from pyschemaelectrical.layout.layout import create_horizontal_layout
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.model.constants import GRID_SIZE, LayoutDefaults, StandardTags
 from pyschemaelectrical.model.core import Symbol
 from pyschemaelectrical.symbols.coils import coil_symbol
@@ -21,12 +24,12 @@ from pyschemaelectrical.symbols.references import ref_symbol
 from pyschemaelectrical.symbols.terminals import terminal_symbol
 from pyschemaelectrical.system.connection_registry import register_connection
 from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
-from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins, resolve_terminal_pins
+from pyschemaelectrical.utils.autonumbering import next_tag, resolve_terminal_pins
 from pyschemaelectrical.utils.transform import translate
 
 
-def spdt(
-    state: Any,
+def spdt(  # noqa: C901
+    state: "GenerationState",
     x: float,
     y: float,
     # Required terminal parameters
@@ -275,7 +278,7 @@ def spdt(
 
 
 def no_contact(
-    state: Any,
+    state: "GenerationState",
     x: float,
     y: float,
     # Required terminal parameters
@@ -340,7 +343,7 @@ def no_contact(
 
 
 def coil(
-    state: Any,
+    state: "GenerationState",
     x: float,
     y: float,
     # Required terminal parameter

@@ -7,6 +7,7 @@ from pyschemaelectrical.model.parts import (
     standard_text,
     terminal_circle,
     three_pole_factory,
+    two_pole_factory,
 )
 from pyschemaelectrical.model.primitives import Line, Polygon
 
@@ -119,3 +120,91 @@ class TestPartsUnit:
             f"Expected LIVE (at L) to be left of AUX (at A1). "
             f"Got x_live={x_live}, x_aux={x_aux}"
         )
+
+    def test_three_pole_factory_pole_spacing_zero_raises(self):
+        """three_pole_factory should raise ValueError when pole_spacing <= 0."""
+
+        def mock_pole(label, pins):
+            return Symbol(
+                elements=[],
+                ports={
+                    "1": Port("1", Point(0, 0), Vector(0, -1)),
+                    "2": Port("2", Point(0, 10), Vector(0, 1)),
+                },
+                label=label,
+            )
+
+        with pytest.raises(ValueError, match="pole_spacing must be positive"):
+            three_pole_factory(
+                mock_pole, pins=("1", "2", "3", "4", "5", "6"), pole_spacing=0
+            )
+
+    def test_three_pole_factory_pole_spacing_negative_raises(self):
+        """three_pole_factory should raise ValueError when pole_spacing is negative."""
+
+        def mock_pole(label, pins):
+            return Symbol(
+                elements=[],
+                ports={
+                    "1": Port("1", Point(0, 0), Vector(0, -1)),
+                    "2": Port("2", Point(0, 10), Vector(0, 1)),
+                },
+                label=label,
+            )
+
+        with pytest.raises(ValueError, match="pole_spacing must be positive"):
+            three_pole_factory(
+                mock_pole, pins=("1", "2", "3", "4", "5", "6"), pole_spacing=-5.0
+            )
+
+    def test_two_pole_factory_pole_spacing_zero_raises(self):
+        """two_pole_factory should raise ValueError when pole_spacing <= 0."""
+
+        def mock_pole(label, pins):
+            return Symbol(
+                elements=[],
+                ports={
+                    "1": Port("1", Point(0, 0), Vector(0, -1)),
+                    "2": Port("2", Point(0, 10), Vector(0, 1)),
+                },
+                label=label,
+            )
+
+        with pytest.raises(ValueError, match="pole_spacing must be positive"):
+            two_pole_factory(mock_pole, pins=("1", "2", "3", "4"), pole_spacing=0)
+
+    def test_two_pole_factory_pole_spacing_negative_raises(self):
+        """two_pole_factory should raise ValueError when pole_spacing is negative."""
+
+        def mock_pole(label, pins):
+            return Symbol(
+                elements=[],
+                ports={
+                    "1": Port("1", Point(0, 0), Vector(0, -1)),
+                    "2": Port("2", Point(0, 10), Vector(0, 1)),
+                },
+                label=label,
+            )
+
+        with pytest.raises(ValueError, match="pole_spacing must be positive"):
+            two_pole_factory(mock_pole, pins=("1", "2", "3", "4"), pole_spacing=-1.0)
+
+    def test_two_pole_factory_valid_pole_spacing(self):
+        """two_pole_factory should succeed with a positive pole_spacing."""
+
+        def mock_pole(label, pins):
+            return Symbol(
+                elements=[Line(Point(0, 0), Point(0, 10))],
+                ports={
+                    "1": Port("1", Point(0, 0), Vector(0, -1)),
+                    "2": Port("2", Point(0, 10), Vector(0, 1)),
+                },
+                label=label,
+            )
+
+        sym = two_pole_factory(
+            mock_pole, label="-F1", pins=("1", "2", "3", "4"), pole_spacing=10.0
+        )
+        assert sym.label == "-F1"
+        assert "1" in sym.ports
+        assert "3" in sym.ports

@@ -333,6 +333,8 @@ def three_pole_factory(
     """
     if len(pins) != 6:
         raise ValueError(f"Three pole symbol requires 6 pin labels, got {len(pins)}")
+    if pole_spacing <= 0:
+        raise ValueError(f"pole_spacing must be positive, got {pole_spacing}")
 
     # Pole 1
     p1 = single_pole_func(label=label, pins=(pins[0], pins[1]))
@@ -379,6 +381,8 @@ def two_pole_factory(
     """
     if len(pins) != 4:
         raise ValueError(f"Two pole symbol requires 4 pin labels, got {len(pins)}")
+    if pole_spacing <= 0:
+        raise ValueError(f"pole_spacing must be positive, got {pole_spacing}")
 
     # Pole 1
     p1 = single_pole_func(label=label, pins=(pins[0], pins[1]))

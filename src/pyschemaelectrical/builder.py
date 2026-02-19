@@ -7,11 +7,12 @@ management, manual connection registration, and multi-pole wiring.
 """
 
 import inspect
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pyschemaelectrical.layout.layout import create_horizontal_layout
+from pyschemaelectrical.model.core import Symbol, SymbolFactory
 from pyschemaelectrical.symbols.terminals import (
     multi_pole_terminal_symbol,
     terminal_symbol,
@@ -20,6 +21,10 @@ from pyschemaelectrical.system.connection_registry import register_connection
 from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
 from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
 from pyschemaelectrical.utils.utils import set_tag_counter, set_terminal_counter
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.state import GenerationState
+    from pyschemaelectrical.terminal import Terminal
 
 
 @dataclass(frozen=True)
@@ -37,7 +42,7 @@ class LayoutConfig:
 class ComponentSpec:
     """Declarative specification for a component in a circuit."""
 
-    func: Callable | None  # None for terminals
+    func: SymbolFactory | None  # None for terminals
     kind: str = "symbol"  # 'symbol' or 'terminal'
     tag_prefix: str | None = None
     poles: int = 1
@@ -115,13 +120,13 @@ class ComponentRef:
 class BuildResult:
     """Result of a circuit build operation."""
 
-    state: Any  # GenerationState (typed as Any to avoid import cycle)
+    state: "GenerationState"
     circuit: Circuit
     used_terminals: list[Any]
     component_map: dict[str, list[str]] = field(default_factory=dict)
     terminal_pin_map: dict[str, list[str]] = field(default_factory=dict)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         return iter((self.state, self.circuit, self.used_terminals))
 
     def component_tag(self, prefix: str) -> str:
@@ -156,7 +161,7 @@ class BuildResult:
         """
         return list(self.component_map.get(prefix, []))
 
-    def get_symbol(self, tag: str) -> Any:
+    def get_symbol(self, tag: str) -> "Symbol | None":
         """Look up a placed symbol by its tag.
 
         Searches both ``circuit.symbols`` and ``circuit.elements`` for a
@@ -180,7 +185,7 @@ class BuildResult:
                 return elem
         return None
 
-    def get_symbols(self, prefix: str) -> list[Any]:
+    def get_symbols(self, prefix: str) -> "list[Symbol]":
         """Return all placed symbols whose tags match a prefix.
 
         Args:
@@ -206,7 +211,9 @@ class BuildResult:
         """
         tags = iter(self.component_map.get(prefix, []))
 
-        def generator(state):
+        def generator(
+            state: "GenerationState",
+        ) -> "tuple[GenerationState, str]":
             from pyschemaelectrical.exceptions import TagReuseError
 
             try:
@@ -227,7 +234,9 @@ class BuildResult:
         """
         pins = iter(self.terminal_pin_map.get(key, []))
 
-        def generator(state, poles):
+        def generator(
+            state: "GenerationState", poles: int
+        ) -> "tuple[GenerationState, tuple[str, ...]]":
             from pyschemaelectrical.exceptions import TerminalReuseError
 
             result = []
@@ -264,7 +273,7 @@ class CircuitBuilder:
         Each builder should be used for a single ``.build()`` call.
     """
 
-    def __init__(self, state: Any) -> None:
+    def __init__(self, state: "GenerationState") -> None:
         """Initialize a CircuitBuilder with autonumbering state.
 
         Args:
@@ -297,7 +306,7 @@ class CircuitBuilder:
 
     def add_terminal(
         self,
-        tm_id: Any,
+        tm_id: "str | Terminal",
         poles: int = 1,
         pins: list[str] | tuple[str, ...] | None = None,
         pin_prefixes: tuple[str, ...] | None = None,
@@ -361,7 +370,7 @@ class CircuitBuilder:
 
     def add_component(
         self,
-        symbol_func: Callable,
+        symbol_func: SymbolFactory,
         tag_prefix: str,
         poles: int = 1,
         pins: list[str] | tuple[str, ...] | None = None,
@@ -447,7 +456,7 @@ class CircuitBuilder:
     def place_right(
         self,
         ref: "ComponentRef",
-        symbol_func: Callable,
+        symbol_func: SymbolFactory,
         tag_prefix: str,
         pins: list[str] | tuple[str, ...] | None = None,
         spacing: float = 40.0,
@@ -494,7 +503,7 @@ class CircuitBuilder:
     def place_above(
         self,
         ref: PortRef,
-        tm_id: Any,
+        tm_id: "str | Terminal",
         poles: int = 1,
         pins: list[str] | tuple[str, ...] | None = None,
         label_pos: str | None = None,
@@ -718,7 +727,58 @@ class CircuitBuilder:
             if idx_b > max_idx:
                 raise ComponentNotFoundError(idx_b, max_idx)
 
-    def build(
+    def _build_effective_tag_generators(
+        self,
+        reuse_tags: dict[str, "BuildResult"] | None,
+        tag_generators: dict[str, Callable | str] | None,
+    ) -> dict[str, Callable] | None:
+        """
+        Merge fixed generators, reuse_tags generators, and explicit tag_generators.
+
+        Priority (highest wins): explicit tag_generators > reuse_tags > fixed generators.
+        String shorthands in tag_generators are converted to fixed-tag callables.
+
+        Returns the merged dict, or None if no generators were specified.
+        """
+        effective: dict[str, Callable] = self._fixed_tag_generators.copy()
+        if reuse_tags:
+            for prefix, source_result in reuse_tags.items():
+                if isinstance(source_result, BuildResult):
+                    effective[prefix] = source_result.reuse_tags(prefix)
+                elif callable(source_result):
+                    effective[prefix] = source_result
+        if tag_generators:
+            for prefix, gen in tag_generators.items():
+                if isinstance(gen, str):
+                    # String shorthand: "K1" -> lambda s: (s, "K1")
+                    fixed_tag = gen
+                    effective[prefix] = lambda s, _t=fixed_tag: (s, _t)
+                else:
+                    effective[prefix] = gen
+        return effective if effective else None
+
+    def _build_terminal_reuse_generators(
+        self,
+        reuse_terminals: dict[str, "BuildResult"] | None,
+    ) -> dict[str, Callable]:
+        """
+        Convert reuse_terminals mapping to callable pin generators.
+
+        Returns a dict mapping terminal key strings to pin generator callables.
+        Returns an empty dict if reuse_terminals is None or empty.
+        """
+        result: dict[str, Callable] = {}
+        if not reuse_terminals:
+            return result
+        for key, source in reuse_terminals.items():
+            str_key = str(key)
+            if isinstance(source, BuildResult):
+                result[str_key] = source.reuse_terminals(str_key)
+            elif callable(source):
+                result[str_key] = source
+        return result
+
+    def build(  # noqa: C901
         self,
         count: int = 1,
         start_indices: dict[str, int] | None = None,
@@ -770,35 +830,9 @@ class CircuitBuilder:
             for t_id, val in terminal_start_indices.items():
                 state = set_terminal_counter(state, t_id, val)
 
-        # Build effective tag_generators by merging fixed generators,
-        # reuse_tags generators, and explicit tag_generators.
-        effective_generators = self._fixed_tag_generators.copy()
-        if reuse_tags:
-            for prefix, source_result in reuse_tags.items():
-                if isinstance(source_result, BuildResult):
-                    effective_generators[prefix] = source_result.reuse_tags(prefix)
-                elif callable(source_result):
-                    effective_generators[prefix] = source_result
-        if tag_generators:
-            for prefix, gen in tag_generators.items():
-                if isinstance(gen, str):
-                    # String shorthand: "K1" -> lambda s: (s, "K1")
-                    fixed_tag = gen
-                    effective_generators[prefix] = lambda s, _t=fixed_tag: (s, _t)
-                else:
-                    effective_generators[prefix] = gen
-
-        final_tag_generators = effective_generators if effective_generators else None
-
-        # Build terminal reuse generators
-        terminal_reuse_generators: dict[str, Callable] = {}
-        if reuse_terminals:
-            for key, source in reuse_terminals.items():
-                str_key = str(key)
-                if isinstance(source, BuildResult):
-                    terminal_reuse_generators[str_key] = source.reuse_terminals(str_key)
-                elif callable(source):
-                    terminal_reuse_generators[str_key] = source
+        # Build effective tag_generators and terminal reuse generators
+        final_tag_generators = self._build_effective_tag_generators(reuse_tags, tag_generators)
+        terminal_reuse_generators = self._build_terminal_reuse_generators(reuse_terminals)
 
         captured_tags: dict[str, list[str]] = {}
         captured_terminal_pins: dict[str, list[str]] = {}
@@ -859,30 +893,29 @@ class CircuitBuilder:
         )
 
 
-def _create_single_circuit_from_spec(
-    state: Any,  # GenerationState
-    x: float,
+def _phase1_tag_and_state(  # noqa: C901
+    state: "GenerationState",
     y: float,
     spec: CircuitSpec,
-    tag_generators: dict | None = None,
-    terminal_maps: dict | None = None,
-    terminal_reuse_generators: dict[str, Callable] | None = None,
-    pin_accumulator: dict[str, list[str]] | None = None,
-) -> tuple[Any, list[Any], dict[str, str]]:
+    tag_generators: dict[str, Callable] | None,
+    terminal_maps: dict[str, Any] | None,
+    terminal_reuse_generators: dict[str, Callable] | None,
+    pin_accumulator: dict[str, list[str]] | None,
+) -> "tuple[GenerationState, list[dict[str, Any]], dict[str, str]]":
     """
-    Pure functional core to create a single instance from a spec.
-    Returns: (new_state, elements, map_of_tags_for_this_instance)
-    """
-    c = Circuit()
-    instance_tags = {}
+    Phase 1: Advance state (tag/pin counters), populate realized_components.
 
-    realized_components = []
+    Iterates over spec.components, resolving terminal IDs, generating tags,
+    allocating pins, and computing initial Y positions. Returns the updated
+    state, the realized_components list, and the instance_tags dict.
+    """
+    instance_tags: dict[str, str] = {}
+    realized_components: list[dict[str, Any]] = []
     current_y = y
 
-    # --- Phase 1: State Mutation & Tagging ---
-    for _comp_idx, component_spec in enumerate(spec.components):
+    for component_spec in spec.components:
         tag = None
-        pins = []
+        pins: list[str] = []
 
         if component_spec.kind == "terminal":
             tid = component_spec.kwargs["tm_id"]
@@ -930,7 +963,6 @@ def _create_single_circuit_from_spec(
 
         elif component_spec.kind in ("symbol", "reference"):
             # Tag generation
-            # 1. Check tag_generators
             prefix = component_spec.tag_prefix
             if prefix is None:
                 raise ValueError(
@@ -965,7 +997,21 @@ def _create_single_circuit_from_spec(
             {"spec": component_spec, "tag": tag, "pins": pins, "y": comp_y}
         )
 
-    # --- Phase 2: Connection Registration ---
+    return state, realized_components, instance_tags
+
+
+def _phase2_register_connections(  # noqa: C901
+    state: "GenerationState",
+    realized_components: list[dict[str, Any]],
+    spec: CircuitSpec,
+) -> "GenerationState":
+    """
+    Phase 2: Register terminal↔component connections in the connection registry.
+
+    Processes both automatic linear connections (sequential component pairs)
+    and manual connections declared in spec.manual_connections.
+    Returns the updated state.
+    """
     # 1. Automatic Linear Connections
     for i in range(len(realized_components) - 1):
         curr = realized_components[i]
@@ -1061,11 +1107,25 @@ def _create_single_circuit_from_spec(
                 state, comp_b["tag"], str(p_b + 1), comp_a["tag"], pin_a, side=side_b
             )
 
-    # --- Phase 3: Instantiation ---
-    from pyschemaelectrical.model.parts import standard_style
-    from pyschemaelectrical.model.primitives import Line
+    return state
 
-    for _comp_idx, rc in enumerate(realized_components):
+
+def _phase3_instantiate_symbols(  # noqa: C901
+    c: Circuit,
+    realized_components: list[dict[str, Any]],
+    spec: CircuitSpec,
+    x: float,
+) -> None:
+    """
+    Phase 3: Instantiate symbol objects and add them to the circuit.
+
+    Calls symbol factories for each component, resolves final positions
+    (including placed_above_of and placed_right_of), and mutates both
+    realized_components (adding 'symbol' key) and circuit c (via add_symbol).
+    """
+    from dataclasses import replace
+
+    for rc in realized_components:
         component_spec = rc["spec"]
         tag = rc["tag"]
 
@@ -1117,14 +1177,26 @@ def _create_single_circuit_from_spec(
             # Respect auto_connect configuration
             if not component_spec.auto_connect_next:
                 # Since Symbol is frozen, use replace
-                from dataclasses import replace
-
                 sym = replace(sym, skip_auto_connect=True)
 
             placed_sym = add_symbol(c, sym, final_x, rc["y"])
             rc["symbol"] = placed_sym  # Store placed symbol for manual connection phase
 
-    # --- Phase 4: Graphics ---
+
+def _phase4_render_graphics(  # noqa: C901
+    c: Circuit,
+    realized_components: list[dict[str, Any]],
+    spec: CircuitSpec,
+) -> None:
+    """
+    Phase 4: Render connection lines and run auto-connect.
+
+    Draws lines for manual connections and matching connections, then
+    runs auto_connect_circuit to wire sequential symbols. Mutates circuit c.
+    """
+    from pyschemaelectrical.model.parts import standard_style
+    from pyschemaelectrical.model.primitives import Line
+
     # 1. Manual Connections Rendering
     style = standard_style()
     for idx_a, p_a, idx_b, p_b, side_a, side_b in spec.manual_connections:
@@ -1184,10 +1256,57 @@ def _create_single_circuit_from_spec(
     # 3. Auto Connections
     auto_connect_circuit(c)
 
+
+def _create_single_circuit_from_spec(
+    state: "GenerationState",
+    x: float,
+    y: float,
+    spec: CircuitSpec,
+    tag_generators: dict[str, Callable] | None = None,
+    terminal_maps: dict[str, Any] | None = None,
+    terminal_reuse_generators: dict[str, Callable] | None = None,
+    pin_accumulator: dict[str, list[str]] | None = None,
+) -> "tuple[GenerationState, list[Any], dict[str, str]]":
+    """
+    Pure functional core to create a single instance from a spec.
+    Returns: (new_state, elements, map_of_tags_for_this_instance)
+
+    **Phase-based mutation pattern:**
+    This function uses a shared ``realized_components`` list that is
+    mutated across four sequential phases. Each phase reads output
+    produced by the previous one:
+
+    - **Phase 1** (Tag assignment): Advances state (tag/pin counters),
+      populates ``realized_components`` with ``tag`` and ``pins`` keys.
+    - **Phase 2** (Connection registration): Reads Phase 1 tags to
+      register terminal↔component connections in the registry.
+    - **Phase 3** (Symbol instantiation): Calls symbol factories,
+      adds ``symbol`` and ``y`` keys to each entry.
+    - **Phase 4** (Graphic rendering): Reads Phase 3 symbols to draw
+      connection lines and attach wire labels.
+
+    This is the intentional mutable builder pattern for the innermost
+    construction phase. The functional interface is at ``build()`` above,
+    which returns a new ``BuildResult`` for each call.
+    """
+    c = Circuit()
+
+    state, realized_components, instance_tags = _phase1_tag_and_state(
+        state, y, spec, tag_generators, terminal_maps,
+        terminal_reuse_generators, pin_accumulator,
+    )
+    state = _phase2_register_connections(state, realized_components, spec)
+    _phase3_instantiate_symbols(c, realized_components, spec, x)
+    _phase4_render_graphics(c, realized_components, spec)
+
     return state, c.elements, instance_tags
 
 
-def _distribute_pins(func, pins, existing_kwargs):
+def _distribute_pins(
+    func: SymbolFactory | None,
+    pins: list[str],
+    existing_kwargs: dict[str, Any],
+) -> dict[str, Any]:
     """
     Map a flat pins tuple to the symbol function's pin parameters.
 
@@ -1242,7 +1361,7 @@ def _distribute_pins(func, pins, existing_kwargs):
     return result
 
 
-def _get_absolute_x_offset(realized_components, comp_idx):
+def _get_absolute_x_offset(realized_components: list[dict[str, Any]], comp_idx: int) -> float:
     """Walk back through place_right chain to compute absolute x offset."""
     rc = realized_components[comp_idx]
     x_offset = rc["spec"].x_offset
@@ -1253,7 +1372,7 @@ def _get_absolute_x_offset(realized_components, comp_idx):
     return x_offset
 
 
-def _resolve_pin(component_data, pole_idx, is_input):
+def _resolve_pin(component_data: dict[str, Any], pole_idx: int, is_input: bool) -> str:
     """
     Resolve the internal port/pin ID for a component based on pole index and side.
 

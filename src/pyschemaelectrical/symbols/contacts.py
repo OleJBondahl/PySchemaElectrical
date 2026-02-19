@@ -2,7 +2,6 @@ from dataclasses import replace
 
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
-    DEFAULT_POLE_SPACING,
     GRID_SIZE,
     SPDT_PIN_LABEL_OFFSET,
     SPDT_POLE_SPACING,

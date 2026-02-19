@@ -1,3 +1,4 @@
+.worktrees/
 .quarto/
 **/*.quarto_ipynb
 *.pyc

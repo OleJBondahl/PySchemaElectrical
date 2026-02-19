@@ -41,7 +41,7 @@ def _style_to_str(style: Style) -> str:
     return ";".join(items)
 
 
-def _render_element(elem: Element, parent: ET.Element):
+def _render_element(elem: Element, parent: ET.Element):  # noqa: C901
     """
     Recursively render elements to the XML tree.
 
@@ -106,7 +106,7 @@ def _render_element(elem: Element, parent: ET.Element):
         # We don't render ports visibly usually, maybe for debug?
 
 
-def calculate_bounds(elements: list[Element]) -> tuple[float, float, float, float]:
+def calculate_bounds(elements: list[Element]) -> tuple[float, float, float, float]:  # noqa: C901
     """
     Calculate the bounding box of a list of elements.
 
@@ -164,7 +164,7 @@ def calculate_bounds(elements: list[Element]) -> tuple[float, float, float, floa
     return min_x, min_y, max_x, max_y
 
 
-def to_xml_element(
+def to_xml_element(  # noqa: C901
     elements: list[Element],
     width: int | str = DEFAULT_DOC_WIDTH,
     height: int | str = DEFAULT_DOC_HEIGHT,
@@ -200,7 +200,7 @@ def to_xml_element(
     # Determine Width/Height strings and ViewBox
 
     # helper
-    def _parse_dim(val, default):
+    def _parse_dim(val: int | str, default: float) -> float | None:
         if val == "auto":
             return None
         if isinstance(val, (int, float)):

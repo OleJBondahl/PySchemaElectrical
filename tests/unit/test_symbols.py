@@ -609,6 +609,30 @@ class TestMultiPoleTerminalSymbol:
         assert len(sym.ports) == 4
 
 
+class TestTerminalSymbolValidation:
+    """Tests for input validation in terminal_symbol()."""
+
+    def test_invalid_label_pos_raises(self):
+        """terminal_symbol with invalid label_pos should raise ValueError."""
+        with pytest.raises(ValueError, match="label_pos must be 'left' or 'right'"):
+            terminal_symbol(label="X1", pins=("1",), label_pos="center")
+
+    def test_invalid_label_pos_top_raises(self):
+        """terminal_symbol with label_pos='top' should raise ValueError."""
+        with pytest.raises(ValueError, match="label_pos must be 'left' or 'right'"):
+            terminal_symbol(label="X1", label_pos="top")
+
+    def test_valid_label_pos_left(self):
+        """terminal_symbol with label_pos='left' should succeed."""
+        sym = terminal_symbol(label="X1", pins=("1",), label_pos="left")
+        assert sym.label == "X1"
+
+    def test_valid_label_pos_right(self):
+        """terminal_symbol with label_pos='right' should succeed."""
+        sym = terminal_symbol(label="X1", pins=("1",), label_pos="right")
+        assert sym.label == "X1"
+
+
 # ──────────────────────────────────────────────────────────────────────
 #  Terminal Box Symbol (blocks.py)
 # ──────────────────────────────────────────────────────────────────────

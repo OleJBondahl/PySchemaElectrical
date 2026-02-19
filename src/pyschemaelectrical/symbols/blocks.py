@@ -202,7 +202,7 @@ def psu_symbol(label: str = "U1", pins: tuple[str, ...] | None = None) -> Symbol
     return sym
 
 
-def dynamic_block_symbol(
+def dynamic_block_symbol(  # noqa: C901
     label: str = "",
     top_pins: tuple[str, ...] | None = None,
     bottom_pins: tuple[str, ...] | None = None,

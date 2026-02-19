@@ -119,7 +119,7 @@ def rotate_vector(v: Vector, angle_deg: float) -> Vector:
     return Vector(v.dx * cos_a - v.dy * sin_a, v.dx * sin_a + v.dy * cos_a)
 
 
-def _translate_path_d(d: str, dx: float, dy: float) -> str:
+def _translate_path_d(d: str, dx: float, dy: float) -> str:  # noqa: C901
     """
     Translate absolute coordinates in an SVG path `d` string by (dx, dy).
 
@@ -276,7 +276,7 @@ def _(obj: Path, angle: float, center: Point = _ORIGIN) -> Path:
     return replace(obj, d=new_d)
 
 
-def _rotate_path_d(d: str, angle_deg: float, center: Point) -> str:
+def _rotate_path_d(d: str, angle_deg: float, center: Point) -> str:  # noqa: C901
     """
     Rotate absolute coordinates in an SVG path `d` string.
 

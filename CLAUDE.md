@@ -202,7 +202,7 @@ These are the highest-level imperative API classes. The rest of the library foll
 - SVG **snapshot testing** via the `snapshot_svg` fixture in `tests/conftest.py` — compares generated SVG strings against stored `.svg` files in `tests/snapshots/`.
 - Set `PYTEST_UPDATE_SNAPSHOTS=1` to update snapshots when rendering changes are intentional.
 - pytest config is in `pyproject.toml` with `--verbose --cov=src --cov-report=term-missing` as default options.
-- **Current baseline**: 939 tests, 97% line coverage, all passing.
+- **Current baseline**: 948 tests, 97% line coverage, all passing.
 - When changing symbol rendering or layout, always run `pytest` and check snapshot diffs.
 
 ### Type Checking
@@ -225,7 +225,7 @@ Run `uv run ruff check` for linting (configured in `pyproject.toml`). Key settin
 - `__init__.py` files suppress F401 (unused imports — they are re-exports)
 - `rendering/typst/compiler.py` suppresses E501 (inline Typst template strings)
 
-Current baseline with default rules: ~40 issues (mostly I001 import order in `__init__.py`, E501 line length, C901 complexity).
+Current baseline with default rules: ~85 issues (61 E501 line-too-long in test/source files, 17 I001 intentional import order in `__init__.py` files, 0 C901 complexity — all suppressed or extracted).
 
 ### Source Layout
 
@@ -249,6 +249,12 @@ See `todo.md` for the complete audit-driven task list. It contains:
 - **Sections 1–16**: Active tasks grouped by category with effort estimates
 - **Section 17**: Archived completed items
 - **Summary table**: Tasks prioritized into Tiers 1–5
+
+### Agent Git Workflow
+
+- After completing each self-contained task, commit using the `commit-commands:commit` skill
+- This ensures changes are reversible and the working tree stays clean between tasks
+- Use git worktrees (via `superpowers:using-git-worktrees` skill) when starting work that may conflict with another running agent session
 
 ### Working with Subagents (Task Tool)
 

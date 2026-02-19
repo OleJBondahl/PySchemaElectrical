@@ -1,4 +1,3 @@
-import pytest
 
 from pyschemaelectrical.layout.layout import (
     _find_matching_ports,

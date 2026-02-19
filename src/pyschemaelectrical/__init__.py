@@ -28,6 +28,7 @@ from .model.constants import (
     CircuitLayoutConfig,
     CircuitLayouts,
 )
+from .model.core import SymbolFactory
 from .model.state import create_initial_state, GenerationState
 from .exceptions import (
     CircuitValidationError,

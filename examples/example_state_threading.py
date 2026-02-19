@@ -33,7 +33,7 @@ def main():
     result1 = emergency_stop(state, x=0, y=0, tm_top="X1", tm_bot="X2")
     state = result1.state  # Pass updated state forward
 
-    print(f"\nAfter emergency_stop:")
+    print("\nAfter emergency_stop:")
     print(f"  Tags: {result1.component_map}")
     print(f"  X1 pins: {result1.terminal_pin_map.get('X1', [])}")
     print(f"  X2 pins: {result1.terminal_pin_map.get('X2', [])}")
@@ -43,7 +43,7 @@ def main():
     result2 = no_contact(state, x=100, y=0, tm_top="X1", tm_bot="X2", count=2)
     state = result2.state
 
-    print(f"\nAfter no_contact (count=2):")
+    print("\nAfter no_contact (count=2):")
     print(f"  Tags: {result2.component_map}")
     print(f"  X1 pins: {result2.terminal_pin_map.get('X1', [])}")
     print(f"  X2 pins: {result2.terminal_pin_map.get('X2', [])}")
@@ -53,7 +53,7 @@ def main():
     result3 = coil(state, x=300, y=0, tm_top="X1", count=2)
     state = result3.state
 
-    print(f"\nAfter coil (count=2):")
+    print("\nAfter coil (count=2):")
     print(f"  Tags: {result3.component_map}")
     print(f"  X1 pins: {result3.terminal_pin_map.get('X1', [])}")
 

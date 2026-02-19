@@ -5,6 +5,7 @@ src/pyschemaelectrical/__init__.py
 src/pyschemaelectrical/builder.py
 src/pyschemaelectrical/descriptors.py
 src/pyschemaelectrical/exceptions.py
+src/pyschemaelectrical/field_devices.py
 src/pyschemaelectrical/plc.py
 src/pyschemaelectrical/project.py
 src/pyschemaelectrical/terminal.py

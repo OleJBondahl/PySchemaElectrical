@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 
 
@@ -134,3 +135,10 @@ class Symbol(Element):
     ports: dict[str, Port]
     label: str | None = None
     skip_auto_connect: bool = False
+
+
+# Type alias for symbol factory functions.
+# A SymbolFactory is any callable that accepts a tag string as its first
+# positional argument and returns a Symbol.  The ``...`` ellipsis allows
+# additional keyword arguments, matching the actual factory signatures.
+SymbolFactory = Callable[..., Symbol]

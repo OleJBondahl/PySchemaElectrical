@@ -19,8 +19,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from pyschemaelectrical.model.core import SymbolFactory
+
 if TYPE_CHECKING:
     from pyschemaelectrical.builder import BuildResult
+    from pyschemaelectrical.model.state import GenerationState
 
 
 @dataclass(frozen=True)
@@ -34,7 +37,7 @@ class RefDescriptor:
 class CompDescriptor:
     """Describes a component with tag prefix and pins."""
 
-    symbol_fn: Any  # symbol factory function
+    symbol_fn: SymbolFactory  # symbol factory function
     tag_prefix: str
     pins: tuple[str, ...] = ()
 
@@ -53,7 +56,7 @@ def ref(terminal_id: str) -> RefDescriptor:
     return RefDescriptor(terminal_id)
 
 
-def comp(symbol_fn: Any, tag_prefix: str, pins: tuple[str, ...] = ()) -> CompDescriptor:
+def comp(symbol_fn: SymbolFactory, tag_prefix: str, pins: tuple[str, ...] = ()) -> CompDescriptor:
     """Create a component descriptor."""
     return CompDescriptor(symbol_fn, tag_prefix, pins)
 
@@ -69,7 +72,7 @@ Descriptor = RefDescriptor | CompDescriptor | TermDescriptor
 
 
 def build_from_descriptors(
-    state: Any,
+    state: "GenerationState",
     descriptors: list[Descriptor],
     x: float = 0.0,
     y: float = 0.0,

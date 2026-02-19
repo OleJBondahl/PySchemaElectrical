@@ -1,9 +1,8 @@
 """Comprehensive tests for system_analysis.py module."""
 
 import csv
-from dataclasses import replace
 
-from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
+from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
 from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.symbols.terminals import TerminalBlock, TerminalSymbol
 from pyschemaelectrical.system.system_analysis import (

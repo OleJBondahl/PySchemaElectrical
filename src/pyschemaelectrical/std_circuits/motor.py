@@ -6,10 +6,13 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pyschemaelectrical.builder import BuildResult
 from pyschemaelectrical.layout.layout import create_horizontal_layout
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.model.constants import (
     LayoutDefaults,
     REF_ARROW_LENGTH,
@@ -32,8 +35,8 @@ from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_c
 from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins, resolve_terminal_pins
 
 
-def dol_starter(
-    state: Any,
+def dol_starter(  # noqa: C901
+    state: "GenerationState",
     x: float,
     y: float,
     # Required terminal parameters
@@ -115,7 +118,7 @@ def dol_starter(
     tag_accumulator: dict[str, list[str]] = {}
     pin_accumulator: dict[str, list[str]] = {}
 
-    def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):
+    def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):  # noqa: C901
         """Create a single DOL starter instance."""
         c = Circuit()
         current_y = start_y

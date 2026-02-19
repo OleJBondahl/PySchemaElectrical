@@ -1,9 +1,7 @@
 import csv
 from dataclasses import dataclass
 
-from typing import Any
-
-from pyschemaelectrical.model.core import Element, Point, Symbol
+from pyschemaelectrical.model.core import Element, Point, Symbol, Vector
 from pyschemaelectrical.model.primitives import Line
 from pyschemaelectrical.symbols.terminals import TerminalSymbol, TerminalBlock
 
@@ -59,7 +57,7 @@ def _find_connected_symbol(
 
 
 def _is_valid_direction(
-    p_node: Point, p_other: Point, direction_filter: Any | None
+    p_node: Point, p_other: Point, direction_filter: Vector | None
 ) -> bool:
     """Check if the line direction matches the filter."""
     if not direction_filter:
@@ -79,7 +77,7 @@ def trace_connection(
     graph: dict[tuple[float, float], ConnectionNode],
     visited_lines: set[int],
     start_symbol: Symbol,
-    direction_filter: Any | None = None,  # Vector
+    direction_filter: Vector | None = None,
 ) -> tuple[Symbol | None, str | None]:
 
     # Check if this node has ports from other symbols

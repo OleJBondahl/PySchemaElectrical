@@ -132,7 +132,7 @@ def generate_internal_connections_data(
     return result
 
 
-def parse_terminal_pins_from_csv(csv_path: str) -> dict[str, list[int]]:
+def parse_terminal_pins_from_csv(csv_path: str) -> dict[str, list[int]]:  # noqa: C901
     """
     Parse system_terminals.csv to extract unique pins per terminal tag.
 

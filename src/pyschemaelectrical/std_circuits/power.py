@@ -6,14 +6,16 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.model.constants import (
     CHANGEOVER_POLE_OFFSET,
     CHANGEOVER_POLE_SPACING,
     DEFAULT_POLE_SPACING,
-    GRID_SIZE,
     LayoutDefaults,
     StandardTags,
 )
@@ -28,7 +30,7 @@ from .control import coil
 
 
 def psu(
-    state: Any,
+    state: "GenerationState",
     x: float,
     y: float,
     # Required terminal parameters
@@ -171,7 +173,7 @@ def psu(
 
 
 def changeover(
-    state: Any,
+    state: "GenerationState",
     x: float,
     y: float,
     # Required terminal parameters
@@ -265,7 +267,7 @@ def changeover(
             nc_x = pole_x - CHANGEOVER_POLE_OFFSET
             nc_y = switch_y - symbol_spacing
             nc_sym = terminal_symbol(
-                tm_top_left, pins=(input1_pins[i],), label_pos="left" if i == 0 else ""
+                tm_top_left if i == 0 else "", pins=(input1_pins[i],), label_pos="left"
             )
             nc_sym = add_symbol(c, nc_sym, nc_x, nc_y)
             lines = auto_connect(nc_sym, switch_sym)
@@ -291,7 +293,7 @@ def changeover(
             com_x = pole_x + CHANGEOVER_POLE_OFFSET
             com_y = switch_y + symbol_spacing
             com_sym = terminal_symbol(
-                tm_bot, pins=(output_pins[i],), label_pos="left" if i == 0 else ""
+                tm_bot if i == 0 else "", pins=(output_pins[i],), label_pos="left"
             )
             com_sym = add_symbol(c, com_sym, com_x, com_y)
             lines = auto_connect(switch_sym, com_sym)
@@ -329,7 +331,7 @@ def changeover(
 
 
 def power_distribution(
-    state: Any,
+    state: "GenerationState",
     x: float,
     y: float,
     # Terminal maps (required)

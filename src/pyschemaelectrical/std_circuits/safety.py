@@ -6,9 +6,12 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.model.constants import (
     LayoutDefaults,
     StandardTags,
@@ -17,7 +20,7 @@ from pyschemaelectrical.symbols.assemblies import emergency_stop_assembly_symbol
 
 
 def emergency_stop(
-    state: Any,
+    state: "GenerationState",
     x: float,
     y: float,
     # Required terminal parameters

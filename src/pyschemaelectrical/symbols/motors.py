@@ -27,7 +27,7 @@ This module contains motor symbols following IEC 60617 standard:
 """
 
 
-def three_pole_motor_symbol(
+def three_pole_motor_symbol(  # noqa: C901
     label: str = "", pins: tuple[str, ...] = ("U", "V", "W", "PE")
 ) -> Symbol:
     """

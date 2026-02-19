@@ -9,8 +9,6 @@ import pytest
 
 from pyschemaelectrical.terminal import Terminal
 from pyschemaelectrical.field_devices import (
-    ConnectionRow,
-    DeviceEntry,
     DeviceTemplate,
     PinDef,
     generate_field_connections,

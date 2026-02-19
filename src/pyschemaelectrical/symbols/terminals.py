@@ -9,7 +9,6 @@ from pyschemaelectrical.model.constants import (
 )
 from pyschemaelectrical.model.core import Element, Point, Port, Style, Symbol, Vector
 from pyschemaelectrical.model.parts import (
-    create_pin_labels,
     pad_pins,
     terminal_circle,
     terminal_text,
@@ -73,6 +72,8 @@ def terminal_symbol(
     Returns:
         Terminal: The terminal symbol.
     """
+    if label_pos not in ("left", "right"):
+        raise ValueError(f"label_pos must be 'left' or 'right', got {label_pos!r}")
     if pin_label_pos is None:
         pin_label_pos = "left"
 
