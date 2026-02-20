@@ -203,6 +203,10 @@ class TestPlcDesignationStr:
         assert d is not None
         assert str(d) == "PLC:DO2"
 
+    def test_str_with_instance_zero(self):
+        d = PlcDesignation(type="DO", instance=0, signal=None)
+        assert str(d) == "PLC:DO0"
+
 
 # ---------------------------------------------------------------------------
 # resolve_plc_references()  — single-pin references (DI, DO)
@@ -306,6 +310,35 @@ class TestResolvePlcReferencesMultiPin:
         # PT-01 → channel 1, PT-02 → channel 2
         assert all(r[5].endswith("1") for r in pt01_rows)
         assert all(r[5].endswith("2") for r in pt02_rows)
+
+
+# ---------------------------------------------------------------------------
+# resolve_plc_references()  — overflow and mixed-suffix edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestResolvePlcReferences:
+    def test_overflow_emits_warning(self):
+        DI_MODULE_1CH = PlcModuleType("750-430", "DI", 1, ("",))
+        rack: PlcRack = [("DI1", DI_MODULE_1CH)]
+        connections = [
+            ("SW-01", "Signal", "X100", "1", "PLC:DI", ""),
+            ("SW-02", "Signal", "X100", "2", "PLC:DI", ""),
+        ]
+        with pytest.warns(UserWarning, match="DI"):
+            result = resolve_plc_references(connections, rack)
+        assert len(result) == 1
+
+    def test_mixed_suffix_bucket_emits_warning_and_drops(self):
+        rack: PlcRack = [("DI1", DI_MODULE)]
+        connections = [
+            ("SW-01", "Signal", "X100", "1", "PLC:DI:Sig", ""),   # suffixed
+            ("SW-02", "Signal", "X100", "2", "PLC:DI", ""),        # unsuffixed
+        ]
+        with pytest.warns(UserWarning, match="mix"):
+            result = resolve_plc_references(connections, rack)
+        # Both dropped (cannot route mixed bucket)
+        assert len(result) == 0
 
 
 # ---------------------------------------------------------------------------

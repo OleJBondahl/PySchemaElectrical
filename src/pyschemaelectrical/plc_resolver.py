@@ -14,6 +14,7 @@ Pin label convention: ``{pin_suffix}{channel_number}``
 from __future__ import annotations
 
 import re
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -124,7 +125,7 @@ class PlcDesignation:
 
     def __str__(self) -> str:
         """Return the canonical tag string for this designation."""
-        return f"PLC:{self.type}{self.instance or ''}"
+        return f"PLC:{self.type}{'' if self.instance is None else self.instance}"
 
 
 # ---------------------------------------------------------------------------
@@ -237,9 +238,10 @@ def _assign_connections_to_modules(
     if len(conns) > len(free_slots):
         overflow = len(conns) - len(free_slots)
         plc_type = modules[0][0].rstrip("0123456789")
-        print(
+        warnings.warn(
             f"WARNING: {overflow} {plc_type} connection(s) could not be assigned "
-            f"— not enough free PLC channels."
+            f"— not enough free PLC channels.",
+            stacklevel=2,
         )
 
     return rows
@@ -312,9 +314,10 @@ def _assign_multi_pin_connections(
     overflow = len(sorted_components) - slot_idx
     if overflow > 0:
         plc_type = modules[0][0].rstrip("0123456789") if modules else "?"
-        print(
+        warnings.warn(
             f"WARNING: {overflow} {plc_type} connection(s) could not be assigned "
-            f"— not enough free PLC channels."
+            f"— not enough free PLC channels.",
+            stacklevel=2,
         )
 
     return rows
@@ -353,9 +356,10 @@ def _resolve_single_pin_external(
     if len(entries) > len(free_slots):
         overflow = len(entries) - len(free_slots)
         plc_type = modules[0][0].rstrip("0123456789")
-        print(
+        warnings.warn(
             f"WARNING: {overflow} {plc_type} external connection(s) could not be "
-            f"assigned — not enough free PLC channels."
+            f"assigned — not enough free PLC channels.",
+            stacklevel=2,
         )
 
     return rows
@@ -418,9 +422,10 @@ def _resolve_multi_pin_external(
     overflow = len(sorted_components) - slot_idx
     if overflow > 0:
         plc_type = modules[0][0].rstrip("0123456789") if modules else "?"
-        print(
+        warnings.warn(
             f"WARNING: {overflow} {plc_type} external connection(s) could not be "
-            f"assigned — not enough free PLC channels."
+            f"assigned — not enough free PLC channels.",
+            stacklevel=2,
         )
 
     return rows
@@ -482,6 +487,17 @@ def resolve_plc_references(
             continue
 
         has_suffixes = any(suffix for _, suffix in entries)
+        has_unsuffixed = any(not suffix for _, suffix in entries)
+
+        if has_suffixes and has_unsuffixed:
+            # Mixed tag types for the same PLC type — cannot route correctly
+            warnings.warn(
+                f"PLC type '{plc_type}' has a mix of suffixed (multi-pin) and "
+                f"unsuffixed (single-pin) reference tags. These connections cannot "
+                f"be routed and will be dropped.",
+                stacklevel=2,
+            )
+            continue  # skip this type entirely — don't silently drop
 
         if has_suffixes:
             resolved.extend(_resolve_multi_pin_external(entries, modules))
