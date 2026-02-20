@@ -839,6 +839,7 @@ class CircuitBuilder:
 
         captured_tags: dict[str, list[str]] = {}
         captured_terminal_pins: dict[str, list[str]] = {}
+        captured_wire_connections: list[tuple[str, str, str, str]] = []
 
         def single_instance_gen(s, x, y, gens, tm):
             res = _create_single_circuit_from_spec(
@@ -846,12 +847,13 @@ class CircuitBuilder:
                 terminal_reuse_generators=terminal_reuse_generators or None,
                 pin_accumulator=captured_terminal_pins,
             )
-            # res is (state, elements, instance_tags)
+            # res is (state, elements, instance_tags, wire_connections)
             # Update captured tags
             for prefix, tag_val in res[2].items():
                 if prefix not in captured_tags:
                     captured_tags[prefix] = []
                 captured_tags[prefix].append(tag_val)
+            captured_wire_connections.extend(res[3])
             return res[0], res[1]
 
         # Use generic layout
@@ -893,6 +895,7 @@ class CircuitBuilder:
             used_terminals=used_terminals,
             component_map=captured_tags,
             terminal_pin_map=captured_terminal_pins,
+            wire_connections=captured_wire_connections,
         )
 
 
@@ -1007,14 +1010,16 @@ def _phase2_register_connections(  # noqa: C901
     state: "GenerationState",
     realized_components: list[dict[str, Any]],
     spec: CircuitSpec,
-) -> "GenerationState":
+) -> "tuple[GenerationState, list[tuple[str, str, str, str]]]":
     """
     Phase 2: Register terminal↔component connections in the connection registry.
 
     Processes both automatic linear connections (sequential component pairs)
     and manual connections declared in spec.manual_connections.
-    Returns the updated state.
+    Returns the updated state and a list of wire connection tuples.
     """
+    wire_connections: list[tuple[str, str, str, str]] = []
+
     # 1. Automatic Linear Connections
     for i in range(len(realized_components) - 1):
         curr = realized_components[i]
@@ -1036,7 +1041,6 @@ def _phase2_register_connections(  # noqa: C901
             next_pin = _resolve_pin(next_comp, p, is_input=True)
 
             if curr["spec"].kind == "terminal" and next_comp["spec"].kind in ("symbol", "reference"):
-                # Current is Terminal: Use registry pin for Terminal
                 reg_pin_curr = _resolve_registry_pin(curr, p)
                 side = curr["spec"].connection_side or "bottom"
                 state = register_connection(
@@ -1047,8 +1051,8 @@ def _phase2_register_connections(  # noqa: C901
                     next_pin,
                     side=side,
                 )
+                wire_connections.append((curr["tag"], reg_pin_curr, next_comp["tag"], next_pin))
             elif curr["spec"].kind in ("symbol", "reference") and next_comp["spec"].kind == "terminal":
-                # Next is Terminal: Use registry pin for Terminal
                 reg_pin_next = _resolve_registry_pin(next_comp, p)
                 side = next_comp["spec"].connection_side or "top"
                 state = register_connection(
@@ -1059,8 +1063,8 @@ def _phase2_register_connections(  # noqa: C901
                     curr_pin,
                     side=side,
                 )
+                wire_connections.append((curr["tag"], curr_pin, next_comp["tag"], reg_pin_next))
             elif curr["spec"].kind == "reference" and next_comp["spec"].kind == "symbol":
-                # Current is Reference (e.g. PLC:DO): register as terminal-like
                 state = register_connection(
                     state,
                     curr["tag"],
@@ -1069,8 +1073,8 @@ def _phase2_register_connections(  # noqa: C901
                     next_pin,
                     side="bottom",
                 )
+                wire_connections.append((curr["tag"], str(p + 1), next_comp["tag"], next_pin))
             elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "reference":
-                # Next is Reference (e.g. PLC:DI): register as terminal-like
                 state = register_connection(
                     state,
                     next_comp["tag"],
@@ -1079,6 +1083,9 @@ def _phase2_register_connections(  # noqa: C901
                     curr_pin,
                     side="top",
                 )
+                wire_connections.append((curr["tag"], curr_pin, next_comp["tag"], str(p + 1)))
+            elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "symbol":
+                wire_connections.append((curr["tag"], curr_pin, next_comp["tag"], next_pin))
 
     # 2. Manual Connections
     for idx_a, p_a, idx_b, p_b, side_a, side_b in spec.manual_connections:
@@ -1096,21 +1103,27 @@ def _phase2_register_connections(  # noqa: C901
             state = register_connection(
                 state, comp_a["tag"], reg_pin_a, comp_b["tag"], pin_b, side=side_a
             )
+            wire_connections.append((comp_a["tag"], reg_pin_a, comp_b["tag"], pin_b))
         elif comp_a["spec"].kind in ("symbol", "reference") and comp_b["spec"].kind == "terminal":
             reg_pin_b = _resolve_registry_pin(comp_b, p_b)
             state = register_connection(
                 state, comp_b["tag"], reg_pin_b, comp_a["tag"], pin_a, side=side_b
             )
+            wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], reg_pin_b))
         elif comp_a["spec"].kind == "reference" and comp_b["spec"].kind == "symbol":
             state = register_connection(
                 state, comp_a["tag"], str(p_a + 1), comp_b["tag"], pin_b, side=side_a
             )
+            wire_connections.append((comp_a["tag"], str(p_a + 1), comp_b["tag"], pin_b))
         elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "reference":
             state = register_connection(
                 state, comp_b["tag"], str(p_b + 1), comp_a["tag"], pin_a, side=side_b
             )
+            wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], str(p_b + 1)))
+        elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "symbol":
+            wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], pin_b))
 
-    return state
+    return state, wire_connections
 
 
 def _phase3_instantiate_symbols(  # noqa: C901
@@ -1298,11 +1311,11 @@ def _create_single_circuit_from_spec(
         state, y, spec, tag_generators, terminal_maps,
         terminal_reuse_generators, pin_accumulator,
     )
-    state = _phase2_register_connections(state, realized_components, spec)
+    state, wire_connections = _phase2_register_connections(state, realized_components, spec)
     _phase3_instantiate_symbols(c, realized_components, spec, x)
     _phase4_render_graphics(c, realized_components, spec)
 
-    return state, c.elements, instance_tags
+    return state, c.elements, instance_tags, wire_connections
 
 
 def _distribute_pins(

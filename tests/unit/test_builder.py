@@ -1747,3 +1747,36 @@ def test_build_result_wire_connections_default_empty():
     c = Circuit()
     result = BuildResult(state=state, circuit=c, used_terminals=[])
     assert result.wire_connections == []
+
+
+def test_wire_connections_includes_symbol_to_symbol():
+    """CircuitBuilder should capture symbol-to-symbol wire connections."""
+    state = create_autonumberer()
+    builder = CircuitBuilder(state)
+    builder.set_layout(x=0, y=0, spacing=150, symbol_spacing=50)
+    builder.add_terminal("X1", poles=1)
+    builder.add_component(mock_symbol, "F", poles=1, pins=("1", "2"))
+    builder.add_component(mock_symbol, "Q", poles=1, pins=("1", "2"))
+    builder.add_terminal("X2", poles=1)
+
+    result = builder.build()
+
+    # Should have wire connections: X1->F, F->Q (symbol-to-symbol), Q->X2
+    assert len(result.wire_connections) >= 3
+    # Check that F->Q connection exists (symbol-to-symbol)
+    assert ("F1", "2", "Q1", "1") in result.wire_connections
+
+
+def test_wire_connections_includes_terminal_connections():
+    """CircuitBuilder should capture terminal-to-symbol wire connections."""
+    state = create_autonumberer()
+    builder = CircuitBuilder(state)
+    builder.set_layout(x=0, y=0, spacing=150, symbol_spacing=50)
+    builder.add_terminal("X1", poles=1)
+    builder.add_component(mock_symbol, "F", poles=1, pins=("1", "2"))
+    builder.add_terminal("X2", poles=1)
+
+    result = builder.build()
+
+    # X1:1->F1:1 and F1:2->X2:1
+    assert len(result.wire_connections) >= 2
