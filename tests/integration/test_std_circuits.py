@@ -114,3 +114,35 @@ class TestStandardCircuitsSnapshot:
         result = builder.build()
         svg_content = render_circuit_to_string(result.circuit)
         snapshot_svg(svg_content, "builder_integration_flow")
+
+
+def test_dol_starter_wire_connections():
+    """dol_starter should populate wire_connections on BuildResult."""
+    state = create_autonumberer()
+    result = dol_starter(
+        state=state, x=0, y=0,
+        tm_top="X1", tm_bot="X2",
+        count=1,
+    )
+    assert len(result.wire_connections) > 0
+    assert any(c[0] == "X1" or c[2] == "X1" for c in result.wire_connections)
+
+
+def test_dol_starter_device_registry():
+    from pyschemaelectrical import InternalDevice
+
+    breaker = InternalDevice("F", "GV2ME07", "Motor circuit breaker")
+    contactor = InternalDevice("Q", "LC1D09", "Contactor 9A")
+
+    state = create_autonumberer()
+    result = dol_starter(
+        state=state, x=0, y=0,
+        tm_top="X1", tm_bot="X2",
+        count=2,
+        breaker_device=breaker,
+        contactor_device=contactor,
+    )
+    assert result.device_registry["F1"] == breaker
+    assert result.device_registry["F2"] == breaker
+    assert result.device_registry["Q1"] == contactor
+    assert result.device_registry["Q2"] == contactor

@@ -6,9 +6,12 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from pyschemaelectrical.builder import BuildResult
+from pyschemaelectrical.internal_device import InternalDevice
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 
 if TYPE_CHECKING:
@@ -71,6 +74,11 @@ def dol_starter(  # noqa: C901
     # Optional aux terminals
     tm_aux_1: str | None = None,
     tm_aux_2: str | None = None,
+    # Device parameters (override *_tag_prefix when provided)
+    breaker_device: InternalDevice | None = None,
+    thermal_device: InternalDevice | None = None,
+    contactor_device: InternalDevice | None = None,
+    ct_device: InternalDevice | None = None,
     # Multi-count and wire label parameters
     count: int = 1,
     wire_labels: list[str] | None = None,
@@ -104,6 +112,16 @@ def dol_starter(  # noqa: C901
     Returns:
         BuildResult containing (state, circuit, used_terminals).
     """
+    # Resolve device -> prefix (device overrides explicit prefix)
+    if breaker_device:
+        breaker_tag_prefix = breaker_device.prefix
+    if thermal_device:
+        thermal_tag_prefix = thermal_device.prefix
+    if contactor_device:
+        contactor_tag_prefix = contactor_device.prefix
+    if ct_device:
+        ct_tag_prefix = ct_device.prefix
+
     # Support legacy terminal_maps parameter
     terminal_maps = kwargs.get("terminal_maps") or {}
     if not tm_aux_1:
@@ -117,6 +135,8 @@ def dol_starter(  # noqa: C901
     # Accumulators for BuildResult metadata
     tag_accumulator: dict[str, list[str]] = {}
     pin_accumulator: dict[str, list[str]] = {}
+    wire_accumulator: list[tuple[str, str, str, str]] = []
+    device_registry: dict[str, InternalDevice] = {}
 
     def create_single_dol(s, start_x, start_y, tag_gens, t_maps, instance):  # noqa: C901
         """Create a single DOL starter instance."""
@@ -136,12 +156,20 @@ def dol_starter(  # noqa: C901
         # Get component tags
         s, breaker_tag = next_tag(s, breaker_tag_prefix)
         tag_accumulator.setdefault(breaker_tag_prefix, []).append(breaker_tag)
+        if breaker_device:
+            device_registry[breaker_tag] = breaker_device
         s, thermal_tag = next_tag(s, thermal_tag_prefix)
         tag_accumulator.setdefault(thermal_tag_prefix, []).append(thermal_tag)
+        if thermal_device:
+            device_registry[thermal_tag] = thermal_device
         s, cont_tag = next_tag(s, contactor_tag_prefix)
         tag_accumulator.setdefault(contactor_tag_prefix, []).append(cont_tag)
+        if contactor_device:
+            device_registry[cont_tag] = contactor_device
         s, ct_tag = next_tag(s, ct_tag_prefix)
         tag_accumulator.setdefault(ct_tag_prefix, []).append(ct_tag)
+        if ct_device:
+            device_registry[ct_tag] = ct_device
 
         # 1. Input Terminal
         sym = multi_pole_terminal_symbol(
@@ -211,6 +239,7 @@ def dol_starter(  # noqa: C901
                     s = register_connection(
                         s, str(tid), ref_pins[0], ct_tag, port_id, side="bottom"
                     )
+                    wire_accumulator.append((str(tid), ref_pins[0], ct_tag, port_id))
                 else:
                     s, ct_tm_pins = next_terminal_pins(s, str(tid), 1)
                     sym = terminal_symbol(
@@ -221,6 +250,7 @@ def dol_starter(  # noqa: C901
                     s = register_connection(
                         s, str(tid), ct_tm_pins[0], ct_tag, port_id, side="bottom"
                     )
+                    wire_accumulator.append((str(tid), ct_tm_pins[0], ct_tag, port_id))
 
                 # Wire from CT port up to terminal/reference
                 c.elements.append(
@@ -229,35 +259,43 @@ def dol_starter(  # noqa: C901
 
         # --- Explicit Registry Registration ---
         # 1. Top Terminal (Output Side/Bottom) -> Circuit Breaker (Input Side/Top)
-        # input_pins: sequential pins from next_terminal_pins, e.g. ("1", "2", "3")
-        # breaker pins: [1, 2, 3, 4, 5, 6] -> Inputs: 1, 3, 5 (indices 0, 2, 4)
         for i in range(poles):
             if i < len(input_pins):
                 term_pin = input_pins[i]
-
-                # Breaker input pins are at indices 0, 2, 4 (pins "1", "3", "5")
                 brk_pin_idx = i * 2
                 if brk_pin_idx < len(breaker_pins):
                     brk_pin = breaker_pins[brk_pin_idx]
-
                     s = register_connection(
                         s, tm_top, term_pin, breaker_tag, brk_pin, side="bottom"
                     )
+                    wire_accumulator.append((tm_top, term_pin, breaker_tag, brk_pin))
 
         # 2. Contactor (Output Side/Bottom) -> Bottom Terminal (Input Side/Top)
-        # output_pins: sequential pins from next_terminal_pins, e.g. ("4", "5", "6")
-        # contactor pins: [1, 2, 3, 4, 5, 6] -> Outputs: 2, 4, 6 (indices 1, 3, 5)
         for i in range(poles):
             if i < len(output_pins):
                 term_pin = output_pins[i]
-
-                # Contactor output pins are at indices 1, 3, 5 (pins "2", "4", "6")
                 cont_pin_idx = (i * 2) + 1
                 if cont_pin_idx < len(contactor_pins):
                     cont_pin = contactor_pins[cont_pin_idx]
                     s = register_connection(
                         s, instance_tm_bot, term_pin, cont_tag, cont_pin, side="top"
                     )
+                    wire_accumulator.append((instance_tm_bot, term_pin, cont_tag, cont_pin))
+
+        # 3. Component-to-component wire connections
+        for i in range(poles):
+            # Breaker output -> Contactor input
+            brk_out_idx = i * 2 + 1
+            cont_in_idx = i * 2
+            if brk_out_idx < len(breaker_pins) and cont_in_idx < len(contactor_pins):
+                wire_accumulator.append((breaker_tag, breaker_pins[brk_out_idx], cont_tag, contactor_pins[cont_in_idx]))
+            # Contactor output -> Thermal input (thermal inputs at even indices)
+            cont_out_idx = i * 2 + 1
+            therm_in_idx = i * 2
+            if cont_out_idx < len(contactor_pins) and therm_in_idx < len(thermal_pins):
+                therm_in = thermal_pins[therm_in_idx]
+                if therm_in:
+                    wire_accumulator.append((cont_tag, contactor_pins[cont_out_idx], thermal_tag, therm_in))
 
         return s, c.elements
 
@@ -295,4 +333,6 @@ def dol_starter(  # noqa: C901
         used_terminals=used_terminals,
         component_map=tag_accumulator,
         terminal_pin_map=pin_accumulator,
+        device_registry=device_registry,
+        wire_connections=wire_accumulator,
     )
