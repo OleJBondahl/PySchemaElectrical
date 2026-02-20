@@ -41,7 +41,7 @@ def spdt(  # noqa: C901
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
     column_offset: float = LayoutDefaults.CONTROL_COLUMN_OFFSET,
     # Component parameters (with defaults)
-    coil_tag_prefix: str = StandardTags.CONTACTOR,
+    tag_prefix: str = StandardTags.CONTACTOR,
     contact_tag_prefix: str = StandardTags.RELAY,
     # Pin parameters
     coil_pins: tuple[str, ...] = ("A1", "A2"),
@@ -77,7 +77,7 @@ def spdt(  # noqa: C901
         spacing: Horizontal spacing between circuit instances
         symbol_spacing: Vertical spacing between components
         column_offset: Unused in single-column layout (kept for API compatibility)
-        coil_tag_prefix: Tag prefix for coil (default: "Q")
+        tag_prefix: Tag prefix for coil (default: "Q")
         contact_tag_prefix: Tag prefix for feedback contact (default: "K")
         coil_pins: Pins for coil (Input, Output)
         contact_pins: Pins for SPDT (Common, NC, NO)
@@ -113,11 +113,11 @@ def spdt(  # noqa: C901
 
         # --- Tags ---
         # Check if custom tag generators are provided, otherwise use next_tag
-        if tag_gens and coil_tag_prefix in tag_gens:
-            s, coil_tag = tag_gens[coil_tag_prefix](s)
+        if tag_gens and tag_prefix in tag_gens:
+            s, coil_tag = tag_gens[tag_prefix](s)
         else:
-            s, coil_tag = next_tag(s, coil_tag_prefix)
-        tag_accumulator.setdefault(coil_tag_prefix, []).append(coil_tag)
+            s, coil_tag = next_tag(s, tag_prefix)
+        tag_accumulator.setdefault(tag_prefix, []).append(coil_tag)
 
         if tag_gens and contact_tag_prefix in tag_gens:
             s, contact_tag = tag_gens[contact_tag_prefix](s)
@@ -143,7 +143,9 @@ def spdt(  # noqa: C901
 
         # --- Pins (Terminals) ---
         s, p_top = resolve_terminal_pins(s, tm_top, 1, tm_top_pins, pin_accumulator)
-        s, p_left = resolve_terminal_pins(s, tm_bot_left, 1, tm_bot_left_pins, pin_accumulator)
+        s, p_left = resolve_terminal_pins(
+            s, tm_bot_left, 1, tm_bot_left_pins, pin_accumulator
+        )
 
         # --- Coordinates ---
         # Vertical Stack

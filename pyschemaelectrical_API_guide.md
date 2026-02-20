@@ -322,7 +322,7 @@ std_circuits.spdt(
     spacing=100.0,             # LayoutDefaults.CIRCUIT_SPACING_CONTROL
     symbol_spacing=50.0,       # LayoutDefaults.SYMBOL_SPACING_DEFAULT
     column_offset=30.0,        # LayoutDefaults.CONTROL_COLUMN_OFFSET (kept for API compat)
-    coil_tag_prefix="Q",       # StandardTags.CONTACTOR
+    tag_prefix="Q",            # StandardTags.CONTACTOR
     contact_tag_prefix="K",    # StandardTags.RELAY
     coil_pins=("A1", "A2"),
     contact_pins=("1", "2", "4"),  # Dynamic: instance 0→(11,12,14), instance 1→(21,22,24)
