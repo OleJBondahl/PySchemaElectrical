@@ -65,6 +65,9 @@ class ComponentSpec:
     # Vertical placement reference (index of component + pin name to place above)
     placed_above_of: tuple[int, str] | None = None
 
+    # Device metadata for BOM tracking
+    device: "InternalDevice | None" = None
+
     def get_y_increment(self, default: float) -> float:
         return self.y_increment if self.y_increment is not None else default
 
@@ -380,6 +383,7 @@ class CircuitBuilder:
         x_offset: float = 0.0,
         y_increment: float | None = None,
         auto_connect_next: bool = True,
+        device: "InternalDevice | None" = None,
         **kwargs,
     ) -> "ComponentRef":
         """Add a generic component to the circuit chain.
@@ -393,6 +397,7 @@ class CircuitBuilder:
             y_increment: Vertical spacing override in mm. If None, uses
                 ``symbol_spacing``.
             auto_connect_next: Auto-connect to next component (default True).
+            device: Optional InternalDevice for BOM tracking.
             **kwargs: Passed to the symbol factory function.
 
         Returns:
@@ -407,6 +412,7 @@ class CircuitBuilder:
             x_offset=x_offset,
             y_increment=y_increment,
             auto_connect_next=auto_connect_next,
+            device=device,
             kwargs=kwargs,
         )
         self._spec.components.append(spec)
@@ -840,6 +846,7 @@ class CircuitBuilder:
         captured_tags: dict[str, list[str]] = {}
         captured_terminal_pins: dict[str, list[str]] = {}
         captured_wire_connections: list[tuple[str, str, str, str]] = []
+        captured_device_registry: dict[str, "InternalDevice"] = {}
 
         def single_instance_gen(s, x, y, gens, tm):
             res = _create_single_circuit_from_spec(
@@ -848,12 +855,16 @@ class CircuitBuilder:
                 pin_accumulator=captured_terminal_pins,
             )
             # res is (state, elements, instance_tags, wire_connections)
-            # Update captured tags
+            # Update captured tags and device registry
             for prefix, tag_val in res[2].items():
                 if prefix not in captured_tags:
                     captured_tags[prefix] = []
                 captured_tags[prefix].append(tag_val)
             captured_wire_connections.extend(res[3])
+            # Populate device_registry from spec components
+            for comp_spec in self._spec.components:
+                if comp_spec.device and comp_spec.tag_prefix and comp_spec.tag_prefix in res[2]:
+                    captured_device_registry[res[2][comp_spec.tag_prefix]] = comp_spec.device
             return res[0], res[1]
 
         # Use generic layout
@@ -895,6 +906,7 @@ class CircuitBuilder:
             used_terminals=used_terminals,
             component_map=captured_tags,
             terminal_pin_map=captured_terminal_pins,
+            device_registry=captured_device_registry,
             wire_connections=captured_wire_connections,
         )
 

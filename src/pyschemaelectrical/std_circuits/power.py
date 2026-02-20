@@ -6,9 +6,12 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder
+from pyschemaelectrical.internal_device import InternalDevice
 
 if TYPE_CHECKING:
     from pyschemaelectrical.model.state import GenerationState
@@ -232,6 +235,7 @@ def changeover(
     # - Port "1" (COM): at (2.5, 5.0) relative to pole center
 
     pole_spacing = CHANGEOVER_POLE_SPACING
+    wire_accumulator: list[tuple[str, str, str, str]] = []
 
     def create_single_changeover(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single changeover instance with single terminals."""
@@ -275,6 +279,7 @@ def changeover(
             s = register_connection(
                 s, str(tm_top_left), input1_pins[i], switch_tag, f"{pole_id}2", "bottom"
             )
+            wire_accumulator.append((str(tm_top_left), input1_pins[i], switch_tag, f"{pole_id}2"))
 
             # Top Right: NO terminal for input_2
             no_x = pole_x + CHANGEOVER_POLE_OFFSET
@@ -288,6 +293,7 @@ def changeover(
             s = register_connection(
                 s, str(tm_top_right), input2_pins[i], switch_tag, f"{pole_id}4", "bottom"
             )
+            wire_accumulator.append((str(tm_top_right), input2_pins[i], switch_tag, f"{pole_id}4"))
 
             # Bottom: Common terminal for output
             com_x = pole_x + CHANGEOVER_POLE_OFFSET
@@ -301,6 +307,7 @@ def changeover(
             s = register_connection(
                 s, str(tm_bot), output_pins[i], switch_tag, f"{pole_id}1", "top"
             )
+            wire_accumulator.append((switch_tag, f"{pole_id}1", str(tm_bot), output_pins[i]))
 
         return s, c.elements
 
@@ -326,7 +333,8 @@ def changeover(
     used_terminals = [tm_top_left, tm_top_right, tm_bot]
 
     return BuildResult(
-        state=final_state, circuit=circuit, used_terminals=used_terminals
+        state=final_state, circuit=circuit, used_terminals=used_terminals,
+        wire_connections=wire_accumulator,
     )
 
 

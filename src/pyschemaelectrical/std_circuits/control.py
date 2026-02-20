@@ -6,9 +6,12 @@ All terminal IDs, tags, and pins are parameters with sensible defaults.
 Layout values use constants from model.constants but can be overridden.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from pyschemaelectrical.builder import BuildResult, CircuitBuilder
+from pyschemaelectrical.internal_device import InternalDevice
 from pyschemaelectrical.layout.layout import create_horizontal_layout
 
 if TYPE_CHECKING:
@@ -49,6 +52,9 @@ def spdt(  # noqa: C901
     tm_top_pins: tuple[str, ...] | None = None,
     tm_bot_left_pins: tuple[str, ...] | None = None,
     tm_bot_right_pins: tuple[str, ...] | None = None,
+    # Device parameters
+    coil_device: InternalDevice | None = None,
+    contact_device: InternalDevice | None = None,
     # Multi-count, wire labels, and relay tag
     count: int = 1,
     wire_labels: list[str] | None = None,
@@ -106,24 +112,29 @@ def spdt(  # noqa: C901
     # Accumulators for BuildResult metadata
     tag_accumulator: dict[str, list[str]] = {}
     pin_accumulator: dict[str, list[str]] = {}
+    wire_accumulator: list[tuple[str, str, str, str]] = []
+    device_registry: dict[str, InternalDevice] = {}
 
     def create_single_control(s, start_x, start_y, tag_gens, t_maps, instance):
         """Create a single Motor Control instance with dynamic pin numbering."""
         c = Circuit()
 
         # --- Tags ---
-        # Check if custom tag generators are provided, otherwise use next_tag
         if tag_gens and tag_prefix in tag_gens:
             s, coil_tag = tag_gens[tag_prefix](s)
         else:
             s, coil_tag = next_tag(s, tag_prefix)
         tag_accumulator.setdefault(tag_prefix, []).append(coil_tag)
+        if coil_device:
+            device_registry[coil_tag] = coil_device
 
         if tag_gens and contact_tag_prefix in tag_gens:
             s, contact_tag = tag_gens[contact_tag_prefix](s)
         else:
             s, contact_tag = next_tag(s, contact_tag_prefix)
         tag_accumulator.setdefault(contact_tag_prefix, []).append(contact_tag)
+        if contact_device:
+            device_registry[contact_tag] = contact_device
 
         # --- Dynamic Pin Generation ---
         # If contact_pins is the default (1, 2, 4), generate instance-based pins
@@ -216,16 +227,19 @@ def spdt(  # noqa: C901
         auto_connect_circuit(c)
 
         # --- Explicit Registry Registration ---
-        # Use dynamic_contact_pins for registry
         # 1. Top Terminal -> Coil (Input/Top "A1")
         if len(p_top) >= 1 and len(coil_pins) >= 1:
             s = register_connection(
                 s, tm_top, p_top[0], coil_tag, coil_pins[0], side="bottom"
             )
+            wire_accumulator.append((tm_top, p_top[0], coil_tag, coil_pins[0]))
 
-        # 2. SPDT (NC "X2") -> Left Terminal (Input/Top "1")
+        # Coil -> SPDT contact (component-to-component)
+        if len(coil_pins) >= 2 and len(dynamic_contact_pins) >= 1:
+            wire_accumulator.append((coil_tag, coil_pins[1], contact_tag, dynamic_contact_pins[0]))
+
+        # 2. SPDT (NC) -> Left Terminal
         if len(dynamic_contact_pins) >= 2 and len(p_left) >= 1:
-            # SPDT pins: (Com=X1, NC=X2, NO=X4). Index 1 is NC.
             s = register_connection(
                 s,
                 tm_bot_left,
@@ -234,14 +248,14 @@ def spdt(  # noqa: C901
                 dynamic_contact_pins[1],
                 side="top",
             )
+            wire_accumulator.append((contact_tag, dynamic_contact_pins[1], tm_bot_left, p_left[0]))
 
-        # 3. SPDT (NO "X4") -> Right Ref (Input/Top "1")
+        # 3. SPDT (NO) -> Right Ref
         if len(dynamic_contact_pins) >= 3:
-            # SPDT pins: (Com=X1, NC=X2, NO=X4). Index 2 is NO.
-            # Use "1" for the ref symbol port
             s = register_connection(
                 s, tm_bot_right, "1", contact_tag, dynamic_contact_pins[2], side="top"
             )
+            wire_accumulator.append((contact_tag, dynamic_contact_pins[2], tm_bot_right, "1"))
 
         return s, c.elements
 
@@ -276,6 +290,8 @@ def spdt(  # noqa: C901
         used_terminals=used_terminals,
         component_map=tag_accumulator,
         terminal_pin_map=pin_accumulator,
+        device_registry=device_registry,
+        wire_connections=wire_accumulator,
     )
 
 
@@ -472,12 +488,17 @@ def coil_contact_pair(
     # reporting each tag twice.
     merged_component_map: dict[str, list[str]] = dict(res_coils.component_map)
 
+    merged_wire_connections = res_coils.wire_connections + res_contacts.wire_connections
+    merged_device_registry = {**res_coils.device_registry, **res_contacts.device_registry}
+
     return BuildResult(
         state=state,
         circuit=merged_circuit,
         used_terminals=merged_terminals,
         component_map=merged_component_map,
         terminal_pin_map=res_contacts.terminal_pin_map,
+        device_registry=merged_device_registry,
+        wire_connections=merged_wire_connections,
     )
 
 
