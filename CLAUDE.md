@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PySchemaElectrical is a Python library for programmatically generating IEC 60617-compliant electrical schematic diagrams as SVG files. It has **zero runtime dependencies** and targets **Python 3.12+** (`requires-python = ">=3.12"` in `pyproject.toml`). Current version: 0.1.6 (Alpha).
+PySchemaElectrical is a Python library for programmatically generating IEC 60617-compliant electrical schematic diagrams as SVG files. It has **zero runtime dependencies** and targets **Python 3.12+** (`requires-python = ">=3.12"` in `pyproject.toml`). Current version: 0.1.7 (Alpha).
 
 ## Library Philosophy
 
