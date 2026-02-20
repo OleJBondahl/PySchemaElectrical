@@ -90,3 +90,13 @@ def test_terminal_importable_from_package():
 
     t = T("X001")
     assert str(t) == "X001"
+
+
+def test_terminal_mpn_field():
+    t = Terminal("X001", "Main 400V", mpn="WAGO 2002-1401")
+    assert t.mpn == "WAGO 2002-1401"
+
+
+def test_terminal_mpn_default_empty():
+    t = Terminal("X001", "Main 400V")
+    assert t.mpn == ""

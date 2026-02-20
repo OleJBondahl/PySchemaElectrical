@@ -1706,3 +1706,44 @@ class TestFixedTag:
         builder.add_terminal("X2")
         result = builder.build(count=2, tag_generators={"K": fixed_tag("K1")})
         assert result.component_tags("K") == ["K1", "K1"]
+
+
+def test_build_result_has_device_registry():
+    from pyschemaelectrical.internal_device import InternalDevice
+
+    state = create_autonumberer()
+    c = Circuit()
+    dev = InternalDevice("Q", "LC1D09", "Contactor")
+    result = BuildResult(
+        state=state,
+        circuit=c,
+        used_terminals=[],
+        device_registry={"Q1": dev},
+    )
+    assert result.device_registry == {"Q1": dev}
+
+
+def test_build_result_device_registry_default_empty():
+    state = create_autonumberer()
+    c = Circuit()
+    result = BuildResult(state=state, circuit=c, used_terminals=[])
+    assert result.device_registry == {}
+
+
+def test_build_result_has_wire_connections():
+    state = create_autonumberer()
+    c = Circuit()
+    result = BuildResult(
+        state=state,
+        circuit=c,
+        used_terminals=[],
+        wire_connections=[("F1", "2", "Q1", "1")],
+    )
+    assert result.wire_connections == [("F1", "2", "Q1", "1")]
+
+
+def test_build_result_wire_connections_default_empty():
+    state = create_autonumberer()
+    c = Circuit()
+    result = BuildResult(state=state, circuit=c, used_terminals=[])
+    assert result.wire_connections == []

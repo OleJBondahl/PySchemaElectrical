@@ -24,6 +24,7 @@ from pyschemaelectrical.utils.utils import set_tag_counter, set_terminal_counter
 
 if TYPE_CHECKING:
     from pyschemaelectrical.model.state import GenerationState
+    from pyschemaelectrical.internal_device import InternalDevice
     from pyschemaelectrical.terminal import Terminal
 
 
@@ -125,6 +126,8 @@ class BuildResult:
     used_terminals: list[Any]
     component_map: dict[str, list[str]] = field(default_factory=dict)
     terminal_pin_map: dict[str, list[str]] = field(default_factory=dict)
+    device_registry: "dict[str, InternalDevice]" = field(default_factory=dict)
+    wire_connections: list[tuple[str, str, str, str]] = field(default_factory=list)
 
     def __iter__(self) -> Iterator[Any]:
         return iter((self.state, self.circuit, self.used_terminals))

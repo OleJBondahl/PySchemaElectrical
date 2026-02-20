@@ -31,12 +31,13 @@ class Terminal(str):
                       ``"L1:1", "L2:1", "L3:1"`` using group-based counting.
     """
 
-    __slots__ = ("description", "bridge", "reference", "pin_prefixes")
+    __slots__ = ("description", "bridge", "reference", "pin_prefixes", "mpn")
 
     description: str
     bridge: BridgeDef
     reference: bool
     pin_prefixes: tuple[str, ...] | None
+    mpn: str
 
     def __new__(
         cls,
@@ -45,12 +46,14 @@ class Terminal(str):
         bridge: BridgeDef = None,
         reference: bool = False,
         pin_prefixes: tuple[str, ...] | None = None,
+        mpn: str = "",
     ) -> "Terminal":
         instance = super().__new__(cls, id)
         object.__setattr__(instance, "description", description)
         object.__setattr__(instance, "bridge", bridge)
         object.__setattr__(instance, "reference", reference)
         object.__setattr__(instance, "pin_prefixes", pin_prefixes)
+        object.__setattr__(instance, "mpn", mpn)
         return instance
 
     def __setattr__(self, name: str, value: object) -> None:
