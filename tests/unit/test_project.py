@@ -1111,3 +1111,262 @@ class TestEdgeCases:
             p.build_svgs(tmpdir)
             # Should succeed without issues
             assert os.path.exists(os.path.join(tmpdir, "system_terminals.csv"))
+
+
+# =========================================================================
+# Tests for plc_rack() and external_connections()
+# =========================================================================
+
+
+class TestPlcRack:
+    """Tests for Project.plc_rack() and Project.external_connections()."""
+
+    def _make_di_module(self):
+        """Return a simple DI module for testing."""
+        from pyschemaelectrical.plc_resolver import PlcModuleType
+
+        return PlcModuleType(
+            mpn="750-1405",
+            signal_type="DI",
+            channels=4,
+            pins_per_channel=("",),
+        )
+
+    def test_plc_rack_stores_rack(self):
+        """plc_rack() stores the rack on the project."""
+        from pyschemaelectrical.plc_resolver import PlcModuleType
+
+        di_module = self._make_di_module()
+        rack = [("DI1", di_module)]
+        p = Project()
+        p.plc_rack(rack)
+        assert p._plc_rack == rack
+
+    def test_plc_rack_returns_self(self):
+        """plc_rack() returns self for method chaining."""
+        p = Project()
+        result = p.plc_rack([])
+        assert result is p
+
+    def test_plc_rack_default_is_none(self):
+        """_plc_rack should default to None on a new Project."""
+        p = Project()
+        assert p._plc_rack is None
+
+    def test_plc_rack_can_be_overwritten(self):
+        """Calling plc_rack() twice should replace the previous rack."""
+        di_module = self._make_di_module()
+        rack1 = [("DI1", di_module)]
+        rack2 = [("DI1", di_module), ("DI2", di_module)]
+        p = Project()
+        p.plc_rack(rack1)
+        p.plc_rack(rack2)
+        assert p._plc_rack == rack2
+
+    def test_external_connections_stores(self):
+        """external_connections() stores the connections."""
+        p = Project()
+        connections = [("SensorA", "Sig+", "X100", "1", "PLC:DI", "")]
+        p.external_connections(connections)
+        assert p._external_connections == connections
+
+    def test_external_connections_returns_self(self):
+        """external_connections() returns self for method chaining."""
+        p = Project()
+        result = p.external_connections([])
+        assert result is p
+
+    def test_external_connections_default_is_empty(self):
+        """_external_connections should default to [] on a new Project."""
+        p = Project()
+        assert p._external_connections == []
+
+    def test_external_connections_makes_copy(self):
+        """external_connections() should copy the input list."""
+        p = Project()
+        original = [("SensorA", "Sig+", "X100", "1", "PLC:DI", "")]
+        p.external_connections(original)
+        original.append(("SensorB", "Sig+", "X100", "2", "PLC:DI", ""))
+        # The project's list should NOT be affected by the mutation
+        assert len(p._external_connections) == 1
+
+    def test_plc_report_without_csv_path_accepted(self):
+        """plc_report() with no csv_path is accepted when rack is configured."""
+        p = Project()
+        p.plc_rack([])
+        p.plc_report()
+        assert p._pages[-1].page_type == "plc_report"
+        assert p._pages[-1].csv_path == ""
+
+    def test_plc_report_returns_self(self):
+        """plc_report() returns self for method chaining."""
+        p = Project()
+        result = p.plc_report()
+        assert result is p
+
+    def test_chaining(self):
+        """plc_rack(), external_connections(), plc_report() can be chained."""
+        di_module = self._make_di_module()
+        p = (
+            Project()
+            .plc_rack([("DI1", di_module)])
+            .external_connections([])
+            .plc_report()
+        )
+        assert p._plc_rack is not None
+        assert p._external_connections == []
+        assert p._pages[-1].page_type == "plc_report"
+
+
+class TestGeneratePlcCsv:
+    """Tests for _generate_plc_csv and build() auto-generation integration."""
+
+    def _make_rack(self):
+        """Return a minimal DO rack for testing."""
+        from pyschemaelectrical.plc_resolver import PlcModuleType
+
+        do_module = PlcModuleType(
+            mpn="750-1504",
+            signal_type="DO",
+            channels=4,
+            pins_per_channel=("",),
+        )
+        return [("DO1", do_module)]
+
+    def test_generate_plc_csv_creates_file(self):
+        """_generate_plc_csv should create a CSV file at the given path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            rack = self._make_rack()
+            p = Project()
+            p.plc_rack(rack)
+
+            csv_path = os.path.join(tmpdir, "plc_connections.csv")
+            p._generate_plc_csv(csv_path)
+
+            assert os.path.exists(csv_path)
+
+    def test_generate_plc_csv_has_header(self):
+        """Generated PLC CSV should have the expected header row."""
+        import csv
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            rack = self._make_rack()
+            p = Project()
+            p.plc_rack(rack)
+
+            csv_path = os.path.join(tmpdir, "plc_connections.csv")
+            p._generate_plc_csv(csv_path)
+
+            with open(csv_path, newline="") as f:
+                reader = csv.reader(f)
+                header = next(reader)
+
+            assert header == ["Module", "MPN", "PLC Pin", "Component", "Pin", "Terminal"]
+
+    def test_build_auto_generates_plc_csv_when_rack_set(self):
+        """build() should auto-generate plc_connections.csv when rack is set."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_pdf = os.path.join(tmpdir, "output.pdf")
+            temp_dir = os.path.join(tmpdir, "temp")
+
+            rack = self._make_rack()
+            p = Project()
+            p.plc_rack(rack)
+
+            mock_typst_module = MagicMock()
+            mock_compiler_inst = MagicMock()
+            mock_typst_module.TypstCompiler.return_value = mock_compiler_inst
+            mock_typst_module.TypstCompilerConfig = MagicMock()
+
+            with patch.dict(
+                "sys.modules",
+                {"pyschemaelectrical.rendering.typst.compiler": mock_typst_module},
+            ):
+                p.build(output_pdf, temp_dir=temp_dir, keep_temp=True)
+
+            plc_csv = os.path.join(temp_dir, "plc_connections.csv")
+            assert os.path.exists(plc_csv)
+
+    def test_build_passes_plc_csv_to_compiler_when_no_explicit_path(self):
+        """build() should pass auto-generated CSV to add_plc_report when csv_path is empty."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_pdf = os.path.join(tmpdir, "output.pdf")
+            temp_dir = os.path.join(tmpdir, "temp")
+
+            rack = self._make_rack()
+            p = Project()
+            p.plc_rack(rack)
+            p.plc_report()  # no csv_path
+
+            mock_typst_module = MagicMock()
+            mock_compiler_inst = MagicMock()
+            mock_typst_module.TypstCompiler.return_value = mock_compiler_inst
+            mock_typst_module.TypstCompilerConfig = MagicMock()
+
+            with patch.dict(
+                "sys.modules",
+                {"pyschemaelectrical.rendering.typst.compiler": mock_typst_module},
+            ):
+                p.build(output_pdf, temp_dir=temp_dir, keep_temp=True)
+
+            mock_compiler_inst.add_plc_report.assert_called_once()
+            call_arg = mock_compiler_inst.add_plc_report.call_args[0][0]
+            assert "plc_connections.csv" in call_arg
+
+    def test_build_explicit_csv_path_takes_priority(self):
+        """When explicit csv_path is given it should override auto-generation."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_pdf = os.path.join(tmpdir, "output.pdf")
+            temp_dir = os.path.join(tmpdir, "temp")
+
+            # Create a dummy explicit CSV
+            os.makedirs(temp_dir, exist_ok=True)
+            explicit_csv = os.path.join(tmpdir, "explicit_plc.csv")
+            with open(explicit_csv, "w") as f:
+                f.write("dummy")
+
+            rack = self._make_rack()
+            p = Project()
+            p.plc_rack(rack)
+            p.plc_report(csv_path=explicit_csv)
+
+            mock_typst_module = MagicMock()
+            mock_compiler_inst = MagicMock()
+            mock_typst_module.TypstCompiler.return_value = mock_compiler_inst
+            mock_typst_module.TypstCompilerConfig = MagicMock()
+
+            with patch.dict(
+                "sys.modules",
+                {"pyschemaelectrical.rendering.typst.compiler": mock_typst_module},
+            ):
+                p.build(output_pdf, temp_dir=temp_dir, keep_temp=True)
+
+            mock_compiler_inst.add_plc_report.assert_called_once_with(explicit_csv)
+
+    def test_add_page_to_compiler_plc_report_uses_plc_csv_path(self):
+        """_add_page_to_compiler should use plc_csv_path when page has no csv_path."""
+        from pyschemaelectrical.project import _PageDef
+
+        p = Project()
+        compiler = MagicMock()
+
+        page_def = _PageDef(page_type="plc_report", csv_path="")
+        p._add_page_to_compiler(
+            compiler, page_def, {}, {}, "/tmp/system.csv", "/tmp/plc_auto.csv"
+        )
+
+        compiler.add_plc_report.assert_called_once_with("/tmp/plc_auto.csv")
+
+    def test_add_page_to_compiler_plc_report_page_csv_overrides_auto(self):
+        """_add_page_to_compiler should prefer page's csv_path over plc_csv_path."""
+        from pyschemaelectrical.project import _PageDef
+
+        p = Project()
+        compiler = MagicMock()
+
+        page_def = _PageDef(page_type="plc_report", csv_path="/explicit/path.csv")
+        p._add_page_to_compiler(
+            compiler, page_def, {}, {}, "/tmp/system.csv", "/tmp/plc_auto.csv"
+        )
+
+        compiler.add_plc_report.assert_called_once_with("/explicit/path.csv")

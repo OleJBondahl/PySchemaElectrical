@@ -11,9 +11,13 @@ import os
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pyschemaelectrical.builder import BuildResult
+
+if TYPE_CHECKING:
+    from pyschemaelectrical.field_devices import ConnectionRow
+    from pyschemaelectrical.plc_resolver import PlcRack
 from pyschemaelectrical.descriptors import Descriptor, build_from_descriptors
 from pyschemaelectrical.system.connection_registry import (
     export_registry_to_csv,
@@ -132,6 +136,8 @@ class Project:
         self._circuit_defs: list[_CircuitDef] = []
         self._pages: list[_PageDef] = []
         self._results: dict[str, BuildResult] = {}
+        self._plc_rack: "PlcRack | None" = None
+        self._external_connections: "list[ConnectionRow]" = []
 
     # ------------------------------------------------------------------
     # Terminal registration
@@ -320,6 +326,45 @@ class Project:
         )
 
     # ------------------------------------------------------------------
+    # PLC rack and external connections
+    # ------------------------------------------------------------------
+
+    def plc_rack(self, rack: "PlcRack") -> "Project":
+        """Register a PLC rack for automatic PLC connection report generation.
+
+        When a rack is registered, ``.build()`` will automatically generate
+        the PLC connections CSV from the circuit registry and any registered
+        external connections.
+
+        Args:
+            rack: List of (designation, PlcModuleType) tuples describing
+                the physical PLC rack.
+
+        Returns:
+            self (for method chaining).
+        """
+        self._plc_rack = rack
+        return self
+
+    def external_connections(self, connections: "list[ConnectionRow]") -> "Project":
+        """Register external field wiring connections for the PLC report.
+
+        These are connections from field devices (sensors, valves, motors)
+        entering the cabinet. They are resolved against the PLC rack to
+        generate the PLC connection report.
+
+        Args:
+            connections: List of ConnectionRow tuples
+                (component_from, pin_from, terminal_tag, terminal_pin,
+                 component_to, pin_to).
+
+        Returns:
+            self (for method chaining).
+        """
+        self._external_connections = list(connections)
+        return self
+
+    # ------------------------------------------------------------------
     # Page management
     # ------------------------------------------------------------------
 
@@ -351,13 +396,22 @@ class Project:
         """
         self._pages.append(_PageDef(page_type="terminal_report"))
 
-    def plc_report(self, csv_path: str = ""):
+    def plc_report(self, csv_path: str = "") -> "Project":
         """Add a PLC connections report page.
 
+        When a rack has been registered via ``plc_rack()`` and *csv_path*
+        is empty, ``.build()`` will auto-generate the PLC connections CSV
+        from the circuit registry and any registered external connections.
+
         Args:
-            csv_path: Path to the PLC connections CSV file.
+            csv_path: Path to the PLC connections CSV file.  Leave empty
+                when using the auto-generation path via ``plc_rack()``.
+
+        Returns:
+            self (for method chaining).
         """
         self._pages.append(_PageDef(page_type="plc_report", csv_path=csv_path))
+        return self
 
     def custom_page(self, title: str, typst_content: str):
         """Add a page with raw Typst markup content.
@@ -432,6 +486,12 @@ class Project:
         if bridge_defs:
             update_csv_with_internal_connections(system_csv_path, bridge_defs)
 
+        # 3.5. Auto-generate PLC connections CSV if rack is configured
+        plc_csv_path = ""
+        if self._plc_rack is not None:
+            plc_csv_path = os.path.join(temp_dir, "plc_connections.csv")
+            self._generate_plc_csv(plc_csv_path)
+
         # 4. Assemble Typst document
         # Use CWD as root so all relative paths (SVGs, CSVs) resolve correctly
         root_dir = os.getcwd()
@@ -451,7 +511,7 @@ class Project:
         # Add pages
         for page_def in self._pages:
             self._add_page_to_compiler(
-                compiler, page_def, svg_paths, csv_paths, system_csv_path
+                compiler, page_def, svg_paths, csv_paths, system_csv_path, plc_csv_path
             )
 
         # 5. Compile
@@ -545,8 +605,7 @@ class Project:
         except AttributeError:
             available = [n for n in dir(std_circuits) if not n.startswith("_")]
             raise ValueError(
-                f"Unknown circuit factory '{cdef.factory}'. "
-                f"Available: {available}"
+                f"Unknown circuit factory '{cdef.factory}'. Available: {available}"
             ) from None
 
         # Build kwargs from params
@@ -588,8 +647,7 @@ class Project:
         """Build a circuit via user-provided builder function."""
         if cdef.builder_fn is None:
             raise ValueError(
-                f"Circuit '{cdef.key}' uses custom mode but has no "
-                f"builder_fn defined"
+                f"Circuit '{cdef.key}' uses custom mode but has no builder_fn defined"
             )
         result = cdef.builder_fn(self._state, **cdef.params)
         if isinstance(result, BuildResult):
@@ -628,6 +686,7 @@ class Project:
         svg_paths: dict[str, str],
         csv_paths: dict[str, str],
         system_csv_path: str,
+        plc_csv_path: str = "",
     ):
         """Add a page definition to the TypstCompiler."""
         if page_def.page_type == "schematic":
@@ -646,8 +705,47 @@ class Project:
             }
             compiler.add_terminal_report(system_csv_path, descriptions)
         elif page_def.page_type == "plc_report":
-            csv_path = page_def.csv_path
+            csv_path = page_def.csv_path or plc_csv_path
             if csv_path:
                 compiler.add_plc_report(csv_path)
         elif page_def.page_type == "custom":
             compiler.add_custom_page(page_def.title, page_def.typst_content)
+
+    # ------------------------------------------------------------------
+    # Internal: PLC CSV generation
+    # ------------------------------------------------------------------
+
+    def _generate_plc_csv(self, csv_path: str) -> None:
+        """Generate PLC connections CSV from registry and external connections."""
+        import csv as _csv
+
+        from pyschemaelectrical.plc_resolver import (
+            extract_plc_connections_from_registry,
+            generate_plc_report_rows,
+            resolve_plc_references,
+        )
+
+        # _generate_plc_csv is only called when _plc_rack is not None
+        rack = self._plc_rack
+        assert rack is not None
+
+        # Resolve external connections if any
+        external = list(self._external_connections)
+        if external:
+            external = resolve_plc_references(external, rack)
+
+        # Extract registry connections
+        registry_connections: list[ConnectionRow] = (
+            extract_plc_connections_from_registry(self._state, rack, external)
+        )
+
+        # Merge and generate rows
+        all_connections = external + registry_connections
+        rows = generate_plc_report_rows(all_connections, rack)
+
+        with open(csv_path, "w", newline="") as f:
+            writer = _csv.writer(f)
+            writer.writerow(
+                ["Module", "MPN", "PLC Pin", "Component", "Pin", "Terminal"]
+            )
+            writer.writerows(rows)
