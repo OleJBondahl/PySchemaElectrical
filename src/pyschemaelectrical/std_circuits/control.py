@@ -41,7 +41,7 @@ def spdt(  # noqa: C901
     symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
     column_offset: float = LayoutDefaults.CONTROL_COLUMN_OFFSET,
     # Component parameters (with defaults)
-    coil_tag_prefix: str = StandardTags.CONTACTOR,
+    tag_prefix: str = StandardTags.CONTACTOR,
     contact_tag_prefix: str = StandardTags.RELAY,
     # Pin parameters
     coil_pins: tuple[str, ...] = ("A1", "A2"),
@@ -77,7 +77,7 @@ def spdt(  # noqa: C901
         spacing: Horizontal spacing between circuit instances
         symbol_spacing: Vertical spacing between components
         column_offset: Unused in single-column layout (kept for API compatibility)
-        coil_tag_prefix: Tag prefix for coil (default: "Q")
+        tag_prefix: Tag prefix for coil (default: "Q")
         contact_tag_prefix: Tag prefix for feedback contact (default: "K")
         coil_pins: Pins for coil (Input, Output)
         contact_pins: Pins for SPDT (Common, NC, NO)
@@ -113,11 +113,11 @@ def spdt(  # noqa: C901
 
         # --- Tags ---
         # Check if custom tag generators are provided, otherwise use next_tag
-        if tag_gens and coil_tag_prefix in tag_gens:
-            s, coil_tag = tag_gens[coil_tag_prefix](s)
+        if tag_gens and tag_prefix in tag_gens:
+            s, coil_tag = tag_gens[tag_prefix](s)
         else:
-            s, coil_tag = next_tag(s, coil_tag_prefix)
-        tag_accumulator.setdefault(coil_tag_prefix, []).append(coil_tag)
+            s, coil_tag = next_tag(s, tag_prefix)
+        tag_accumulator.setdefault(tag_prefix, []).append(coil_tag)
 
         if tag_gens and contact_tag_prefix in tag_gens:
             s, contact_tag = tag_gens[contact_tag_prefix](s)
@@ -143,7 +143,9 @@ def spdt(  # noqa: C901
 
         # --- Pins (Terminals) ---
         s, p_top = resolve_terminal_pins(s, tm_top, 1, tm_top_pins, pin_accumulator)
-        s, p_left = resolve_terminal_pins(s, tm_bot_left, 1, tm_bot_left_pins, pin_accumulator)
+        s, p_left = resolve_terminal_pins(
+            s, tm_bot_left, 1, tm_bot_left_pins, pin_accumulator
+        )
 
         # --- Coordinates ---
         # Vertical Stack
@@ -339,6 +341,143 @@ def no_contact(
         tag_generators=kwargs.get("tag_generators"),
         terminal_maps=kwargs.get("terminal_maps"),
         wire_labels=wire_labels,
+    )
+
+
+def coil_contact_pair(
+    state: "GenerationState",
+    # Required terminal parameters
+    tm_coil_top: str,
+    tm_coil_bot: str,
+    tm_contact_top: str,
+    tm_contact_bot: str,
+    # Layout
+    x: float = 0.0,
+    y: float = 0.0,
+    pair_spacing: float = LayoutDefaults.CIRCUIT_SPACING_CONTROL,
+    sub_spacing: float = LayoutDefaults.CONTROL_COLUMN_OFFSET,
+    # Optional per-side layout
+    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    # Component parameters
+    tag_prefix: str = StandardTags.RELAY,
+    coil_pins: tuple[str, ...] = ("A1", "A2"),
+    contact_pins: tuple[str, ...] = ("3", "4"),
+    # Optional contact top pin prefix (for multi-pole terminal variants)
+    contact_top_pin_prefix: tuple[str, ...] | None = None,
+    contact_top_label_pos: str = "right",
+    # Multi-count and wire labels
+    count: int = 1,
+    coil_wire_labels: list[str] | None = None,
+    contact_wire_labels: list[str] | None = None,
+    # Start indices
+    start_indices: dict[str, int] | None = None,
+) -> BuildResult:
+    """
+    Create N coil circuits paired with N normally-open contact circuits.
+
+    Each coil circuit is driven from the top reference terminal (e.g. a PLC DO)
+    down through a relay coil to the coil bottom terminal (e.g. GND).  Each
+    contact circuit shares the same K relay tag as the corresponding coil and
+    routes from the contact top terminal (e.g. fused 24 V) through a normally-open
+    contact to the contact bottom terminal (e.g. a field output).
+
+    Layout::
+
+        [tm_coil_top] ──[K coil]──[tm_coil_bot]        x
+        [tm_contact_top] ──[K NO]──[tm_contact_bot]     x + sub_spacing
+
+    Repeated ``count`` times with ``pair_spacing`` between repetitions.
+
+    Args:
+        state: Autonumbering state.
+        tm_coil_top: Top terminal of the coil side (e.g. PLC DO reference).
+        tm_coil_bot: Bottom terminal of the coil side (e.g. GND).
+        tm_contact_top: Top terminal of the contact side (e.g. fused 24 V).
+        tm_contact_bot: Bottom terminal of the contact side (e.g. field output).
+        x: Starting X coordinate in mm.
+        y: Starting Y coordinate in mm.
+        pair_spacing: Horizontal spacing between repeated pairs.
+        sub_spacing: X offset from coil column to contact column.
+        symbol_spacing: Vertical spacing between components within a column.
+        tag_prefix: Tag prefix for relay tags (default "K").
+        coil_pins: Pin labels for the coil symbol (default ("A1", "A2")).
+        contact_pins: Pin labels for the NO contact symbol (default ("3", "4")).
+        contact_top_pin_prefix: Optional pin_prefixes override for the contact
+            top terminal (e.g. ``("L3",)`` to select a specific pin group).
+        contact_top_label_pos: Label position for the contact top terminal
+            (default "right").
+        count: Number of coil/contact pairs to generate.
+        coil_wire_labels: Wire labels for the coil side.
+        contact_wire_labels: Wire labels for the contact side.
+        start_indices: Override tag counters before building
+            (e.g. ``{"K": 2}`` to start from K3, since the counter is
+            incremented before the first tag is emitted).
+
+    Returns:
+        BuildResult with the merged circuit, merged used_terminals, and
+        ``terminal_pin_map`` from the contact side. The coil side's
+        terminal_pin_map is intentionally dropped — the coil bottom terminal
+        (e.g. GND) is a shared rail that callers do not need to address by
+        individual pin.
+    """
+    from pyschemaelectrical import apply_start_indices, merge_circuits, merge_terminals
+
+    state = apply_start_indices(state, start_indices)
+
+    # --- Coil side ---
+    coil_builder = CircuitBuilder(state)
+    coil_builder.set_layout(
+        x=x, y=y, spacing=pair_spacing, symbol_spacing=symbol_spacing
+    )
+    coil_builder.add_reference(tm_coil_top, poles=1)
+    coil_builder.add_component(coil_symbol, tag_prefix, pins=coil_pins)
+    coil_builder.add_terminal(tm_coil_bot)
+    res_coils = coil_builder.build(count=count, wire_labels=coil_wire_labels)
+
+    state = res_coils.state
+
+    # --- Contact side ---
+    contact_builder = CircuitBuilder(state)
+    contact_builder.set_layout(
+        x=x + sub_spacing,
+        y=y,
+        spacing=pair_spacing,
+        symbol_spacing=symbol_spacing,
+    )
+    contact_builder.add_terminal(
+        tm_contact_top,
+        pin_prefixes=contact_top_pin_prefix,
+        label_pos=contact_top_label_pos,
+    )
+    contact_builder.add_component(normally_open_symbol, tag_prefix, pins=contact_pins)
+    contact_builder.add_terminal(tm_contact_bot, poles=1)
+    res_contacts = contact_builder.build(
+        count=count,
+        reuse_tags={tag_prefix: res_coils},
+        wire_labels=contact_wire_labels,
+    )
+
+    state = res_contacts.state
+
+    # --- Merge ---
+    merged_circuit = merge_circuits(Circuit(), res_coils.circuit)
+    merged_circuit = merge_circuits(merged_circuit, res_contacts.circuit)
+    merged_terminals = merge_terminals(
+        res_coils.used_terminals, res_contacts.used_terminals
+    )
+
+    # The coil side is the authoritative source for tag_prefix tags; the
+    # contact side reuses them via reuse_tags so its component_map duplicates
+    # the same tag strings.  Use only the coil side's component_map to avoid
+    # reporting each tag twice.
+    merged_component_map: dict[str, list[str]] = dict(res_coils.component_map)
+
+    return BuildResult(
+        state=state,
+        circuit=merged_circuit,
+        used_terminals=merged_terminals,
+        component_map=merged_component_map,
+        terminal_pin_map=res_contacts.terminal_pin_map,
     )
 
 

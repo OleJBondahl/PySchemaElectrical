@@ -33,8 +33,8 @@ Parameters related to specific components within the circuit should use the comp
 ### Tags
 Use `_tag_prefix` to specify the prefix for auto-numbering (e.g., "K", "Q", "F").
 
+*   `tag_prefix` (primary/single component, e.g. `no_contact`, `coil`, `changeover`, `psu`, `spdt` coil)
 *   `breaker_tag_prefix`
-*   `coil_tag_prefix`
 *   `switch_tag_prefix`
 
 ### Pins

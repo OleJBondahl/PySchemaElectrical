@@ -2,50 +2,86 @@
 PySchemaElectrical Library.
 """
 
-from .system.system import Circuit, add_symbol, render_system  # noqa: E402
+# system.system must be imported first — pre-loads layout.layout, breaking the
+# circular import chain that would otherwise form via builder.py → layout.layout.
+from .system.system import Circuit, add_symbol, merge_circuits, render_system  # noqa: E402
+from .layout.layout import auto_connect
 from .builder import BuildResult, CircuitBuilder, ComponentRef, PortRef
-from .utils.autonumbering import create_autonumberer, get_tag_number, next_terminal_pins
-from .utils.utils import set_tag_counter, set_terminal_counter, get_terminal_counter
-from .utils.export_utils import export_terminal_list, merge_terminal_csv
+from .descriptors import build_from_descriptors, comp, ref, term
+from .exceptions import (
+    CircuitValidationError,
+    ComponentNotFoundError,
+    PortNotFoundError,
+    TagReuseError,
+    # Backward-compatible aliases (deprecated)
+    TagReuseExhausted,
+    TerminalReuseError,
+    TerminalReuseExhausted,
+    WireLabelCountMismatch,
+    WireLabelMismatchError,
+)
+from .field_devices import (
+    ConnectionRow,
+    DeviceEntry,
+    DeviceTemplate,
+    FixedPin,
+    PinDef,
+    PrefixedPin,
+    SequentialPin,
+    generate_field_connections,
+)
+from .model.constants import (
+    CircuitLayoutConfig,
+    CircuitLayouts,
+    LayoutDefaults,
+    PinSet,
+    SpacingConfig,
+    StandardCircuitKeys,
+    StandardPins,
+    StandardSpacing,
+    StandardTags,
+)
+from .model.core import SymbolFactory
+from .model.state import GenerationState, create_initial_state
+from .plc_resolver import (
+    PlcDesignation,
+    PlcModuleType,
+    PlcRack,
+    extract_plc_connections_from_registry,
+    generate_plc_report_rows,
+    resolve_plc_references,
+)
+from .project import Project
+from .system.connection_registry import export_registry_to_csv, get_registry
+from .terminal import Terminal
+from .utils.autonumbering import (
+    create_autonumberer,
+    get_tag_number,
+    next_tag,
+    next_terminal_pins,
+)
+from .utils.export_utils import (
+    export_terminal_list,
+    finalize_terminal_csv,
+    merge_terminal_csv,
+)
 from .utils.terminal_bridges import (
     BridgeRange,
     ConnectionDef,
     expand_range_to_pins,
-    get_connection_groups_for_terminal,
     generate_internal_connections_data,
+    get_connection_groups_for_terminal,
     parse_terminal_pins_from_csv,
     update_csv_with_internal_connections,
 )
-from .system.connection_registry import get_registry, export_registry_to_csv
-from .model.constants import (
-    StandardSpacing,
-    StandardTags,
-    StandardPins,
-    StandardCircuitKeys,
-    SpacingConfig,
-    PinSet,
-    LayoutDefaults,
-    CircuitLayoutConfig,
-    CircuitLayouts,
+from .utils.utils import (
+    apply_start_indices,
+    fixed_tag,
+    get_terminal_counter,
+    merge_terminals,
+    natural_sort_key,
+    set_tag_counter,
+    set_terminal_counter,
 )
-from .model.core import SymbolFactory
-from .model.state import create_initial_state, GenerationState
-from .exceptions import (
-    CircuitValidationError,
-    PortNotFoundError,
-    ComponentNotFoundError,
-    TagReuseError,
-    TerminalReuseError,
-    WireLabelMismatchError,
-    # Backward-compatible aliases (deprecated)
-    TagReuseExhausted,
-    TerminalReuseExhausted,
-    WireLabelCountMismatch,
-)
-from .terminal import Terminal
 from .wire import wire
-from .descriptors import ref, comp, term, build_from_descriptors
-from .plc import PlcMapper
-from .project import Project
-from .field_devices import PinDef, DeviceTemplate, generate_field_connections
 from . import std_circuits  # noqa: E402, I001 — must be last to avoid circular imports

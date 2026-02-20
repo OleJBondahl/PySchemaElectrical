@@ -15,6 +15,11 @@ import os
 import re
 from collections import defaultdict
 
+from pyschemaelectrical.utils.terminal_bridges import (
+    ConnectionDef,
+    update_csv_with_internal_connections,
+)
+
 
 def export_terminal_list(
     filepath: str, used_terminals: list[str], descriptions: dict[str, str] | None = None
@@ -140,6 +145,13 @@ def merge_terminal_csv(csv_path: str) -> None:
 
     The ``Internal Bridge`` column is optional; if present it is preserved.
 
+    **Gap-filling:** After merging duplicates, this function inserts empty
+    placeholder rows for any missing pin slots in sequential pin sequences
+    (e.g. if pins 1 and 3 exist, pin 2 is inserted as an empty row). This
+    ensures the printed terminal strip renders as a complete, unbroken strip.
+    Intentional gaps in pin numbering will be filled — if sparse pin sequences
+    are required, do not call this function.
+
     This function is the library equivalent of the consumer project's
     ``_merge_and_sort_terminal_csv()`` utility, made generic so any project
     can call it after assembling a terminal CSV from multiple sources.
@@ -176,6 +188,9 @@ def merge_terminal_csv(csv_path: str) -> None:
         else:
             merged_rows.append(_merge_terminal_rows(group_rows))
 
+    # Fill any missing pin slots (gaps in sequential pin numbering)
+    merged_rows = _fill_empty_pin_slots(merged_rows)
+
     # Sort by terminal tag (natural), then by pin (natural)
     merged_rows.sort(
         key=lambda r: (_terminal_pin_sort_key(r[2]), _terminal_pin_sort_key(r[3]))
@@ -185,3 +200,164 @@ def merge_terminal_csv(csv_path: str) -> None:
         writer = csv.writer(f)
         writer.writerow(header)
         writer.writerows(merged_rows)
+
+
+def _fill_empty_pin_slots(rows: list[list[str]]) -> list[list[str]]:
+    """Return rows extended with empty placeholders for missing pin slots.
+
+    Scans all rows to find the highest pin number per prefix per terminal,
+    then produces placeholder rows for any missing slots from 1 up to that max.
+    This ensures the printed terminal strip looks complete.
+
+    Args:
+        rows: CSV data rows (lists of strings), each with Terminal Tag at
+            index 2 and Terminal Pin at index 3.
+
+    Returns:
+        A new list containing all original rows plus placeholder rows for
+        any missing pin slots.
+    """
+    ncols = len(rows[0]) if rows else 7
+
+    max_pins: dict[tuple[str, str], int] = {}
+    existing_keys: set[tuple[str, str]] = set()
+
+    for row in rows:
+        tag = row[2]
+        pin_str = row[3]
+        existing_keys.add((tag, pin_str))
+
+        if ":" in pin_str:
+            prefix, num_str = pin_str.rsplit(":", 1)
+            try:
+                num = int(num_str)
+                key = (tag, prefix)
+                max_pins[key] = max(max_pins.get(key, 0), num)
+            except ValueError:
+                pass
+        else:
+            try:
+                num = int(pin_str)
+                key = (tag, "")
+                max_pins[key] = max(max_pins.get(key, 0), num)
+            except ValueError:
+                pass
+
+    placeholders: list[list[str]] = []
+    for (tag, prefix), max_num in max_pins.items():
+        for n in range(1, max_num + 1):
+            pin_str = f"{prefix}:{n}" if prefix else str(n)
+            if (tag, pin_str) not in existing_keys:
+                empty_row = ["", "", tag, pin_str, "", ""]
+                while len(empty_row) < ncols:
+                    empty_row.append("")
+                placeholders.append(empty_row)
+                existing_keys.add((tag, pin_str))
+
+    return rows + placeholders
+
+
+def _build_prefix_groups(
+    rows: list[list[str]], terminal_tags: set[str]
+) -> dict[str, dict[str, str]]:
+    """Build a mapping of tag -> prefix -> group number for prefixed pins."""
+    prefix_groups: dict[str, dict[str, str]] = {}
+    for row in rows:
+        tag = row[2]
+        if tag not in terminal_tags or ":" not in row[3]:
+            continue
+        prefix = row[3].rsplit(":", 1)[0]
+        tag_groups = prefix_groups.setdefault(tag, {})
+        if prefix not in tag_groups:
+            tag_groups[prefix] = str(len(tag_groups) + 1)
+    return prefix_groups
+
+
+def _apply_prefix_bridges(csv_path: str, terminal_tags: set[str]) -> None:
+    """Add bridge group numbers to prefixed terminal pins.
+
+    For terminals with ``bridge="per_prefix"``, all pins sharing the same
+    prefix (e.g. all ``"L1:*"`` pins) are marked as internally connected.
+    Each prefix gets a unique group number within its terminal.
+
+    The bridge column must already exist in the CSV (added by
+    :func:`~pyschemaelectrical.update_csv_with_internal_connections`).
+
+    Args:
+        csv_path: Path to the CSV file to update **in place**.
+        terminal_tags: Set of terminal tag strings that use
+            ``bridge="per_prefix"`` (e.g. ``{"X101", "X002"}``).
+    """
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        rows = list(reader)
+
+    bridge_col = header.index("Internal Bridge") if "Internal Bridge" in header else -1
+    if bridge_col == -1:
+        return
+
+    prefix_groups = _build_prefix_groups(rows, terminal_tags)
+
+    for row in rows:
+        tag = row[2]
+        if tag not in prefix_groups or ":" not in row[3]:
+            continue
+        prefix = row[3].rsplit(":", 1)[0]
+        group = prefix_groups[tag].get(prefix, "")
+        if group:
+            row[bridge_col] = group
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+def finalize_terminal_csv(
+    csv_path: str,
+    bridge_defs: dict[str, ConnectionDef] | None = None,
+    prefix_bridge_tags: set[str] | None = None,
+    external_connections: list | None = None,
+) -> None:
+    """Apply the full terminal CSV post-processing pipeline.
+
+    This is the recommended single-call replacement for the three-step
+    sequence::
+
+        update_csv_with_internal_connections(path, bridge_defs)
+        merge_terminal_csv(path)  # merge + sort + fill gaps
+        _apply_prefix_bridges(path, prefix_tags)
+
+    Args:
+        csv_path: Path to the terminal CSV (already written by
+            :func:`~pyschemaelectrical.export_registry_to_csv`).
+        bridge_defs: Mapping of terminal tag -> bridge mode for
+            non-prefix terminals (e.g. ``{"X102": "all"}``).
+            Passed to :func:`update_csv_with_internal_connections`.
+        prefix_bridge_tags: Set of terminal tags that use
+            ``bridge="per_prefix"`` (e.g. ``{"X101", "X002"}``).
+            These are handled by :func:`_apply_prefix_bridges` after
+            sorting so that prefixes appear in consistent order.
+        external_connections: Optional list of
+            :data:`~pyschemaelectrical.field_devices.ConnectionRow`
+            tuples to append before processing. These are the field
+            wiring rows not captured in the registry.
+    """
+    # 1. Append external connections (field wiring)
+    if external_connections:
+        with open(csv_path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            for row in external_connections:
+                writer.writerow(row)
+
+    # 2. Apply internal bridges (all / specific pins)
+    if bridge_defs:
+        update_csv_with_internal_connections(csv_path, bridge_defs)
+
+    # 3. Merge duplicates, fill gaps, sort
+    merge_terminal_csv(csv_path)
+
+    # 4. Apply per-prefix bridges after sort (stable prefix order)
+    if prefix_bridge_tags:
+        _apply_prefix_bridges(csv_path, prefix_bridge_tags)
