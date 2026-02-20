@@ -558,9 +558,7 @@ class TestMultiPoleTerminalSymbol:
 
     def test_four_pole(self):
         """Four-pole terminal should have 8 ports."""
-        sym = multi_pole_terminal_symbol(
-            label="X2", pins=("1", "2", "3", "4"), poles=4
-        )
+        sym = multi_pole_terminal_symbol(label="X2", pins=("1", "2", "3", "4"), poles=4)
         assert len(sym.ports) == 8
 
     def test_pole_spacing(self):
@@ -826,9 +824,7 @@ class TestDynamicBlockSymbol:
     def test_mismatched_bottom_pin_positions_raises(self):
         """Mismatched bottom_pin_positions length should raise ValueError."""
         with pytest.raises(ValueError):
-            dynamic_block_symbol(
-                bottom_pins=("X",), bottom_pin_positions=(0.0, 10.0)
-            )
+            dynamic_block_symbol(bottom_pins=("X",), bottom_pin_positions=(0.0, 10.0))
 
     def test_no_label(self):
         sym = dynamic_block_symbol(top_pins=("L",))

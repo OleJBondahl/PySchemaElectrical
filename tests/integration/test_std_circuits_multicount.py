@@ -75,9 +75,7 @@ class TestMultiCountStdCircuits:
     def test_dol_starter_per_instance_terminals(self):
         """Test that tm_bot can be a list for per-instance terminals."""
         state = create_autonumberer()
-        result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot=["X010", "X011"], count=2
-        )
+        result = dol_starter(state, 0, 0, tm_top="X1", tm_bot=["X010", "X011"], count=2)
         assert len(result.circuit.elements) >= 8
         assert "X010" in result.used_terminals
         assert "X011" in result.used_terminals
@@ -95,7 +93,12 @@ class TestMultiCountStdCircuits:
         # Two instances should produce more elements
         result_single = psu(
             create_autonumberer(),
-            0, 0, tm_top="X1", tm_bot_left="X2", tm_bot_right="X3", count=1
+            0,
+            0,
+            tm_top="X1",
+            tm_bot_left="X2",
+            tm_bot_right="X3",
+            count=1,
         )
         assert len(result.circuit.elements) > len(result_single.circuit.elements)
 
@@ -124,8 +127,14 @@ class TestSpdtRelayTag:
         """When relay_tag is set, all contact instances use that tag."""
         state = create_autonumberer()
         result = spdt(
-            state, 0, 0, tm_top="X1", tm_bot_left="X2", tm_bot_right="X3",
-            count=2, relay_tag="K2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot_left="X2",
+            tm_bot_right="X3",
+            count=2,
+            relay_tag="K2",
         )
         assert len(result.circuit.elements) >= 4
         assert "X1" in result.used_terminals

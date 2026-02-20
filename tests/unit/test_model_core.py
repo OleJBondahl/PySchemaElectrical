@@ -73,34 +73,42 @@ class TestStandardPins:
 
     def test_coil_pins(self):
         from pyschemaelectrical.model.constants import StandardPins
+
         assert StandardPins.COIL.pins == ("A1", "A2")
 
     def test_no_contact_pins(self):
         from pyschemaelectrical.model.constants import StandardPins
+
         assert StandardPins.NO_CONTACT.pins == ("13", "14")
 
     def test_nc_contact_pins(self):
         from pyschemaelectrical.model.constants import StandardPins
+
         assert StandardPins.NC_CONTACT.pins == ("11", "12")
 
     def test_cb_3p_pins(self):
         from pyschemaelectrical.model.constants import StandardPins
+
         assert StandardPins.CB_3P.pins == ("1", "2", "3", "4", "5", "6")
 
     def test_cb_2p_pins(self):
         from pyschemaelectrical.model.constants import StandardPins
+
         assert StandardPins.CB_2P.pins == ("1", "2", "3", "4")
 
     def test_contactor_3p_same_as_three_pole(self):
         from pyschemaelectrical.model.constants import StandardPins
+
         assert StandardPins.CONTACTOR_3P.pins == StandardPins.THREE_POLE.pins
 
     def test_ct_pins(self):
         from pyschemaelectrical.model.constants import StandardPins
+
         assert StandardPins.CT.pins == ("53", "54", "41", "43")
 
     def test_all_pin_sets_have_descriptions(self):
         from pyschemaelectrical.model.constants import PinSet, StandardPins
+
         for name in dir(StandardPins):
             val = getattr(StandardPins, name)
             if isinstance(val, PinSet):

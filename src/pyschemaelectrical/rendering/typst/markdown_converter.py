@@ -5,7 +5,6 @@ Supports headings (# ## ###), tables (| col | col |), and paragraphs.
 """
 
 
-
 def markdown_to_typst(
     md_path: str,
     width: str = "50%",

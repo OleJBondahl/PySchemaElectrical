@@ -16,18 +16,17 @@ from dataclasses import replace
 from pyschemaelectrical.system.connection_registry import (
     Connection,
     TerminalRegistry,
-    register_connection,
+    _build_all_pin_keys,
+    _pin_sort_key,
+    export_registry_to_csv,
+    get_registry,
     register_3phase_connections,
     register_3phase_input,
     register_3phase_output,
-    get_registry,
+    register_connection,
     update_registry,
-    export_registry_to_csv,
-    _build_all_pin_keys,
-    _pin_sort_key,
 )
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
-
 
 # ---------------------------------------------------------------------------
 # TerminalRegistry dataclass
@@ -567,12 +566,12 @@ class TestExportRegistryToCsv:
 
         assert len(rows) == 2  # header + 1 row
         data = rows[1]
-        assert data[0] == "K1"   # Component From (top)
-        assert data[1] == "A1"   # Pin From (top)
-        assert data[2] == "X1"   # Terminal Tag
-        assert data[3] == "1"    # Terminal Pin
-        assert data[4] == "F1"   # Component To (bottom)
-        assert data[5] == "1"    # Pin To (bottom)
+        assert data[0] == "K1"  # Component From (top)
+        assert data[1] == "A1"  # Pin From (top)
+        assert data[2] == "X1"  # Terminal Tag
+        assert data[3] == "1"  # Terminal Pin
+        assert data[4] == "F1"  # Component To (bottom)
+        assert data[5] == "1"  # Pin To (bottom)
 
     def test_export_multiple_components_same_pin(self, tmp_path):
         """Multiple components on the same side of a pin are joined with ' / '."""
@@ -589,7 +588,7 @@ class TestExportRegistryToCsv:
 
         data = rows[1]
         assert data[4] == "F1 / F2"  # Component To
-        assert data[5] == "1 / 3"    # Pin To
+        assert data[5] == "1 / 3"  # Pin To
 
     def test_export_without_state(self, tmp_path):
         """Without state, no gap-filling occurs."""
@@ -676,12 +675,8 @@ class TestIntegration:
     def test_multiple_components_on_same_terminal(self, tmp_path):
         """Multiple 3-phase components sharing the same terminal."""
         state = create_autonumberer()
-        state = register_3phase_input(
-            state, "X001", ("1", "2", "3"), "F1"
-        )
-        state = register_3phase_input(
-            state, "X001", ("4", "5", "6"), "F2"
-        )
+        state = register_3phase_input(state, "X001", ("1", "2", "3"), "F1")
+        state = register_3phase_input(state, "X001", ("4", "5", "6"), "F2")
 
         reg = get_registry(state)
         assert len(reg.connections) == 6

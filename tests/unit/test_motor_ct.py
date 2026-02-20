@@ -16,10 +16,10 @@ from pyschemaelectrical.system.connection_registry import get_registry
 from pyschemaelectrical.terminal import Terminal
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _count_lines(circuit):
     """Count the number of Line elements in a circuit."""
@@ -30,6 +30,7 @@ def _count_lines(circuit):
 # 1. ct_terminals with plain string terminal IDs
 # ---------------------------------------------------------------------------
 
+
 class TestCtTerminalsString:
     """Tests for ct_terminals when passed as plain string IDs."""
 
@@ -37,7 +38,11 @@ class TestCtTerminalsString:
         """dol_starter with ct_terminals as string tuple places terminal symbols."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
         )
         assert len(result.circuit.elements) > 0
@@ -46,12 +51,20 @@ class TestCtTerminalsString:
         """Providing ct_terminals should produce more elements than without."""
         state_without = create_autonumberer()
         result_without = dol_starter(
-            state_without, 0, 0, tm_top="X1", tm_bot="X2",
+            state_without,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
         )
 
         state_with = create_autonumberer()
         result_with = dol_starter(
-            state_with, 0, 0, tm_top="X1", tm_bot="X2",
+            state_with,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
         )
 
@@ -61,7 +74,11 @@ class TestCtTerminalsString:
         """String ct_terminals IDs should appear in used_terminals."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3"),
         )
         assert "X3" in result.used_terminals
@@ -70,7 +87,11 @@ class TestCtTerminalsString:
         """Multiple distinct string ct_terminal IDs all appear in used_terminals."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X4", "X5", "X6"),
         )
         assert "X3" in result.used_terminals
@@ -82,12 +103,20 @@ class TestCtTerminalsString:
         """Each ct_terminal should produce a wire (Line) from CT port to terminal."""
         state_without = create_autonumberer()
         result_without = dol_starter(
-            state_without, 0, 0, tm_top="X1", tm_bot="X2",
+            state_without,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
         )
 
         state_with = create_autonumberer()
         result_with = dol_starter(
-            state_with, 0, 0, tm_top="X1", tm_bot="X2",
+            state_with,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
         )
 
@@ -100,14 +129,16 @@ class TestCtTerminalsString:
         """String ct_terminals should register connections in the terminal registry."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
         )
         registry = get_registry(result.state)
         # There should be connections registered for X3
-        x3_connections = [
-            c for c in registry.connections if c.terminal_tag == "X3"
-        ]
+        x3_connections = [c for c in registry.connections if c.terminal_tag == "X3"]
         assert len(x3_connections) > 0
         # Each connection should point to a CT-prefixed component
         for conn in x3_connections:
@@ -117,13 +148,21 @@ class TestCtTerminalsString:
         """ct_terminals with fewer entries than ct_pins should only place those."""
         state_full = create_autonumberer()
         result_full = dol_starter(
-            state_full, 0, 0, tm_top="X1", tm_bot="X2",
+            state_full,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
         )
 
         state_partial = create_autonumberer()
         result_partial = dol_starter(
-            state_partial, 0, 0, tm_top="X1", tm_bot="X2",
+            state_partial,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3"),
         )
 
@@ -138,7 +177,11 @@ class TestCtTerminalsString:
         """
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X4", "X5", "X6"),
         )
         # If label_pos logic were broken, add_symbol would fail
@@ -149,6 +192,7 @@ class TestCtTerminalsString:
 # 2. ct_terminals with Terminal objects having reference=True
 # ---------------------------------------------------------------------------
 
+
 class TestCtTerminalsReference:
     """Tests for ct_terminals when Terminal objects with reference=True are used."""
 
@@ -157,7 +201,11 @@ class TestCtTerminalsReference:
         state = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=(plc_ref, plc_ref, plc_ref, plc_ref),
         )
         assert len(result.circuit.elements) > 0
@@ -166,13 +214,21 @@ class TestCtTerminalsReference:
         """Reference ct_terminals should produce more elements than without."""
         state_without = create_autonumberer()
         result_without = dol_starter(
-            state_without, 0, 0, tm_top="X1", tm_bot="X2",
+            state_without,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
         )
 
         state_with = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result_with = dol_starter(
-            state_with, 0, 0, tm_top="X1", tm_bot="X2",
+            state_with,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=(plc_ref, plc_ref, plc_ref, plc_ref),
         )
 
@@ -183,7 +239,11 @@ class TestCtTerminalsReference:
         state = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=(plc_ref, plc_ref),
         )
         # Reference terminals are excluded from used_terminals
@@ -194,7 +254,11 @@ class TestCtTerminalsReference:
         state = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=(plc_ref, plc_ref, plc_ref, plc_ref),
         )
         registry = get_registry(result.state)
@@ -210,13 +274,21 @@ class TestCtTerminalsReference:
         """Reference ct_terminals should also produce wires from CT port to ref."""
         state_without = create_autonumberer()
         result_without = dol_starter(
-            state_without, 0, 0, tm_top="X1", tm_bot="X2",
+            state_without,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
         )
 
         state_with = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result_with = dol_starter(
-            state_with, 0, 0, tm_top="X1", tm_bot="X2",
+            state_with,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=(plc_ref, plc_ref, plc_ref, plc_ref),
         )
 
@@ -229,6 +301,7 @@ class TestCtTerminalsReference:
 # 3. Mixed ct_terminals (string + reference)
 # ---------------------------------------------------------------------------
 
+
 class TestCtTerminalsMixed:
     """Tests for ct_terminals with a mix of string IDs and reference Terminals."""
 
@@ -237,7 +310,11 @@ class TestCtTerminalsMixed:
         state = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", plc_ref, "X4", plc_ref),
         )
         assert len(result.circuit.elements) > 0
@@ -252,7 +329,11 @@ class TestCtTerminalsMixed:
         state = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", plc_ref, "X4", plc_ref),
         )
         registry = get_registry(result.state)
@@ -270,6 +351,7 @@ class TestCtTerminalsMixed:
 # 4. Multi-count (count > 1) with ct_terminals
 # ---------------------------------------------------------------------------
 
+
 class TestCtTerminalsMultiCount:
     """Tests for ct_terminals with count > 1."""
 
@@ -277,7 +359,11 @@ class TestCtTerminalsMultiCount:
         """ct_terminals should work correctly when count=2."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
             count=2,
         )
@@ -287,14 +373,22 @@ class TestCtTerminalsMultiCount:
         """count=2 with ct_terminals produces more elements than count=1."""
         state1 = create_autonumberer()
         result1 = dol_starter(
-            state1, 0, 0, tm_top="X1", tm_bot="X2",
+            state1,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
             count=1,
         )
 
         state2 = create_autonumberer()
         result2 = dol_starter(
-            state2, 0, 0, tm_top="X1", tm_bot="X2",
+            state2,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
             count=2,
         )
@@ -305,7 +399,11 @@ class TestCtTerminalsMultiCount:
         """count=2 with ct_terminals registers connections for both instances."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
             count=2,
         )
@@ -319,7 +417,11 @@ class TestCtTerminalsMultiCount:
         state = create_autonumberer()
         plc_ref = Terminal("PLC:AI", reference=True)
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=(plc_ref, plc_ref, plc_ref, plc_ref),
             count=2,
         )
@@ -331,7 +433,11 @@ class TestCtTerminalsMultiCount:
         """ct_terminals work with per-instance tm_bot lists."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot=["X010", "X011"],
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot=["X010", "X011"],
             ct_terminals=("X3", "X3", "X3", "X3"),
             count=2,
         )
@@ -345,6 +451,7 @@ class TestCtTerminalsMultiCount:
 # 5. Edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestCtTerminalsEdgeCases:
     """Edge case tests for ct_terminals."""
 
@@ -352,7 +459,11 @@ class TestCtTerminalsEdgeCases:
         """When ct_terminals is None (default), no CT-related extras are added."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=None,
         )
         # Just verify it works and only has base terminals
@@ -362,13 +473,21 @@ class TestCtTerminalsEdgeCases:
         """An empty ct_terminals tuple should behave like None."""
         state_none = create_autonumberer()
         result_none = dol_starter(
-            state_none, 0, 0, tm_top="X1", tm_bot="X2",
+            state_none,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=None,
         )
 
         state_empty = create_autonumberer()
         result_empty = dol_starter(
-            state_empty, 0, 0, tm_top="X1", tm_bot="X2",
+            state_empty,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=(),
         )
 
@@ -381,13 +500,21 @@ class TestCtTerminalsEdgeCases:
         # Default ct_pins has 4 entries ("1", "2", "3", "4")
         # Provide 6 ct_terminals -- only 4 should be placed
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3", "X3", "X3"),
         )
 
         state_exact = create_autonumberer()
         result_exact = dol_starter(
-            state_exact, 0, 0, tm_top="X1", tm_bot="X2",
+            state_exact,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3", "X3", "X3"),
         )
 
@@ -400,7 +527,11 @@ class TestCtTerminalsEdgeCases:
         # X1 is already tm_top; if ct_terminals also uses X1, it should
         # not appear twice in used_terminals
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X1", "X1"),
         )
         # X1 should appear only once
@@ -410,7 +541,11 @@ class TestCtTerminalsEdgeCases:
         """ct_terminals works correctly with custom ct_pins."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_pins=("A", "B"),
             ct_terminals=("X3", "X4"),
         )
@@ -420,10 +555,7 @@ class TestCtTerminalsEdgeCases:
 
         # Verify connections reference the custom CT pins
         registry = get_registry(result.state)
-        ct_conns = [
-            c for c in registry.connections
-            if c.terminal_tag in ("X3", "X4")
-        ]
+        ct_conns = [c for c in registry.connections if c.terminal_tag in ("X3", "X4")]
         assert len(ct_conns) > 0
         pin_values = {c.component_pin for c in ct_conns}
         # Should use our custom pin IDs, not the defaults
@@ -435,7 +567,11 @@ class TestCtTerminalsEdgeCases:
         # Use ct_pins where "NONEXISTENT" won't match any port on the CT symbol.
         # The first pin "1" is valid, "NONEXISTENT" is not -> hits the continue branch.
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_pins=("1", "NONEXISTENT", "3", "4"),
             ct_terminals=("X3", "X3", "X3", "X3"),
         )
@@ -447,6 +583,7 @@ class TestCtTerminalsEdgeCases:
 # 6. BuildResult metadata
 # ---------------------------------------------------------------------------
 
+
 class TestCtTerminalsBuildResult:
     """Verify BuildResult metadata when ct_terminals is used."""
 
@@ -454,7 +591,11 @@ class TestCtTerminalsBuildResult:
         """component_map should include CT tag prefix entries."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3"),
         )
         assert "CT" in result.component_map
@@ -465,7 +606,11 @@ class TestCtTerminalsBuildResult:
         """With count=2, component_map should have 2 CT entries."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3"),
             count=2,
         )
@@ -478,7 +623,11 @@ class TestCtTerminalsBuildResult:
         """The CT tag counter should advance in the returned state."""
         state = create_autonumberer()
         result = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3"),
         )
         # After creating CT1, the tag counter for CT should be 1
@@ -488,7 +637,11 @@ class TestCtTerminalsBuildResult:
         """BuildResult supports tuple unpacking (state, circuit, used_terminals)."""
         state = create_autonumberer()
         new_state, circuit, used = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2",
+            state,
+            0,
+            0,
+            tm_top="X1",
+            tm_bot="X2",
             ct_terminals=("X3", "X3"),
         )
         assert len(circuit.elements) > 0

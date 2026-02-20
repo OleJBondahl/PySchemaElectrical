@@ -73,9 +73,7 @@ def _format_tag(prefix: str, number: int) -> str:
     return f"{prefix}{number}"
 
 
-def next_tag(
-    state: GenerationState, prefix: str
-) -> tuple[GenerationState, str]:
+def next_tag(state: GenerationState, prefix: str) -> tuple[GenerationState, str]:
     """
     Get the next tag for a prefix and return updated state.
 

@@ -20,6 +20,7 @@ from .exceptions import (
     WireLabelCountMismatch,
     WireLabelMismatchError,
 )
+
 # Internal device metadata
 from .internal_device import InternalDevice
 from .field_devices import (

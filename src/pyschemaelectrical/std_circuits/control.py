@@ -236,7 +236,9 @@ def spdt(  # noqa: C901
 
         # Coil -> SPDT contact (component-to-component)
         if len(coil_pins) >= 2 and len(dynamic_contact_pins) >= 1:
-            wire_accumulator.append((coil_tag, coil_pins[1], contact_tag, dynamic_contact_pins[0]))
+            wire_accumulator.append(
+                (coil_tag, coil_pins[1], contact_tag, dynamic_contact_pins[0])
+            )
 
         # 2. SPDT (NC) -> Left Terminal
         if len(dynamic_contact_pins) >= 2 and len(p_left) >= 1:
@@ -248,14 +250,18 @@ def spdt(  # noqa: C901
                 dynamic_contact_pins[1],
                 side="top",
             )
-            wire_accumulator.append((contact_tag, dynamic_contact_pins[1], tm_bot_left, p_left[0]))
+            wire_accumulator.append(
+                (contact_tag, dynamic_contact_pins[1], tm_bot_left, p_left[0])
+            )
 
         # 3. SPDT (NO) -> Right Ref
         if len(dynamic_contact_pins) >= 3:
             s = register_connection(
                 s, tm_bot_right, "1", contact_tag, dynamic_contact_pins[2], side="top"
             )
-            wire_accumulator.append((contact_tag, dynamic_contact_pins[2], tm_bot_right, "1"))
+            wire_accumulator.append(
+                (contact_tag, dynamic_contact_pins[2], tm_bot_right, "1")
+            )
 
         return s, c.elements
 
@@ -489,7 +495,10 @@ def coil_contact_pair(
     merged_component_map: dict[str, list[str]] = dict(res_coils.component_map)
 
     merged_wire_connections = res_coils.wire_connections + res_contacts.wire_connections
-    merged_device_registry = {**res_coils.device_registry, **res_contacts.device_registry}
+    merged_device_registry = {
+        **res_coils.device_registry,
+        **res_contacts.device_registry,
+    }
 
     return BuildResult(
         state=state,

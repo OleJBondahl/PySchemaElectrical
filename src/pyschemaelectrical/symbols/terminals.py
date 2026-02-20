@@ -158,7 +158,12 @@ def multi_pole_terminal_symbol(
     for i in range(poles):
         pole_label = label if i == 0 else ""
         pole_lpos = label_pos if i == 0 else "left"
-        pole = terminal_symbol(label=pole_label, pins=(p_safe[i],), label_pos=pole_lpos, pin_label_pos=pin_label_pos)
+        pole = terminal_symbol(
+            label=pole_label,
+            pins=(p_safe[i],),
+            label_pos=pole_lpos,
+            pin_label_pos=pin_label_pos,
+        )
         if i > 0:
             pole = translate(pole, DEFAULT_POLE_SPACING * i, 0)
 
@@ -171,9 +176,7 @@ def multi_pole_terminal_symbol(
         if "2" in pole.ports:
             new_ports[out_id] = replace(pole.ports["2"], id=out_id)
 
-    return TerminalBlock(
-        elements=list(all_elements), ports=new_ports, label=label
-    )
+    return TerminalBlock(elements=list(all_elements), ports=new_ports, label=label)
 
 
 def three_pole_terminal_symbol(
@@ -195,4 +198,6 @@ def three_pole_terminal_symbol(
     Returns:
         TerminalBlock: The 3-pole terminal block.
     """
-    return multi_pole_terminal_symbol(label, pins, poles=3, label_pos=label_pos, pin_label_pos=pin_label_pos)
+    return multi_pole_terminal_symbol(
+        label, pins, poles=3, label_pos=label_pos, pin_label_pos=pin_label_pos
+    )

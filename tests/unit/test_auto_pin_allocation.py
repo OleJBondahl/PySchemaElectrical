@@ -3,7 +3,10 @@
 from pyschemaelectrical import Terminal
 from pyschemaelectrical.builder import CircuitBuilder
 from pyschemaelectrical.symbols.coils import coil_symbol
-from pyschemaelectrical.utils.autonumbering import create_autonumberer, next_terminal_pins
+from pyschemaelectrical.utils.autonumbering import (
+    create_autonumberer,
+    next_terminal_pins,
+)
 from pyschemaelectrical.utils.utils import set_terminal_counter
 
 
@@ -120,6 +123,7 @@ def test_auto_pin_different_terminals():
 # ---------------------------------------------------------------------------
 # Per-prefix counter tests
 # ---------------------------------------------------------------------------
+
 
 def test_prefixed_partial_allocation_does_not_advance_other_prefixes():
     """Allocating only L1 on a 4-prefix terminal should not advance L2/L3/N."""

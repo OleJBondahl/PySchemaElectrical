@@ -11,6 +11,7 @@ def test_internal_device_creation():
 def test_internal_device_is_frozen():
     dev = InternalDevice("K", "MY2N", "Relay")
     import dataclasses
+
     assert dataclasses.is_dataclass(dev)
     try:
         dev.prefix = "X"

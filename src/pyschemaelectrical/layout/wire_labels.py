@@ -11,7 +11,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pyschemaelectrical.system.system import Circuit
 
-from pyschemaelectrical.model.constants import TEXT_FONT_FAMILY_AUX, TEXT_SIZE_PIN, WIRE_LABEL_OFFSET_X
+from pyschemaelectrical.model.constants import (
+    TEXT_FONT_FAMILY_AUX,
+    TEXT_SIZE_PIN,
+    WIRE_LABEL_OFFSET_X,
+)
 from pyschemaelectrical.model.core import Element, Point
 from pyschemaelectrical.model.primitives import Line, Text
 
@@ -196,7 +200,9 @@ def find_vertical_wires(elements: list[Element], tolerance: float = 0.1) -> list
 
 
 def add_wire_labels_to_circuit(
-    circuit: "Circuit", wire_labels: list[str] | None = None, offset_x: float = WIRE_LABEL_OFFSET_X
+    circuit: "Circuit",
+    wire_labels: list[str] | None = None,
+    offset_x: float = WIRE_LABEL_OFFSET_X,
 ) -> "Circuit":
     """
     Add wire labels to all vertical wires in a circuit.

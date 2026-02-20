@@ -364,9 +364,7 @@ def multi_pole_spdt_symbol(
     """
     expected = poles * 3
     if not pins:
-        pins = tuple(
-            f"{p}{s}" for p in range(1, poles + 1) for s in ("1", "2", "4")
-        )
+        pins = tuple(f"{p}{s}" for p in range(1, poles + 1) for s in ("1", "2", "4"))
     if len(pins) < expected:
         pins = tuple(list(pins) + [""] * (expected - len(pins)))
 

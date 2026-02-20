@@ -725,9 +725,7 @@ class TestAddPageToCompiler:
         svg_paths = {"estop": "/tmp/estop.svg"}
         csv_paths = {"estop": "/tmp/estop_terminals.csv"}
 
-        page_def = _PageDef(
-            page_type="schematic", title="E-Stop", circuit_key="estop"
-        )
+        page_def = _PageDef(page_type="schematic", title="E-Stop", circuit_key="estop")
         p._add_page_to_compiler(
             compiler, page_def, svg_paths, csv_paths, "/tmp/system.csv"
         )
@@ -745,9 +743,7 @@ class TestAddPageToCompiler:
         svg_paths = {"estop": "/tmp/estop.svg"}
         csv_paths = {}  # No CSV for this circuit
 
-        page_def = _PageDef(
-            page_type="schematic", title="E-Stop", circuit_key="estop"
-        )
+        page_def = _PageDef(page_type="schematic", title="E-Stop", circuit_key="estop")
         p._add_page_to_compiler(
             compiler, page_def, svg_paths, csv_paths, "/tmp/system.csv"
         )
@@ -933,9 +929,7 @@ class TestBuildMethod:
             temp_dir = os.path.join(tmpdir, "temp_build")
 
             def my_builder(state, **kwargs):
-                return BuildResult(
-                    state=state, circuit=Circuit(), used_terminals=[]
-                )
+                return BuildResult(state=state, circuit=Circuit(), used_terminals=[])
 
             p = Project()
             p.custom("test_circuit", my_builder)
@@ -952,9 +946,7 @@ class TestBuildMethod:
             temp_dir = os.path.join(tmpdir, "temp_build")
 
             def my_builder(state, **kwargs):
-                return BuildResult(
-                    state=state, circuit=Circuit(), used_terminals=[]
-                )
+                return BuildResult(state=state, circuit=Circuit(), used_terminals=[])
 
             p = Project()
             p.custom("test_circuit", my_builder)
@@ -975,9 +967,7 @@ class TestBuildMethod:
                 f.write("dummy")
 
             def my_builder(state, **kwargs):
-                return BuildResult(
-                    state=state, circuit=Circuit(), used_terminals=[]
-                )
+                return BuildResult(state=state, circuit=Circuit(), used_terminals=[])
 
             p = Project(logo=logo_path)
             p.custom("test", my_builder)
@@ -1259,7 +1249,14 @@ class TestGeneratePlcCsv:
                 reader = csv.reader(f)
                 header = next(reader)
 
-            assert header == ["Module", "MPN", "PLC Pin", "Component", "Pin", "Terminal"]
+            assert header == [
+                "Module",
+                "MPN",
+                "PLC Pin",
+                "Component",
+                "Pin",
+                "Terminal",
+            ]
 
     def test_build_auto_generates_plc_csv_when_rack_set(self):
         """build() should auto-generate plc_connections.csv when rack is set."""

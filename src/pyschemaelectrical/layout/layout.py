@@ -213,9 +213,7 @@ def layout_horizontal(
     start_y: float,
     spacing: float,
     count: int,
-    generate_func: Callable[
-        [Any, float, float], tuple[Any, list[Element]]
-    ],
+    generate_func: Callable[[Any, float, float], tuple[Any, list[Element]]],
 ) -> tuple[Any, list[Element]]:
     """
     Layout multiple copies of a circuit horizontally, propagating state.

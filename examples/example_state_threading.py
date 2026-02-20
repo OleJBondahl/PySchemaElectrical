@@ -58,9 +58,7 @@ def main():
     print(f"  X1 pins: {result3.terminal_pin_map.get('X1', [])}")
 
     # ── Merge all circuits for rendering ──────────────────────
-    combined = merge_circuits(
-        [result1.circuit, result2.circuit, result3.circuit]
-    )
+    combined = merge_circuits([result1.circuit, result2.circuit, result3.circuit])
 
     render_system(combined, "examples/output/state_threading.svg")
     print("\nSVG written to examples/output/state_threading.svg")

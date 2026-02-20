@@ -29,10 +29,10 @@ def main():
     # Define the circuit as a list of descriptors.
     # This is equivalent to using CircuitBuilder but more concise.
     descriptors = [
-        ref("PLC:DO"),                              # PLC digital output reference
+        ref("PLC:DO"),  # PLC digital output reference
         comp(normally_open_symbol, "S", pins=("13", "14")),  # NO contact
-        comp(coil_symbol, "K", pins=("A1", "A2")),     # Relay coil
-        term("X1"),                                     # Physical terminal
+        comp(coil_symbol, "K", pins=("A1", "A2")),  # Relay coil
+        term("X1"),  # Physical terminal
     ]
 
     # Build with count=2 to create two identical instances

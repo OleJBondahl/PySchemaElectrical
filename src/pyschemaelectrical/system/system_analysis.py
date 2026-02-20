@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from pyschemaelectrical.model.core import Element, Point, Symbol, Vector
 from pyschemaelectrical.model.primitives import Line
-from pyschemaelectrical.symbols.terminals import TerminalSymbol, TerminalBlock
+from pyschemaelectrical.symbols.terminals import TerminalBlock, TerminalSymbol
 
 # Tolerance for connection (should match layout.py)
 TOLERANCE = 0.1
@@ -121,14 +121,14 @@ def _get_terminal_channels(term: Element) -> list[dict[str, str]]:
         )
     elif isinstance(term, TerminalBlock):
         # Derive channels from port pairs (odd=in, even=out)
-        port_ids = sorted(term.ports.keys(), key=lambda k: (k.isdigit(), int(k) if k.isdigit() else 0))
+        port_ids = sorted(
+            term.ports.keys(), key=lambda k: (k.isdigit(), int(k) if k.isdigit() else 0)
+        )
         numeric_ids = [p for p in port_ids if p.isdigit()]
         for i in range(0, len(numeric_ids) - 1, 2):
             in_id = numeric_ids[i]
             out_id = numeric_ids[i + 1]
-            channels.append(
-                {"pin": "", "from_port": in_id, "to_port": out_id}
-            )
+            channels.append({"pin": "", "from_port": in_id, "to_port": out_id})
     return channels
 
 

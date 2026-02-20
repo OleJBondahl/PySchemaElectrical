@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from pyschemaelectrical.model.primitives import Line, Text
 from pyschemaelectrical.rendering.typst.compiler import (
     TypstCompiler,
     TypstCompilerConfig,
@@ -28,12 +29,11 @@ from pyschemaelectrical.rendering.typst.markdown_converter import (
     _notice_block,
     markdown_to_typst,
 )
-from pyschemaelectrical.model.primitives import Line, Text
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_compiler(tmpdir, **config_kwargs):
     """Create a TypstCompiler with a temp root_dir and template in place."""
@@ -66,6 +66,7 @@ def _make_compiler(tmpdir, **config_kwargs):
 # ===========================================================================
 # TypstCompilerConfig tests
 # ===========================================================================
+
 
 class TestTypstCompilerConfig:
     def test_config_defaults(self):
@@ -113,6 +114,7 @@ class TestTypstCompilerConfig:
 # ===========================================================================
 # Page registration tests
 # ===========================================================================
+
 
 class TestPageRegistration:
     def test_add_schematic_page(self):
@@ -194,6 +196,7 @@ class TestPageRegistration:
 # _rel_path tests
 # ===========================================================================
 
+
 class TestRelPath:
     def test_relative_path_unchanged(self):
         """A relative path should be returned as-is (with forward slashes)."""
@@ -231,6 +234,7 @@ class TestRelPath:
 # ===========================================================================
 # _render_page dispatch tests
 # ===========================================================================
+
 
 class TestRenderPageDispatch:
     def test_dispatch_schematic(self):
@@ -297,6 +301,7 @@ class TestRenderPageDispatch:
 # _render_schematic_page tests
 # ===========================================================================
 
+
 class TestRenderSchematicPage:
     def test_without_terminals_csv(self):
         """Schematic page without terminal CSV should not include terminals_csv arg."""
@@ -343,6 +348,7 @@ class TestRenderSchematicPage:
 # _render_front_page tests
 # ===========================================================================
 
+
 class TestRenderFrontPage:
     def test_with_valid_markdown(self):
         """Front page should render markdown content to Typst."""
@@ -380,6 +386,7 @@ class TestRenderFrontPage:
 # _render_plc_report tests
 # ===========================================================================
 
+
 class TestRenderPlcReport:
     def test_csv_path_substituted(self):
         """PLC report should replace __CSV_PATH__ with the actual path."""
@@ -407,6 +414,7 @@ class TestRenderPlcReport:
 # ===========================================================================
 # _render_terminal_report tests
 # ===========================================================================
+
 
 class TestRenderTerminalReport:
     def test_csv_path_substituted(self):
@@ -444,7 +452,7 @@ class TestRenderTerminalReport:
             terminal_descriptions={"X1": 'Main "power" input'},
         )
         result = compiler._render_terminal_report(page)
-        assert r'Main \"power\" input' in result
+        assert r"Main \"power\" input" in result
 
     def test_empty_descriptions(self):
         """Terminal report with empty descriptions should still render."""
@@ -485,6 +493,7 @@ class TestRenderTerminalReport:
 # _render_custom_page tests
 # ===========================================================================
 
+
 class TestRenderCustomPage:
     def test_with_title(self):
         """Custom page with title should include a comment with the title."""
@@ -506,7 +515,7 @@ class TestRenderCustomPage:
 
     def test_content_preserved(self):
         """Custom page should preserve the exact Typst content."""
-        content = '#grid(columns: 2)[A][B]'
+        content = "#grid(columns: 2)[A][B]"
         compiler = TypstCompiler(TypstCompilerConfig())
         page = _Page(page_type="custom", title="Grid", typst_content=content)
         result = compiler._render_custom_page(page)
@@ -516,6 +525,7 @@ class TestRenderCustomPage:
 # ===========================================================================
 # _build_typst_content tests
 # ===========================================================================
+
 
 class TestBuildTypstContent:
     def test_basic_content(self):
@@ -608,10 +618,12 @@ class TestBuildTypstContent:
 # compile() tests
 # ===========================================================================
 
+
 class TestCompile:
     def test_compile_raises_import_error_when_typst_missing(self):
         """compile() should raise ImportError when typst package is missing."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
@@ -627,6 +639,7 @@ class TestCompile:
     def test_compile_error_message_mentions_pip(self):
         """The ImportError message should tell users how to install typst."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
@@ -643,6 +656,7 @@ class TestCompile:
 # ===========================================================================
 # _get_template_path tests
 # ===========================================================================
+
 
 class TestGetTemplatePath:
     def test_template_file_exists(self):
@@ -668,6 +682,7 @@ class TestGetTemplatePath:
 # ===========================================================================
 # markdown_converter tests
 # ===========================================================================
+
 
 class TestMarkdownToTypst:
     def test_happy_path(self):
@@ -882,6 +897,7 @@ class TestNoticeBlock:
 # frame_generator tests
 # ===========================================================================
 
+
 class TestFrameGeneratorConstants:
     def test_a3_width(self):
         """A3 width should be 420mm."""
@@ -920,6 +936,7 @@ class TestGenerateFrame:
     def test_returns_circuit(self):
         """generate_frame should return a Circuit."""
         from pyschemaelectrical.system.system import Circuit
+
         frame = generate_frame()
         assert isinstance(frame, Circuit)
 

@@ -19,7 +19,6 @@ from pyschemaelectrical.system.system_analysis import (
     trace_connection,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers for building test fixtures
 # ---------------------------------------------------------------------------
@@ -253,52 +252,34 @@ class TestIsValidDirection:
 
     def test_matching_direction_positive_x(self):
         """Line going right matches a rightward filter."""
-        assert (
-            _is_valid_direction(Point(0, 0), Point(10, 0), Vector(1, 0)) is True
-        )
+        assert _is_valid_direction(Point(0, 0), Point(10, 0), Vector(1, 0)) is True
 
     def test_matching_direction_positive_y(self):
         """Line going down matches a downward filter."""
-        assert (
-            _is_valid_direction(Point(0, 0), Point(0, 10), Vector(0, 1)) is True
-        )
+        assert _is_valid_direction(Point(0, 0), Point(0, 10), Vector(0, 1)) is True
 
     def test_opposite_direction(self):
         """Line going opposite to filter direction is rejected."""
         # Filter says go right (1, 0), but line goes left
-        assert (
-            _is_valid_direction(Point(0, 0), Point(-10, 0), Vector(1, 0))
-            is False
-        )
+        assert _is_valid_direction(Point(0, 0), Point(-10, 0), Vector(1, 0)) is False
 
     def test_opposite_direction_vertical(self):
         """Line going up when filter says down is rejected."""
-        assert (
-            _is_valid_direction(Point(0, 10), Point(0, 0), Vector(0, 1))
-            is False
-        )
+        assert _is_valid_direction(Point(0, 10), Point(0, 0), Vector(0, 1)) is False
 
     def test_orthogonal_direction(self):
         """A line orthogonal to the filter direction has dot=0, so is rejected."""
         # Filter says right (1, 0), line goes down (0, 10)
-        assert (
-            _is_valid_direction(Point(0, 0), Point(0, 10), Vector(1, 0))
-            is False
-        )
+        assert _is_valid_direction(Point(0, 0), Point(0, 10), Vector(1, 0)) is False
 
     def test_diagonal_matching(self):
         """Diagonal line with positive dot product against filter is accepted."""
         # Filter says down-right (1, 1); line goes right (10, 5) -> dot=15 > 0
-        assert (
-            _is_valid_direction(Point(0, 0), Point(10, 5), Vector(1, 1))
-            is True
-        )
+        assert _is_valid_direction(Point(0, 0), Point(10, 5), Vector(1, 1)) is True
 
     def test_same_point_rejected(self):
         """Zero-length displacement has dot=0, so it is rejected."""
-        assert (
-            _is_valid_direction(Point(5, 5), Point(5, 5), Vector(1, 0)) is False
-        )
+        assert _is_valid_direction(Point(5, 5), Point(5, 5), Vector(1, 0)) is False
 
     def test_false_filter_value_returns_true(self):
         """A falsy but non-None filter (e.g., 0) still returns True (no filter)."""
@@ -695,9 +676,7 @@ class TestCreateTerminalRow:
         )
         line_from = Line(Point(0, -10), Point(0, 0))
         line_to = Line(Point(0, 20), Point(0, 30))
-        graph = build_connectivity_graph(
-            [term, comp_from, comp_to, line_from, line_to]
-        )
+        graph = build_connectivity_graph([term, comp_from, comp_to, line_from, line_to])
 
         channel = {"pin": "3", "from_port": "1", "to_port": "2"}
         row = _create_terminal_row(term, channel, graph)

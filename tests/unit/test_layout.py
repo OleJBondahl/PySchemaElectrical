@@ -1,4 +1,3 @@
-
 from pyschemaelectrical.layout.layout import (
     _find_matching_ports,
     _get_wire_label_spec,
@@ -13,15 +12,18 @@ from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
 from pyschemaelectrical.model.primitives import Line, Text
 from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
 
-
 # ---------------------------------------------------------------------------
 # Helper factories
 # ---------------------------------------------------------------------------
 
 
-def _make_symbol(ports: dict[str, Port], label: str | None = None, skip_auto_connect: bool = False) -> Symbol:
+def _make_symbol(
+    ports: dict[str, Port], label: str | None = None, skip_auto_connect: bool = False
+) -> Symbol:
     """Create a minimal Symbol with given ports."""
-    return Symbol(elements=[], ports=ports, label=label, skip_auto_connect=skip_auto_connect)
+    return Symbol(
+        elements=[], ports=ports, label=label, skip_auto_connect=skip_auto_connect
+    )
 
 
 def _port(pid: str, x: float, y: float, dx: float, dy: float) -> Port:

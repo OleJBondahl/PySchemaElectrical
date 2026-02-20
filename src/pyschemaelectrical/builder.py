@@ -23,8 +23,8 @@ from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
 from pyschemaelectrical.utils.utils import set_tag_counter, set_terminal_counter
 
 if TYPE_CHECKING:
-    from pyschemaelectrical.model.state import GenerationState
     from pyschemaelectrical.internal_device import InternalDevice
+    from pyschemaelectrical.model.state import GenerationState
     from pyschemaelectrical.terminal import Terminal
 
 
@@ -56,8 +56,12 @@ class ComponentSpec:
 
     # Connection control
     auto_connect_next: bool = True
-    connection_side: str | None = None  # Override auto-determined side ('top' or 'bottom')
-    pin_prefixes: tuple[str, ...] | None = None  # Override terminal's default pin_prefixes
+    connection_side: str | None = (
+        None  # Override auto-determined side ('top' or 'bottom')
+    )
+    pin_prefixes: tuple[str, ...] | None = (
+        None  # Override terminal's default pin_prefixes
+    )
 
     # Horizontal placement reference (index of component this was placed_right of)
     placed_right_of: int | None = None
@@ -292,7 +296,11 @@ class CircuitBuilder:
         self._fixed_tag_generators: dict[str, Callable] = {}
 
     def set_layout(
-        self, x: float = 0, y: float = 0, spacing: float = 150, symbol_spacing: float = 50
+        self,
+        x: float = 0,
+        y: float = 0,
+        spacing: float = 150,
+        symbol_spacing: float = 50,
     ) -> "CircuitBuilder":
         """Configure the layout geometry for the circuit.
 
@@ -744,7 +752,7 @@ class CircuitBuilder:
         """
         Merge fixed generators, reuse_tags generators, and explicit tag_generators.
 
-        Priority (highest wins): explicit tag_generators > reuse_tags > fixed generators.
+        Priority (highest wins): tag_generators > reuse_tags > fixed.
         String shorthands in tag_generators are converted to fixed-tag callables.
 
         Returns the merged dict, or None if no generators were specified.
@@ -840,8 +848,12 @@ class CircuitBuilder:
                 state = set_terminal_counter(state, t_id, val)
 
         # Build effective tag_generators and terminal reuse generators
-        final_tag_generators = self._build_effective_tag_generators(reuse_tags, tag_generators)
-        terminal_reuse_generators = self._build_terminal_reuse_generators(reuse_terminals)
+        final_tag_generators = self._build_effective_tag_generators(
+            reuse_tags, tag_generators
+        )
+        terminal_reuse_generators = self._build_terminal_reuse_generators(
+            reuse_terminals
+        )
 
         captured_tags: dict[str, list[str]] = {}
         captured_terminal_pins: dict[str, list[str]] = {}
@@ -850,7 +862,12 @@ class CircuitBuilder:
 
         def single_instance_gen(s, x, y, gens, tm):
             res = _create_single_circuit_from_spec(
-                s, x, y, self._spec, gens, tm,
+                s,
+                x,
+                y,
+                self._spec,
+                gens,
+                tm,
                 terminal_reuse_generators=terminal_reuse_generators or None,
                 pin_accumulator=captured_terminal_pins,
             )
@@ -863,8 +880,14 @@ class CircuitBuilder:
             captured_wire_connections.extend(res[3])
             # Populate device_registry from spec components
             for comp_spec in self._spec.components:
-                if comp_spec.device and comp_spec.tag_prefix and comp_spec.tag_prefix in res[2]:
-                    captured_device_registry[res[2][comp_spec.tag_prefix]] = comp_spec.device
+                if (
+                    comp_spec.device
+                    and comp_spec.tag_prefix
+                    and comp_spec.tag_prefix in res[2]
+                ):
+                    captured_device_registry[res[2][comp_spec.tag_prefix]] = (
+                        comp_spec.device
+                    )
             return res[0], res[1]
 
         # Use generic layout
@@ -965,10 +988,13 @@ def _phase1_tag_and_state(  # noqa: C901
                 )
                 pins = list(pin_tuple)
             else:
-                state, pins = next_terminal_pins(
-                    state, tid, component_spec.poles,
+                state, pin_tuple = next_terminal_pins(
+                    state,
+                    tid,
+                    component_spec.poles,
                     pin_prefixes=component_spec.pin_prefixes,
                 )
+                pins = list(pin_tuple)
 
             # Track assigned pins for terminal_pin_map
             if pin_accumulator is not None:
@@ -1052,7 +1078,10 @@ def _phase2_register_connections(  # noqa: C901
             curr_pin = _resolve_pin(curr, p, is_input=False)
             next_pin = _resolve_pin(next_comp, p, is_input=True)
 
-            if curr["spec"].kind == "terminal" and next_comp["spec"].kind in ("symbol", "reference"):
+            if curr["spec"].kind == "terminal" and next_comp["spec"].kind in (
+                "symbol",
+                "reference",
+            ):
                 reg_pin_curr = _resolve_registry_pin(curr, p)
                 side = curr["spec"].connection_side or "bottom"
                 state = register_connection(
@@ -1063,8 +1092,13 @@ def _phase2_register_connections(  # noqa: C901
                     next_pin,
                     side=side,
                 )
-                wire_connections.append((curr["tag"], reg_pin_curr, next_comp["tag"], next_pin))
-            elif curr["spec"].kind in ("symbol", "reference") and next_comp["spec"].kind == "terminal":
+                wire_connections.append(
+                    (curr["tag"], reg_pin_curr, next_comp["tag"], next_pin)
+                )
+            elif (
+                curr["spec"].kind in ("symbol", "reference")
+                and next_comp["spec"].kind == "terminal"
+            ):
                 reg_pin_next = _resolve_registry_pin(next_comp, p)
                 side = next_comp["spec"].connection_side or "top"
                 state = register_connection(
@@ -1075,8 +1109,12 @@ def _phase2_register_connections(  # noqa: C901
                     curr_pin,
                     side=side,
                 )
-                wire_connections.append((curr["tag"], curr_pin, next_comp["tag"], reg_pin_next))
-            elif curr["spec"].kind == "reference" and next_comp["spec"].kind == "symbol":
+                wire_connections.append(
+                    (curr["tag"], curr_pin, next_comp["tag"], reg_pin_next)
+                )
+            elif (
+                curr["spec"].kind == "reference" and next_comp["spec"].kind == "symbol"
+            ):
                 state = register_connection(
                     state,
                     curr["tag"],
@@ -1085,8 +1123,12 @@ def _phase2_register_connections(  # noqa: C901
                     next_pin,
                     side="bottom",
                 )
-                wire_connections.append((curr["tag"], str(p + 1), next_comp["tag"], next_pin))
-            elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "reference":
+                wire_connections.append(
+                    (curr["tag"], str(p + 1), next_comp["tag"], next_pin)
+                )
+            elif (
+                curr["spec"].kind == "symbol" and next_comp["spec"].kind == "reference"
+            ):
                 state = register_connection(
                     state,
                     next_comp["tag"],
@@ -1095,9 +1137,13 @@ def _phase2_register_connections(  # noqa: C901
                     curr_pin,
                     side="top",
                 )
-                wire_connections.append((curr["tag"], curr_pin, next_comp["tag"], str(p + 1)))
+                wire_connections.append(
+                    (curr["tag"], curr_pin, next_comp["tag"], str(p + 1))
+                )
             elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "symbol":
-                wire_connections.append((curr["tag"], curr_pin, next_comp["tag"], next_pin))
+                wire_connections.append(
+                    (curr["tag"], curr_pin, next_comp["tag"], next_pin)
+                )
 
     # 2. Manual Connections
     for idx_a, p_a, idx_b, p_b, side_a, side_b in spec.manual_connections:
@@ -1110,13 +1156,19 @@ def _phase2_register_connections(  # noqa: C901
         pin_a = _resolve_pin(comp_a, p_a, is_input=(side_a == "top"))
         pin_b = _resolve_pin(comp_b, p_b, is_input=(side_b == "top"))
 
-        if comp_a["spec"].kind == "terminal" and comp_b["spec"].kind in ("symbol", "reference"):
+        if comp_a["spec"].kind == "terminal" and comp_b["spec"].kind in (
+            "symbol",
+            "reference",
+        ):
             reg_pin_a = _resolve_registry_pin(comp_a, p_a)
             state = register_connection(
                 state, comp_a["tag"], reg_pin_a, comp_b["tag"], pin_b, side=side_a
             )
             wire_connections.append((comp_a["tag"], reg_pin_a, comp_b["tag"], pin_b))
-        elif comp_a["spec"].kind in ("symbol", "reference") and comp_b["spec"].kind == "terminal":
+        elif (
+            comp_a["spec"].kind in ("symbol", "reference")
+            and comp_b["spec"].kind == "terminal"
+        ):
             reg_pin_b = _resolve_registry_pin(comp_b, p_b)
             state = register_connection(
                 state, comp_b["tag"], reg_pin_b, comp_a["tag"], pin_a, side=side_b
@@ -1188,9 +1240,17 @@ def _phase3_instantiate_symbols(  # noqa: C901
             lpos = component_spec.kwargs.get("label_pos") or "left"
             plpos = component_spec.kwargs.get("pin_label_pos")
             if component_spec.poles >= 2:
-                sym = multi_pole_terminal_symbol(tag, pins=rc["pins"], poles=component_spec.poles, label_pos=lpos, pin_label_pos=plpos)
+                sym = multi_pole_terminal_symbol(
+                    tag,
+                    pins=rc["pins"],
+                    poles=component_spec.poles,
+                    label_pos=lpos,
+                    pin_label_pos=plpos,
+                )
             else:
-                sym = terminal_symbol(tag, pins=rc["pins"], label_pos=lpos, pin_label_pos=plpos)
+                sym = terminal_symbol(
+                    tag, pins=rc["pins"], label_pos=lpos, pin_label_pos=plpos
+                )
 
         elif component_spec.kind in ("symbol", "reference"):
             kwargs = component_spec.kwargs.copy()
@@ -1294,10 +1354,12 @@ def _create_single_circuit_from_spec(
     terminal_maps: dict[str, Any] | None = None,
     terminal_reuse_generators: dict[str, Callable] | None = None,
     pin_accumulator: dict[str, list[str]] | None = None,
-) -> "tuple[GenerationState, list[Any], dict[str, str]]":
+) -> (
+    "tuple[GenerationState, list[Any], dict[str, str], list[tuple[str, str, str, str]]]"
+):
     """
     Pure functional core to create a single instance from a spec.
-    Returns: (new_state, elements, map_of_tags_for_this_instance)
+    Returns: (new_state, elements, map_of_tags_for_this_instance, wire_connections)
 
     **Phase-based mutation pattern:**
     This function uses a shared ``realized_components`` list that is
@@ -1320,10 +1382,17 @@ def _create_single_circuit_from_spec(
     c = Circuit()
 
     state, realized_components, instance_tags = _phase1_tag_and_state(
-        state, y, spec, tag_generators, terminal_maps,
-        terminal_reuse_generators, pin_accumulator,
+        state,
+        y,
+        spec,
+        tag_generators,
+        terminal_maps,
+        terminal_reuse_generators,
+        pin_accumulator,
     )
-    state, wire_connections = _phase2_register_connections(state, realized_components, spec)
+    state, wire_connections = _phase2_register_connections(
+        state, realized_components, spec
+    )
     _phase3_instantiate_symbols(c, realized_components, spec, x)
     _phase4_render_graphics(c, realized_components, spec)
 
@@ -1352,6 +1421,8 @@ def _distribute_pins(
     Returns:
         Dict of keyword arguments to merge into the function call.
     """
+    if func is None:
+        return {}
     sig = inspect.signature(func)
     params = sig.parameters
 
@@ -1374,7 +1445,9 @@ def _distribute_pins(
     # Required params first (non-None default with known length)
     for name, param in pin_params:
         default = param.default
-        if default not in (None, inspect.Parameter.empty) and hasattr(default, "__len__"):
+        if default not in (None, inspect.Parameter.empty) and hasattr(
+            default, "__len__"
+        ):
             take = min(len(default), len(remaining))
             if take > 0:
                 result[name] = tuple(remaining[:take])
@@ -1389,7 +1462,9 @@ def _distribute_pins(
     return result
 
 
-def _get_absolute_x_offset(realized_components: list[dict[str, Any]], comp_idx: int) -> float:
+def _get_absolute_x_offset(
+    realized_components: list[dict[str, Any]], comp_idx: int
+) -> float:
     """Walk back through place_right chain to compute absolute x offset."""
     rc = realized_components[comp_idx]
     x_offset = rc["spec"].x_offset

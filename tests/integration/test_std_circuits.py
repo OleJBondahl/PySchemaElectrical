@@ -34,9 +34,7 @@ class TestStandardCircuitsSnapshot:
         state = create_autonumberer()
         # DOL Starter is usually built via helper or builder.
         # Ideally we test the `create_dol_starter` function if it returns a circuit.
-        state, circuit, _ = dol_starter(
-            state, 0, 0, tm_top="X1", tm_bot="X2"
-        )
+        state, circuit, _ = dol_starter(state, 0, 0, tm_top="X1", tm_bot="X2")
 
         svg_content = render_circuit_to_string(circuit)
         snapshot_svg(svg_content, "dol_starter")
@@ -120,8 +118,11 @@ def test_dol_starter_wire_connections():
     """dol_starter should populate wire_connections on BuildResult."""
     state = create_autonumberer()
     result = dol_starter(
-        state=state, x=0, y=0,
-        tm_top="X1", tm_bot="X2",
+        state=state,
+        x=0,
+        y=0,
+        tm_top="X1",
+        tm_bot="X2",
         count=1,
     )
     assert len(result.wire_connections) > 0
@@ -136,8 +137,11 @@ def test_dol_starter_device_registry():
 
     state = create_autonumberer()
     result = dol_starter(
-        state=state, x=0, y=0,
-        tm_top="X1", tm_bot="X2",
+        state=state,
+        x=0,
+        y=0,
+        tm_top="X1",
+        tm_bot="X2",
         count=2,
         breaker_device=breaker,
         contactor_device=contactor,

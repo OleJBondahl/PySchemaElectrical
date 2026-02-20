@@ -20,7 +20,6 @@ from pyschemaelectrical.plc_resolver import (
 )
 from pyschemaelectrical.utils.utils import natural_sort_key
 
-
 # ---------------------------------------------------------------------------
 # Sample module types shared across tests
 # ---------------------------------------------------------------------------
@@ -332,8 +331,8 @@ class TestResolvePlcReferences:
     def test_mixed_suffix_bucket_emits_warning_and_drops(self):
         rack: PlcRack = [("DI1", DI_MODULE)]
         connections = [
-            ("SW-01", "Signal", "X100", "1", "PLC:DI:Sig", ""),   # suffixed
-            ("SW-02", "Signal", "X100", "2", "PLC:DI", ""),        # unsuffixed
+            ("SW-01", "Signal", "X100", "1", "PLC:DI:Sig", ""),  # suffixed
+            ("SW-02", "Signal", "X100", "2", "PLC:DI", ""),  # unsuffixed
         ]
         with pytest.warns(UserWarning, match="mix"):
             result = resolve_plc_references(connections, rack)
@@ -373,9 +372,16 @@ class TestExtractPlcConnectionsFromRegistry:
 
     def test_extracts_di_from_registry(self):
         rack: PlcRack = [("DI1", DI_MODULE)]
-        state = self._make_state_with_connections([
-            {"terminal_tag": "PLC:DI", "terminal_pin": "1", "component_tag": "SW-01", "component_pin": "Signal"},
-        ])
+        state = self._make_state_with_connections(
+            [
+                {
+                    "terminal_tag": "PLC:DI",
+                    "terminal_pin": "1",
+                    "component_tag": "SW-01",
+                    "component_pin": "Signal",
+                },
+            ]
+        )
         result = extract_plc_connections_from_registry(state, rack)
         assert len(result) == 1
         assert result[0][4] == "PLC:DI1"
@@ -386,21 +392,47 @@ class TestExtractPlcConnectionsFromRegistry:
         existing: list = [
             ("SW-EXT", "Signal", "X100", "1", "PLC:DI1", "1"),
         ]
-        state = self._make_state_with_connections([
-            {"terminal_tag": "PLC:DI", "terminal_pin": "1", "component_tag": "SW-01", "component_pin": "Signal"},
-        ])
-        result = extract_plc_connections_from_registry(state, rack, existing_connections=existing)
+        state = self._make_state_with_connections(
+            [
+                {
+                    "terminal_tag": "PLC:DI",
+                    "terminal_pin": "1",
+                    "component_tag": "SW-01",
+                    "component_pin": "Signal",
+                },
+            ]
+        )
+        result = extract_plc_connections_from_registry(
+            state, rack, existing_connections=existing
+        )
         assert len(result) == 1
         # Should be assigned to channel 2 (channel 1 is used)
         assert result[0][5] == "2"
 
     def test_extracts_multi_pin_from_registry(self):
         rack: PlcRack = [("RTD1", RTD_MODULE)]
-        state = self._make_state_with_connections([
-            {"terminal_tag": "PLC:RTD:+R", "terminal_pin": "1", "component_tag": "TT-01", "component_pin": "R+"},
-            {"terminal_tag": "PLC:RTD:RL", "terminal_pin": "2", "component_tag": "TT-01", "component_pin": "RL"},
-            {"terminal_tag": "PLC:RTD:-R", "terminal_pin": "3", "component_tag": "TT-01", "component_pin": "R-"},
-        ])
+        state = self._make_state_with_connections(
+            [
+                {
+                    "terminal_tag": "PLC:RTD:+R",
+                    "terminal_pin": "1",
+                    "component_tag": "TT-01",
+                    "component_pin": "R+",
+                },
+                {
+                    "terminal_tag": "PLC:RTD:RL",
+                    "terminal_pin": "2",
+                    "component_tag": "TT-01",
+                    "component_pin": "RL",
+                },
+                {
+                    "terminal_tag": "PLC:RTD:-R",
+                    "terminal_pin": "3",
+                    "component_tag": "TT-01",
+                    "component_pin": "R-",
+                },
+            ]
+        )
         result = extract_plc_connections_from_registry(state, rack)
         assert len(result) == 3
         for row in result:
@@ -414,9 +446,16 @@ class TestExtractPlcConnectionsFromRegistry:
 
     def test_non_plc_registry_connections_ignored(self):
         rack: PlcRack = [("DI1", DI_MODULE)]
-        state = self._make_state_with_connections([
-            {"terminal_tag": "X100", "terminal_pin": "1", "component_tag": "F1", "component_pin": "2"},
-        ])
+        state = self._make_state_with_connections(
+            [
+                {
+                    "terminal_tag": "X100",
+                    "terminal_pin": "1",
+                    "component_tag": "F1",
+                    "component_pin": "2",
+                },
+            ]
+        )
         result = extract_plc_connections_from_registry(state, rack)
         assert result == []
 
@@ -538,7 +577,9 @@ class TestPublicApiImports:
         assert fn is resolve_plc_references
 
     def test_extract_plc_connections_importable_from_package(self):
-        from pyschemaelectrical import extract_plc_connections_from_registry as fn  # noqa: F401
+        from pyschemaelectrical import (
+            extract_plc_connections_from_registry as fn,  # noqa: F401
+        )
 
         assert fn is extract_plc_connections_from_registry
 

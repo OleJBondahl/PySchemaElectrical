@@ -114,9 +114,7 @@ def standard_text(content: str, parent_origin: Point, label_pos: str = "left") -
     )
 
 
-def terminal_text(
-    content: str, parent_origin: Point, label_pos: str = "left"
-) -> Text:
+def terminal_text(content: str, parent_origin: Point, label_pos: str = "left") -> Text:
     """
     Create terminal label text — smaller and further from the symbol
     than standard_text to avoid collision with pin numbers.
@@ -137,9 +135,7 @@ def terminal_text(
     )
 
 
-def terminal_circle(
-    center: Point | None = None, filled: bool = False
-) -> Element:
+def terminal_circle(center: Point | None = None, filled: bool = False) -> Element:
     """
     Create a standard connection terminal circle.
 

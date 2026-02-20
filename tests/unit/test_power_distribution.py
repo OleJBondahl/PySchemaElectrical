@@ -38,9 +38,7 @@ class TestPowerDistributionBasic:
     def test_returns_build_result(self):
         """power_distribution should return a BuildResult dataclass."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         assert isinstance(result, BuildResult)
 
     def test_tuple_unpacking(self):
@@ -56,18 +54,14 @@ class TestPowerDistributionBasic:
     def test_circuit_has_elements(self):
         """The resulting circuit should contain elements (symbols, lines, etc.)."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         assert len(result.circuit.elements) > 0
 
     def test_state_is_updated(self):
         """The returned state should differ from the initial state
         (counters incremented by sub-circuits)."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         # The output state should not be the exact same object
         # (sub-circuits create new state dicts/objects via autonumbering)
         assert result.state is not None
@@ -79,26 +73,20 @@ class TestPowerDistributionUsedTerminals:
     def test_used_terminals_contains_input_terminals(self):
         """used_terminals should include the changeover input terminal IDs."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         assert "X1" in result.used_terminals
         assert "X2" in result.used_terminals
 
     def test_used_terminals_contains_output_terminal(self):
         """used_terminals should include the changeover output terminal ID."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         assert "X3" in result.used_terminals
 
     def test_used_terminals_contains_psu_terminals(self):
         """used_terminals should include PSU input and output terminal IDs."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         assert "X4" in result.used_terminals
         assert "X5" in result.used_terminals
         assert "X6" in result.used_terminals
@@ -106,9 +94,7 @@ class TestPowerDistributionUsedTerminals:
     def test_used_terminals_are_unique(self):
         """used_terminals should contain no duplicates."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         assert len(result.used_terminals) == len(set(result.used_terminals))
 
 
@@ -227,9 +213,7 @@ class TestPowerDistributionCircuitContent:
         """A power distribution circuit is complex; expect a significant number
         of elements (terminals, breakers, contacts, PSU, coil, lines)."""
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         # A full power distribution (changeover + voltage monitor + PSU)
         # should generate a substantial number of elements
         assert len(result.circuit.elements) > 20
@@ -241,20 +225,14 @@ class TestPowerDistributionCircuitContent:
         from pyschemaelectrical.utils.renderer import to_xml_element
 
         state1 = create_autonumberer()
-        result1 = power_distribution(
-            state1, 0, 0, terminal_maps=_make_terminal_maps()
-        )
-        svg1 = ET.tostring(
-            to_xml_element(result1.circuit.elements), encoding="unicode"
-        )
+        result1 = power_distribution(state1, 0, 0, terminal_maps=_make_terminal_maps())
+        svg1 = ET.tostring(to_xml_element(result1.circuit.elements), encoding="unicode")
 
         state2 = create_autonumberer()
         result2 = power_distribution(
             state2, 100, 100, terminal_maps=_make_terminal_maps()
         )
-        svg2 = ET.tostring(
-            to_xml_element(result2.circuit.elements), encoding="unicode"
-        )
+        svg2 = ET.tostring(to_xml_element(result2.circuit.elements), encoding="unicode")
 
         # Different positions should produce different SVG
         assert svg1 != svg2
@@ -266,9 +244,7 @@ class TestPowerDistributionCircuitContent:
         from pyschemaelectrical.utils.renderer import to_xml_element
 
         state = create_autonumberer()
-        result = power_distribution(
-            state, 0, 0, terminal_maps=_make_terminal_maps()
-        )
+        result = power_distribution(state, 0, 0, terminal_maps=_make_terminal_maps())
         # Rendering should not raise
         root = to_xml_element(result.circuit.elements)
         svg_str = ET.tostring(root, encoding="unicode")
@@ -296,9 +272,7 @@ class TestPowerDistributionStateThreading:
             "PSU_OUTPUT_2": "X16",
         }
         # Use the state from the first call
-        result2 = power_distribution(
-            result1.state, 200, 0, terminal_maps=maps2
-        )
+        result2 = power_distribution(result1.state, 200, 0, terminal_maps=maps2)
 
         # Both should produce valid circuits
         assert len(result1.circuit.elements) > 0

@@ -439,9 +439,7 @@ class TestTransformUnit:
 
         numbers = [
             float(x)
-            for x in re.findall(
-                r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", result
-            )
+            for x in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", result)
         ]
         # (1,0) -> (0,1) and (2,0) -> (0,2) approximately
         # Numbers should be close to [0, 1, 0, 2]
@@ -508,9 +506,7 @@ class TestTransformUnit:
 
         numbers = [
             float(x)
-            for x in re.findall(
-                r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", result
-            )
+            for x in re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", result)
         ]
         assert math.isclose(numbers[0], -1, abs_tol=1e-9)
         assert math.isclose(numbers[1], 0, abs_tol=1e-9)
@@ -569,9 +565,7 @@ class TestTransformUnit:
         text = Text(content="X", position=Point(0, 1))
         port = Port("1", Point(0, 0), Vector(0, -1))
 
-        sym = Symbol(
-            elements=[line, circle, text], ports={"1": port}, label="Q1"
-        )
+        sym = Symbol(elements=[line, circle, text], ports={"1": port}, label="Q1")
         sym2 = translate(sym, 100, 200)
 
         assert sym2.elements[0].start == Point(100, 200)

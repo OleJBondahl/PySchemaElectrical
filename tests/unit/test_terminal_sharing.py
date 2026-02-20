@@ -9,7 +9,6 @@ from pyschemaelectrical import (
 )
 from pyschemaelectrical.exceptions import TerminalReuseError
 
-
 TM_A = Terminal("XA", "Terminal A")
 TM_B = Terminal("XB", "Terminal B")
 
