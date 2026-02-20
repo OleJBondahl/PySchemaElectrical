@@ -410,11 +410,15 @@ def coil_contact_pair(
         coil_wire_labels: Wire labels for the coil side.
         contact_wire_labels: Wire labels for the contact side.
         start_indices: Override tag counters before building
-            (e.g. ``{"K": 3}`` to start from K3).
+            (e.g. ``{"K": 2}`` to start from K3, since the counter is
+            incremented before the first tag is emitted).
 
     Returns:
         BuildResult with the merged circuit, merged used_terminals, and
-        ``terminal_pin_map`` from the contact side.
+        ``terminal_pin_map`` from the contact side. The coil side's
+        terminal_pin_map is intentionally dropped — the coil bottom terminal
+        (e.g. GND) is a shared rail that callers do not need to address by
+        individual pin.
     """
     from pyschemaelectrical import apply_start_indices, merge_circuits, merge_terminals
 
