@@ -5,7 +5,6 @@ Contains library-level defaults including spacing, tags, and pin configurations.
 Project-specific constants (terminal IDs, paths) should be defined in user projects.
 """
 
-from dataclasses import dataclass
 
 # Grid System
 GRID_SIZE = 5.0  # mm, Base grid unit
@@ -20,7 +19,7 @@ LINKAGE_DASH_PATTERN = (
 )
 
 # Reference Symbol Geometry
-REF_ARROW_LENGTH = 4 * GRID_SUBDIVISION  # 10.0mm
+REF_ARROW_LENGTH = 2 * GRID_SIZE  # 10.0mm
 REF_ARROW_HEAD_LENGTH = 0.6 * GRID_SIZE  # 3.0mm
 REF_ARROW_HEAD_WIDTH = 0.5 * GRID_SIZE  # 2.5mm
 
@@ -31,8 +30,9 @@ TEXT_OFFSET_X = -GRID_SIZE  # -5.0mm
 
 TERMINAL_TEXT_SIZE = (
     0.85 * GRID_SIZE
-)  # 3.5mm (smaller to avoid collision with pin numbers)
-TERMINAL_TEXT_OFFSET_X = -1.5 * GRID_SIZE  # -7.5mm (50% further from terminal)
+)  # 4.25mm (smaller to avoid collision with pin numbers)
+TERMINAL_TEXT_OFFSET_X = -1.7 * GRID_SIZE  # -8.5mm (same side as pin number)
+TERMINAL_TEXT_OFFSET_X_CLOSE = -0.6 * GRID_SIZE  # -3.0mm (when pin is on opposite side)
 
 TEXT_FONT_FAMILY_AUX = "Times New Roman"
 TEXT_SIZE_PIN = 0.7 * GRID_SIZE  # 3.5mm
@@ -41,11 +41,6 @@ PIN_LABEL_OFFSET_Y_ADJUST = 0.0  # mm, adjustment for up/down ports
 
 # Layout
 DEFAULT_POLE_SPACING = 2 * GRID_SIZE  # 10.0mm
-SPDT_POLE_SPACING = (
-    DEFAULT_POLE_SPACING * 4.0
-)  # 40.0mm, between poles in multi-pole SPDT
-CHANGEOVER_POLE_SPACING = GRID_SIZE * 8  # 40.0mm, between poles in changeover circuits
-CHANGEOVER_POLE_OFFSET = GRID_SUBDIVISION  # 2.5mm, NC/NO/COM offset from pole center
 SPDT_PIN_LABEL_OFFSET = 2.0  # 2.0mm, pin label offset for SPDT contacts
 DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 0.1  # 0.1mm strict tolerance for port matching
 WIRE_LABEL_OFFSET_X = -GRID_SIZE / 2  # -2.5mm, horizontal offset for wire labels
@@ -57,44 +52,6 @@ COLOR_WHITE = "white"
 # Document Defaults
 DEFAULT_DOC_WIDTH = "210mm"
 DEFAULT_DOC_HEIGHT = "297mm"
-
-
-@dataclass(frozen=True)
-class SpacingConfig:
-    """
-    Spacing configuration for a circuit type.
-
-    Attributes:
-        circuit_spacing: Distance between adjacent circuits in mm
-        symbols_start_x: X-coordinate where symbols begin in mm
-        symbols_spacing: Distance between symbols within a circuit in mm
-    """
-
-    circuit_spacing: float
-    symbols_start_x: float
-    symbols_spacing: float
-
-
-class StandardSpacing:
-    """Standard spacing configurations for different circuit types."""
-
-    MOTOR = SpacingConfig(
-        circuit_spacing=30 * GRID_SIZE,  # 150.0mm
-        symbols_start_x=10 * GRID_SIZE,  # 50.0mm
-        symbols_spacing=12 * GRID_SIZE,  # 60.0mm
-    )
-
-    SINGLE_POLE = SpacingConfig(
-        circuit_spacing=15 * GRID_SIZE,  # 100.0mm
-        symbols_start_x=10 * GRID_SIZE,  # 50.0mm
-        symbols_spacing=12 * GRID_SIZE,  # 60.0mm
-    )
-
-    POWER_DISTRIBUTION = SpacingConfig(
-        circuit_spacing=15 * GRID_SIZE,  # 80.0mm
-        symbols_start_x=10 * GRID_SIZE,  # 50.0mm
-        symbols_spacing=8 * GRID_SIZE,  # 40.0mm
-    )
 
 
 class StandardTags:
@@ -116,79 +73,22 @@ class StandardTags:
     TERMINAL = "X"  # Terminal blocks
 
 
-@dataclass(frozen=True)
-class PinSet:
-    """
-    Defines a set of related pins for a component.
-
-    Attributes:
-        pins: Tuple of pin names/numbers
-        description: What this pin set represents
-    """
-
-    pins: tuple[str, ...]
-    description: str
+# Standard Pin Sets (IEC standard pins only — project-specific pins stay in projects)
+COIL_PINS = ("A1", "A2")
+NO_CONTACT_PINS = ("13", "14")
+NC_CONTACT_PINS = ("11", "12")
+CB_3P_PINS = ("1", "2", "3", "4", "5", "6")
+CB_2P_PINS = ("1", "2", "3", "4")
+CONTACTOR_3P_PINS = ("L1", "T1", "L2", "T2", "L3", "T3")
+THERMAL_OVERLOAD_PINS = ("", "T1", "", "T2", "", "T3")
 
 
-class StandardPins:
-    """Standard pin definitions for electrical components."""
+class PinPrefix:
+    """Standard pin prefix tuples for terminal block declarations."""
 
-    THREE_POLE = PinSet(
-        pins=("L1", "T1", "L2", "T2", "L3", "T3"),
-        description="Three-phase power connection (line/load pairs)",
-    )
-
-    THERMAL_OVERLOAD = PinSet(
-        pins=("", "T1", "", "T2", "", "T3"),
-        description="Thermal overload relay terminals (load side only)",
-    )
-
-    CURRENT_TRANSDUCER = PinSet(
-        pins=("1", "2", "3", "4"),
-        description="Current measurement transducer terminals",
-    )
-
-    COIL = PinSet(
-        pins=("A1", "A2"),
-        description="Relay/contactor coil terminals",
-    )
-
-    NO_CONTACT = PinSet(
-        pins=("13", "14"),
-        description="Normally open auxiliary contact",
-    )
-
-    NC_CONTACT = PinSet(
-        pins=("11", "12"),
-        description="Normally closed auxiliary contact",
-    )
-
-    CB_3P = PinSet(
-        pins=("1", "2", "3", "4", "5", "6"),
-        description="Three-pole circuit breaker (line/load pairs)",
-    )
-
-    CB_2P = PinSet(
-        pins=("1", "2", "3", "4"),
-        description="Two-pole circuit breaker (line/load pairs)",
-    )
-
-    CONTACTOR_3P = PinSet(
-        pins=("L1", "T1", "L2", "T2", "L3", "T3"),
-        description="Three-pole contactor (same as THREE_POLE)",
-    )
-
-    CT = PinSet(
-        pins=("53", "54", "41", "43"),
-        description="Current transformer auxiliary contacts",
-    )
-
-    # Common single pin identifiers
-    L = "L"  # Line
-    N = "N"  # Neutral
-    PE = "PE"  # Protective Earth
-    V24 = "24V"  # 24V DC positive
-    GND = "GND"  # Ground / 0V
+    TN = ("L1", "L2", "L3", "N", "PE")
+    IT = ("L1", "L2", "L3", "PE")
+    SINGLEPHASE = ("L", "N", "PE")
 
 
 class StandardCircuitKeys:
@@ -221,90 +121,34 @@ class StandardCircuitKeys:
 # They are derived from GRID_SIZE for consistency.
 
 
-class LayoutDefaults:
-    """
-    Default layout values for standard circuits.
-    All values are in mm and relate to GRID_SIZE for consistency.
-    """
+# Symbol / component spacing (ascending by value)
+SPACING_COMPACT = 6 * GRID_SIZE  # 30mm — tight vertical layouts, feedback columns
+SPACING_NARROW = 8 * GRID_SIZE  # 40mm — multi-pole SPDT / changeover pole spacing
+SPACING_DEFAULT = 10 * GRID_SIZE  # 50mm — default builder symbol spacing
+SPACING_STANDARD = 12 * GRID_SIZE  # 60mm — standard symbol / compact circuit spacing
 
-    # Circuit spacing (horizontal distance between circuit instances)
-    CIRCUIT_SPACING_MOTOR = 30 * GRID_SIZE  # 150.0mm Motor circuits (3-pole, wider)
-    CIRCUIT_SPACING_POWER = 30 * GRID_SIZE  # 150.0mm Power distribution circuits
-    CIRCUIT_SPACING_CONTROL = (
-        20 * GRID_SIZE
-    )  # 100.0mm Control circuits (single-pole, narrower)
-    CIRCUIT_SPACING_SINGLE_POLE = 20 * GRID_SIZE  # 100.0mm Single-pole circuits
-
-    # Symbol spacing (vertical distance between components within a circuit)
-    SYMBOL_SPACING_DEFAULT = 10 * GRID_SIZE  # 50.0mm Default builder value
-    SYMBOL_SPACING_STANDARD = (
-        12 * GRID_SIZE
-    )  # 60.0mm Standard spacing for most circuits
-
-    # Horizontal offsets (for positioning parallel components)
-    # PSU terminal pairs (L/N at top, 24V/GND at bottom)
-    PSU_TERMINAL_OFFSET = (
-        3 * GRID_SIZE
-    )  # 15.0mm ±15mm from center for L/N and 24V/GND pairs
-
-    # Changeover switch terminal offsets
-    CHANGEOVER_TERMINAL_OFFSET = (
-        GRID_SIZE * 4
-    )  # ±20mm (4 grid units) for main/EM inputs
-
-    # Control circuit column offset
-    CONTROL_COLUMN_OFFSET = GRID_SIZE * 6  # 30mm (6 grid units) for feedback column
-
-    # Composition offsets (for combining multiple circuits)
-    VOLTAGE_MONITOR_OFFSET = 10 * GRID_SIZE  # 50.0mm Offset after changeover circuits
-    PSU_LAYOUT_OFFSET = 5 * GRID_SIZE  # 25.0mm Offset after voltage monitor
+# Circuit spacing (horizontal distance between circuit instances)
+CIRCUIT_SPACING_NARROW = 15 * GRID_SIZE  # 75mm — single-pole / power-distribution
+CIRCUIT_SPACING = 20 * GRID_SIZE  # 100mm — control / single-pole circuits
+CIRCUIT_SPACING_WIDE = 30 * GRID_SIZE  # 150mm — motor / power circuits
 
 
-@dataclass(frozen=True)
-class CircuitLayoutConfig:
-    """
-    Complete layout configuration for a circuit type.
-    Projects can create custom configs or use the defaults.
-    """
-
-    circuit_spacing: float
-    symbol_spacing: float
-    terminal_offset: float = 0.0  # Horizontal offset for terminal pairs
-    column_offset: float = 0.0  # Offset for secondary columns
+# =============================================================================
+# Wire Label Specifications (color + cross-section, IEC 60757)
+# =============================================================================
+from pyschemaelectrical.wire import wire as _wire  # noqa: E402
 
 
-class CircuitLayouts:
-    """Pre-configured layout configurations for standard circuit types."""
+class WireLabels:
+    RD_2_5 = _wire("RD", "2.5")
+    BK_2_5 = _wire("BK", "2.5")
+    RD_0_5 = _wire("RD", "0.5")
+    BK_0_5 = _wire("BK", "0.5")
+    WH_0_5 = _wire("WH", "0.5")
+    BR_2_5 = _wire("BR", "2.5")
+    GY_2_5 = _wire("GY", "2.5")
+    BL_2_5 = _wire("BL", "2.5")
+    GR_YE_2_5 = _wire("GR/YE", "2.5")
+    EMPTY = _wire.EMPTY
 
-    PSU = CircuitLayoutConfig(
-        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_POWER,
-        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_STANDARD,
-        terminal_offset=LayoutDefaults.PSU_TERMINAL_OFFSET,
-    )
 
-    CHANGEOVER = CircuitLayoutConfig(
-        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_POWER,
-        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_STANDARD,
-        terminal_offset=LayoutDefaults.CHANGEOVER_TERMINAL_OFFSET,
-    )
-
-    DOL_STARTER = CircuitLayoutConfig(
-        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_MOTOR,
-        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_DEFAULT,
-    )
-
-    MOTOR_CONTROL = CircuitLayoutConfig(
-        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_CONTROL,
-        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_DEFAULT,
-        column_offset=LayoutDefaults.CONTROL_COLUMN_OFFSET,
-    )
-
-    SWITCH = CircuitLayoutConfig(
-        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
-        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_STANDARD,
-    )
-
-    EMERGENCY_STOP = CircuitLayoutConfig(
-        circuit_spacing=LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
-        symbol_spacing=LayoutDefaults.SYMBOL_SPACING_DEFAULT,
-    )

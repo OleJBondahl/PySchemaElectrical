@@ -13,7 +13,8 @@ from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 if TYPE_CHECKING:
     from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.model.constants import (
-    LayoutDefaults,
+    CIRCUIT_SPACING,
+    SPACING_DEFAULT,
     StandardTags,
 )
 from pyschemaelectrical.symbols.assemblies import emergency_stop_assembly_symbol
@@ -27,8 +28,8 @@ def emergency_stop(
     tm_top: str,
     tm_bot: str,
     # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    spacing: float = CIRCUIT_SPACING,
+    symbol_spacing: float = SPACING_DEFAULT,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.SWITCH,
     # Multi-count and wire labels

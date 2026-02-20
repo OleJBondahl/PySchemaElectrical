@@ -69,47 +69,39 @@ class TestModelCore:
 
 
 class TestStandardPins:
-    """Tests for StandardPins pin set definitions."""
+    """Tests for flat pin constant definitions."""
 
     def test_coil_pins(self):
-        from pyschemaelectrical.model.constants import StandardPins
+        from pyschemaelectrical.model.constants import COIL_PINS
 
-        assert StandardPins.COIL.pins == ("A1", "A2")
+        assert COIL_PINS == ("A1", "A2")
 
     def test_no_contact_pins(self):
-        from pyschemaelectrical.model.constants import StandardPins
+        from pyschemaelectrical.model.constants import NO_CONTACT_PINS
 
-        assert StandardPins.NO_CONTACT.pins == ("13", "14")
+        assert NO_CONTACT_PINS == ("13", "14")
 
     def test_nc_contact_pins(self):
-        from pyschemaelectrical.model.constants import StandardPins
+        from pyschemaelectrical.model.constants import NC_CONTACT_PINS
 
-        assert StandardPins.NC_CONTACT.pins == ("11", "12")
+        assert NC_CONTACT_PINS == ("11", "12")
 
     def test_cb_3p_pins(self):
-        from pyschemaelectrical.model.constants import StandardPins
+        from pyschemaelectrical.model.constants import CB_3P_PINS
 
-        assert StandardPins.CB_3P.pins == ("1", "2", "3", "4", "5", "6")
+        assert CB_3P_PINS == ("1", "2", "3", "4", "5", "6")
 
     def test_cb_2p_pins(self):
-        from pyschemaelectrical.model.constants import StandardPins
+        from pyschemaelectrical.model.constants import CB_2P_PINS
 
-        assert StandardPins.CB_2P.pins == ("1", "2", "3", "4")
+        assert CB_2P_PINS == ("1", "2", "3", "4")
 
-    def test_contactor_3p_same_as_three_pole(self):
-        from pyschemaelectrical.model.constants import StandardPins
+    def test_contactor_3p_pins(self):
+        from pyschemaelectrical.model.constants import CONTACTOR_3P_PINS
 
-        assert StandardPins.CONTACTOR_3P.pins == StandardPins.THREE_POLE.pins
+        assert CONTACTOR_3P_PINS == ("L1", "T1", "L2", "T2", "L3", "T3")
 
-    def test_ct_pins(self):
-        from pyschemaelectrical.model.constants import StandardPins
+    def test_thermal_overload_pins(self):
+        from pyschemaelectrical.model.constants import THERMAL_OVERLOAD_PINS
 
-        assert StandardPins.CT.pins == ("53", "54", "41", "43")
-
-    def test_all_pin_sets_have_descriptions(self):
-        from pyschemaelectrical.model.constants import PinSet, StandardPins
-
-        for name in dir(StandardPins):
-            val = getattr(StandardPins, name)
-            if isinstance(val, PinSet):
-                assert val.description, f"{name} has empty description"
+        assert THERMAL_OVERLOAD_PINS == ("", "T1", "", "T2", "", "T3")

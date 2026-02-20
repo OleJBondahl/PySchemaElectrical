@@ -28,6 +28,7 @@ from .constants import (
     PIN_LABEL_OFFSET_Y_ADJUST,
     TERMINAL_RADIUS,
     TERMINAL_TEXT_OFFSET_X,
+    TERMINAL_TEXT_OFFSET_X_CLOSE,
     TERMINAL_TEXT_SIZE,
     TEXT_FONT_FAMILY,
     TEXT_FONT_FAMILY_AUX,
@@ -114,16 +115,29 @@ def standard_text(content: str, parent_origin: Point, label_pos: str = "left") -
     )
 
 
-def terminal_text(content: str, parent_origin: Point, label_pos: str = "left") -> Text:
+def terminal_text(
+    content: str,
+    parent_origin: Point,
+    label_pos: str = "left",
+    pin_label_pos: str | None = None,
+) -> Text:
     """
     Create terminal label text — smaller and further from the symbol
     than standard_text to avoid collision with pin numbers.
+
+    When pin_label_pos is on the opposite side from label_pos, uses a
+    closer offset since there's no pin number to collide with.
     """
+    if pin_label_pos is not None and pin_label_pos != label_pos:
+        offset = TERMINAL_TEXT_OFFSET_X_CLOSE
+    else:
+        offset = TERMINAL_TEXT_OFFSET_X
+
     if label_pos == "right":
-        pos = Point(parent_origin.x - TERMINAL_TEXT_OFFSET_X, parent_origin.y)
+        pos = Point(parent_origin.x - offset, parent_origin.y)
         anchor = "start"
     else:
-        pos = Point(parent_origin.x + TERMINAL_TEXT_OFFSET_X, parent_origin.y)
+        pos = Point(parent_origin.x + offset, parent_origin.y)
         anchor = "end"
 
     return Text(

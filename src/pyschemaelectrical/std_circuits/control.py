@@ -16,7 +16,14 @@ from pyschemaelectrical.layout.layout import create_horizontal_layout
 
 if TYPE_CHECKING:
     from pyschemaelectrical.model.state import GenerationState
-from pyschemaelectrical.model.constants import GRID_SIZE, LayoutDefaults, StandardTags
+from pyschemaelectrical.model.constants import (
+    CIRCUIT_SPACING,
+    GRID_SIZE,
+    SPACING_COMPACT,
+    SPACING_DEFAULT,
+    SPACING_STANDARD,
+    StandardTags,
+)
 from pyschemaelectrical.model.core import Symbol
 from pyschemaelectrical.symbols.coils import coil_symbol
 from pyschemaelectrical.symbols.contacts import (
@@ -40,9 +47,9 @@ def spdt(  # noqa: C901
     tm_bot_left: str,
     tm_bot_right: str,
     # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_CONTROL,
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
-    column_offset: float = LayoutDefaults.CONTROL_COLUMN_OFFSET,
+    spacing: float = CIRCUIT_SPACING,
+    symbol_spacing: float = SPACING_DEFAULT,
+    column_offset: float = SPACING_COMPACT,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.CONTACTOR,
     contact_tag_prefix: str = StandardTags.RELAY,
@@ -309,8 +316,8 @@ def no_contact(
     tm_top: str,
     tm_bot: str,
     # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
+    spacing: float = CIRCUIT_SPACING,
+    symbol_spacing: float = SPACING_STANDARD,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.SWITCH,
     switch_pins: tuple[str, ...] = ("3", "4"),
@@ -376,10 +383,10 @@ def coil_contact_pair(
     # Layout
     x: float = 0.0,
     y: float = 0.0,
-    pair_spacing: float = LayoutDefaults.CIRCUIT_SPACING_CONTROL,
-    sub_spacing: float = LayoutDefaults.CONTROL_COLUMN_OFFSET,
+    pair_spacing: float = CIRCUIT_SPACING,
+    sub_spacing: float = SPACING_COMPACT,
     # Optional per-side layout
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    symbol_spacing: float = SPACING_DEFAULT,
     # Component parameters
     tag_prefix: str = StandardTags.RELAY,
     coil_pins: tuple[str, ...] = ("A1", "A2"),
@@ -518,7 +525,7 @@ def coil(
     # Required terminal parameter
     tm_top: str,
     # Layout parameters (with defaults from constants)
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
+    symbol_spacing: float = SPACING_STANDARD,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.RELAY,
     coil_pins: tuple[str, ...] = ("A1", "A2"),

@@ -15,10 +15,14 @@ from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 if TYPE_CHECKING:
     from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.model.constants import (
-    CHANGEOVER_POLE_OFFSET,
-    CHANGEOVER_POLE_SPACING,
+    CIRCUIT_SPACING,
+    CIRCUIT_SPACING_WIDE,
     DEFAULT_POLE_SPACING,
-    LayoutDefaults,
+    GRID_SIZE,
+    GRID_SUBDIVISION,
+    SPACING_DEFAULT,
+    SPACING_NARROW,
+    SPACING_STANDARD,
     StandardTags,
 )
 from pyschemaelectrical.symbols.blocks import psu_symbol
@@ -40,10 +44,10 @@ def psu(
     tm_bot_left: str,
     tm_bot_right: str,
     # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_POWER,
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
+    spacing: float = CIRCUIT_SPACING_WIDE,
+    symbol_spacing: float = SPACING_STANDARD,
     # Kept for back-compat but ignored
-    terminal_offset: float = LayoutDefaults.PSU_TERMINAL_OFFSET,
+    terminal_offset: float = 3 * GRID_SIZE,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.POWER_SUPPLY,
     # Multi-count and wire labels
@@ -183,9 +187,9 @@ def changeover(
     tm_top_right: str,
     tm_bot: str,
     # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_POWER,
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_STANDARD,
-    terminal_offset: float = (LayoutDefaults.CHANGEOVER_TERMINAL_OFFSET),
+    spacing: float = CIRCUIT_SPACING_WIDE,
+    symbol_spacing: float = SPACING_STANDARD,
+    terminal_offset: float = 4 * GRID_SIZE,
     # Component parameters (with defaults)
     tag_prefix: str = StandardTags.RELAY,
     poles: int = 3,
@@ -233,7 +237,7 @@ def changeover(
     # - Port "4" (NO): at (2.5, -5.0) relative to pole center
     # - Port "1" (COM): at (2.5, 5.0) relative to pole center
 
-    pole_spacing = CHANGEOVER_POLE_SPACING
+    pole_spacing = SPACING_NARROW
     wire_accumulator: list[tuple[str, str, str, str]] = []
 
     def create_single_changeover(s, start_x, start_y, tag_gens, t_maps, instance):
@@ -267,7 +271,7 @@ def changeover(
             pole_id = i + 1
 
             # Top Left: NC terminal for input_1
-            nc_x = pole_x - CHANGEOVER_POLE_OFFSET
+            nc_x = pole_x - GRID_SUBDIVISION
             nc_y = switch_y - symbol_spacing
             nc_sym = terminal_symbol(
                 tm_top_left if i == 0 else "", pins=(input1_pins[i],), label_pos="left"
@@ -283,7 +287,7 @@ def changeover(
             )
 
             # Top Right: NO terminal for input_2
-            no_x = pole_x + CHANGEOVER_POLE_OFFSET
+            no_x = pole_x + GRID_SUBDIVISION
             no_y = switch_y - symbol_spacing
             no_sym = terminal_symbol(
                 tm_top_right,
@@ -307,7 +311,7 @@ def changeover(
             )
 
             # Bottom: Common terminal for output
-            com_x = pole_x + CHANGEOVER_POLE_OFFSET
+            com_x = pole_x + GRID_SUBDIVISION
             com_y = switch_y + symbol_spacing
             com_sym = terminal_symbol(
                 tm_bot if i == 0 else "", pins=(output_pins[i],), label_pos="left"
@@ -360,10 +364,10 @@ def power_distribution(
     # Terminal maps (required)
     terminal_maps: dict[str, str],
     # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_POWER,
-    spacing_single_pole: float = LayoutDefaults.CIRCUIT_SPACING_SINGLE_POLE,
-    voltage_monitor_offset: float = LayoutDefaults.VOLTAGE_MONITOR_OFFSET,
-    psu_offset: float = LayoutDefaults.PSU_LAYOUT_OFFSET,
+    spacing: float = CIRCUIT_SPACING_WIDE,
+    spacing_single_pole: float = CIRCUIT_SPACING,
+    voltage_monitor_offset: float = SPACING_DEFAULT,
+    psu_offset: float = 5 * GRID_SIZE,
     count: int = 1,
     **kwargs,
 ) -> BuildResult:

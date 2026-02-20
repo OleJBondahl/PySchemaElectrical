@@ -17,9 +17,13 @@ from pyschemaelectrical.layout.layout import create_horizontal_layout
 if TYPE_CHECKING:
     from pyschemaelectrical.model.state import GenerationState
 from pyschemaelectrical.model.constants import (
+    CB_3P_PINS,
+    CIRCUIT_SPACING_WIDE,
+    CONTACTOR_3P_PINS,
     REF_ARROW_LENGTH,
-    LayoutDefaults,
+    SPACING_DEFAULT,
     StandardTags,
+    THERMAL_OVERLOAD_PINS,
 )
 from pyschemaelectrical.model.core import Point
 from pyschemaelectrical.model.parts import standard_style
@@ -50,24 +54,17 @@ def dol_starter(  # noqa: C901
     tm_top: str,
     tm_bot: str | list[str],
     # Layout parameters (with defaults from constants)
-    spacing: float = LayoutDefaults.CIRCUIT_SPACING_MOTOR,
-    symbol_spacing: float = LayoutDefaults.SYMBOL_SPACING_DEFAULT,
+    spacing: float = CIRCUIT_SPACING_WIDE,
+    symbol_spacing: float = SPACING_DEFAULT,
     # Component parameters (with defaults)
     breaker_tag_prefix: str = StandardTags.BREAKER,
     thermal_tag_prefix: str = "FT",
     contactor_tag_prefix: str = StandardTags.CONTACTOR,
     ct_tag_prefix: str = "CT",
     # Pin parameters for symbols (with defaults)
-    breaker_pins: tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
-    thermal_pins: tuple[str, str, str, str, str, str] = ("", "T1", "", "T2", "", "T3"),
-    contactor_pins: tuple[str, str, str, str, str, str] = (
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-    ),
+    breaker_pins: tuple[str, str, str, str, str, str] = CB_3P_PINS,
+    thermal_pins: tuple[str, str, str, str, str, str] = THERMAL_OVERLOAD_PINS,
+    contactor_pins: tuple[str, str, str, str, str, str] = CONTACTOR_3P_PINS,
     ct_pins: tuple[str, ...] = ("1", "2", "3", "4"),
     ct_terminals: tuple[str, ...] | None = None,
     # Pin parameters for terminals (None = auto-number)

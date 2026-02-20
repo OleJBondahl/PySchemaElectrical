@@ -3,8 +3,8 @@ from dataclasses import replace
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
     GRID_SIZE,
+    SPACING_NARROW,
     SPDT_PIN_LABEL_OFFSET,
-    SPDT_POLE_SPACING,
     TEXT_FONT_FAMILY_AUX,
     TEXT_SIZE_PIN,
 )
@@ -368,7 +368,7 @@ def multi_pole_spdt_symbol(
     if len(pins) < expected:
         pins = tuple(list(pins) + [""] * (expected - len(pins)))
 
-    spacing = SPDT_POLE_SPACING
+    spacing = SPACING_NARROW
 
     pole_syms = []
     all_elements = []
