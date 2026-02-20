@@ -1134,8 +1134,6 @@ class TestPlcRack:
 
     def test_plc_rack_stores_rack(self):
         """plc_rack() stores the rack on the project."""
-        from pyschemaelectrical.plc_resolver import PlcModuleType
-
         di_module = self._make_di_module()
         rack = [("DI1", di_module)]
         p = Project()

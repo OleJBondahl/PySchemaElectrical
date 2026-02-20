@@ -18,6 +18,7 @@ from pyschemaelectrical.builder import BuildResult
 if TYPE_CHECKING:
     from pyschemaelectrical.field_devices import ConnectionRow
     from pyschemaelectrical.plc_resolver import PlcRack
+
 from pyschemaelectrical.descriptors import Descriptor, build_from_descriptors
 from pyschemaelectrical.system.connection_registry import (
     export_registry_to_csv,
