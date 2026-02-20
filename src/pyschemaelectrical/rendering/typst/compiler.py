@@ -46,7 +46,7 @@ class _Page:
     md_path: str = ""
     notice: str | None = None
     typst_content: str = ""
-    terminal_descriptions: dict[str, str] | None = None
+    terminal_titles: dict[str, str] | None = None
 
 
 class TypstCompiler:
@@ -102,14 +102,14 @@ class TypstCompiler:
     def add_terminal_report(
         self,
         csv_path: str,
-        terminal_descriptions: dict[str, str],
+        terminal_titles: dict[str, str],
     ):
         """Add a system terminal report page."""
         self._pages.append(
             _Page(
                 page_type="terminal_report",
                 csv_path=csv_path,
-                terminal_descriptions=terminal_descriptions,
+                terminal_titles=terminal_titles,
             )
         )
 
@@ -311,19 +311,19 @@ class TypstCompiler:
     def _render_terminal_report(self, page: _Page) -> str:
         """Render the system terminal report page."""
         csv_rel = self._rel_path(page.csv_path)
-        descriptions = page.terminal_descriptions or {}
+        titles = page.terminal_titles or {}
 
-        # Serialize descriptions to Typst map
-        desc_items = []
-        for tag, desc in descriptions.items():
-            safe_desc = desc.replace('"', '\\"')
-            desc_items.append(f'"{tag}": "{safe_desc}"')
+        # Serialize titles to Typst map
+        title_items = []
+        for tag, title in titles.items():
+            safe_title = title.replace('"', '\\"')
+            title_items.append(f'"{tag}": "{safe_title}"')
 
-        typst_desc_map = (
-            "#let terminal_descriptions = (\n" + ",\n".join(desc_items) + "\n)"
+        typst_title_map = (
+            "#let terminal_titles = (\n" + ",\n".join(title_items) + "\n)"
         )
 
-        return _TERMINAL_REPORT_TYPST.replace("__DESC_MAP__", typst_desc_map).replace(
+        return _TERMINAL_REPORT_TYPST.replace("__TITLE_MAP__", typst_title_map).replace(
             "__CSV_PATH__", csv_rel
         )
 
@@ -333,7 +333,7 @@ class TypstCompiler:
         if page.title:
             result += f"\n// Custom Page: {page.title}\n"
         result += page.typst_content
-        result += "\n#pagebreak()\n"
+        result += "\n#pagebreak(weak: true)\n"
         return result
 
     def _rel_path(self, path: str) -> str:
@@ -415,7 +415,7 @@ _TERMINAL_REPORT_TYPST = r"""
   #text(size: 18pt, weight: "bold")[System Terminal Report]
 ]
 #pad(left: 25mm, right: 25mm, top: 40mm, bottom: 40mm)[
-__DESC_MAP__
+__TITLE_MAP__
 
 #let terminal_report(csv_path) = {
     let data = csv(csv_path)
@@ -464,7 +464,7 @@ __DESC_MAP__
         #for tag in keys [
              #let group_rows = groups.at(tag)
              #block(breakable: true)[
-                 #let description = terminal_descriptions.at(tag, default: "")
+                 #let description = terminal_titles.at(tag, default: "")
                  #{
                      let bridge_groups = ()
                      let bridge_map = (:)
@@ -520,4 +520,6 @@ __DESC_MAP__
 #terminal_report("__CSV_PATH__")
 
 ] // end pad
+
+#pagebreak()
 """

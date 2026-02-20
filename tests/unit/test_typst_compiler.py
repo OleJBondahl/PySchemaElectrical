@@ -163,7 +163,7 @@ class TestPageRegistration:
         compiler.add_terminal_report("system.csv", descriptions)
         assert len(compiler._pages) == 1
         assert compiler._pages[0].page_type == "terminal_report"
-        assert compiler._pages[0].terminal_descriptions == descriptions
+        assert compiler._pages[0].terminal_titles == descriptions
 
     def test_add_plc_report(self):
         """Adding a PLC report should be recorded."""
@@ -275,7 +275,7 @@ class TestRenderPageDispatch:
             page = _Page(
                 page_type="terminal_report",
                 csv_path="terms.csv",
-                terminal_descriptions={"X1": "Power"},
+                terminal_titles={"X1": "Power"},
             )
             result = compiler._render_page(page)
             assert "terms.csv" in result
@@ -423,7 +423,7 @@ class TestRenderTerminalReport:
         page = _Page(
             page_type="terminal_report",
             csv_path="terms.csv",
-            terminal_descriptions={"X1": "Power"},
+            terminal_titles={"X1": "Power"},
         )
         result = compiler._render_terminal_report(page)
         assert "terms.csv" in result
@@ -435,13 +435,13 @@ class TestRenderTerminalReport:
         page = _Page(
             page_type="terminal_report",
             csv_path="terms.csv",
-            terminal_descriptions={"X1": "Power Supply", "X2": "Control"},
+            terminal_titles={"X1": "Power Supply", "X2": "Control"},
         )
         result = compiler._render_terminal_report(page)
         assert "__DESC_MAP__" not in result
         assert '"X1": "Power Supply"' in result
         assert '"X2": "Control"' in result
-        assert "#let terminal_descriptions" in result
+        assert "#let terminal_titles" in result
 
     def test_description_with_quotes_escaped(self):
         """Descriptions containing double quotes should be escaped."""
@@ -449,7 +449,7 @@ class TestRenderTerminalReport:
         page = _Page(
             page_type="terminal_report",
             csv_path="terms.csv",
-            terminal_descriptions={"X1": 'Main "power" input'},
+            terminal_titles={"X1": 'Main "power" input'},
         )
         result = compiler._render_terminal_report(page)
         assert r"Main \"power\" input" in result
@@ -460,10 +460,10 @@ class TestRenderTerminalReport:
         page = _Page(
             page_type="terminal_report",
             csv_path="terms.csv",
-            terminal_descriptions={},
+            terminal_titles={},
         )
         result = compiler._render_terminal_report(page)
-        assert "#let terminal_descriptions" in result
+        assert "#let terminal_titles" in result
         assert "terms.csv" in result
 
     def test_none_descriptions_defaults_to_empty(self):
@@ -472,10 +472,10 @@ class TestRenderTerminalReport:
         page = _Page(
             page_type="terminal_report",
             csv_path="terms.csv",
-            terminal_descriptions=None,
+            terminal_titles=None,
         )
         result = compiler._render_terminal_report(page)
-        assert "#let terminal_descriptions" in result
+        assert "#let terminal_titles" in result
 
     def test_contains_system_terminal_report_title(self):
         """Terminal report should contain the title text."""
@@ -483,7 +483,7 @@ class TestRenderTerminalReport:
         page = _Page(
             page_type="terminal_report",
             csv_path="terms.csv",
-            terminal_descriptions={},
+            terminal_titles={},
         )
         result = compiler._render_terminal_report(page)
         assert "System Terminal Report" in result

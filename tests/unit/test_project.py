@@ -285,7 +285,7 @@ class TestTerminalRegistration:
         p.terminals(Terminal("X1", "First"))
         p.terminals(Terminal("X1", "Second"))
         assert len(p._terminals) == 1
-        assert p._terminals["X1"].description == "Second"
+        assert p._terminals["X1"].title == "Second"
 
     def test_empty_terminal_registration(self):
         """Calling terminals() with no args should not fail."""

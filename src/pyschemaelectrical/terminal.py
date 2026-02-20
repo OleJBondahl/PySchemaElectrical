@@ -2,7 +2,7 @@
 Terminal type for PySchemaElectrical.
 
 Provides a first-class `Terminal` type that replaces the string-based
-terminal ID hack. Terminals carry metadata (description, bridge info,
+terminal ID hack. Terminals carry metadata (title, description, bridge info,
 reference flag) while being fully compatible with string operations
 by inheriting from `str`.
 """
@@ -21,7 +21,9 @@ class Terminal(str):
 
     Args:
         id: Terminal identifier (e.g., "X001").
-        description: Human-readable description (e.g., "Main 400V AC").
+        title: Human-readable title unique to this terminal (e.g., "Main 400V AC").
+        description: Product description shared across terminals with the same MPN
+                     (e.g., "Terminal block"). Used for BOM grouping.
         bridge: Internal bridge definition. "all" for all pins bridged,
                 list of (start, end) tuples for specific ranges, or None.
         reference: True for non-physical terminals (e.g., "PLC:DO").
@@ -31,8 +33,9 @@ class Terminal(str):
                       ``"L1:1", "L2:1", "L3:1"`` using group-based counting.
     """
 
-    __slots__ = ("description", "bridge", "reference", "pin_prefixes", "mpn")
+    __slots__ = ("title", "description", "bridge", "reference", "pin_prefixes", "mpn")
 
+    title: str
     description: str
     bridge: BridgeDef
     reference: bool
@@ -42,6 +45,7 @@ class Terminal(str):
     def __new__(
         cls,
         id: str,
+        title: str = "",
         description: str = "",
         bridge: BridgeDef = None,
         reference: bool = False,
@@ -49,6 +53,7 @@ class Terminal(str):
         mpn: str = "",
     ) -> "Terminal":
         instance = super().__new__(cls, id)
+        object.__setattr__(instance, "title", title)
         object.__setattr__(instance, "description", description)
         object.__setattr__(instance, "bridge", bridge)
         object.__setattr__(instance, "reference", reference)

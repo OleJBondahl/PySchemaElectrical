@@ -699,12 +699,12 @@ class Project:
         elif page_def.page_type == "front":
             compiler.add_front_page(page_def.md_path, notice=page_def.notice)
         elif page_def.page_type == "terminal_report":
-            descriptions = {
-                str(t): t.description
+            titles = {
+                str(t): t.title
                 for t in self._terminals.values()
                 if not t.reference
             }
-            compiler.add_terminal_report(system_csv_path, descriptions)
+            compiler.add_terminal_report(system_csv_path, titles)
         elif page_def.page_type == "plc_report":
             csv_path = page_def.csv_path or plc_csv_path
             if csv_path:

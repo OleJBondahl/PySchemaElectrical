@@ -78,10 +78,10 @@ def test_terminal_frozen():
         t.id = "X002"
 
 
-def test_terminal_description():
-    """Terminal should store description."""
+def test_terminal_title():
+    """Terminal should store title."""
     t = Terminal("X001", "Main 400V AC")
-    assert t.description == "Main 400V AC"
+    assert t.title == "Main 400V AC"
 
 
 def test_terminal_importable_from_package():
@@ -90,6 +90,18 @@ def test_terminal_importable_from_package():
 
     t = T("X001")
     assert str(t) == "X001"
+
+
+def test_terminal_description():
+    """Terminal should store product description."""
+    t = Terminal("X001", "Main 400V AC", description="Terminal block")
+    assert t.description == "Terminal block"
+
+
+def test_terminal_description_default_empty():
+    """Terminal description should default to empty string."""
+    t = Terminal("X001", "Main 400V AC")
+    assert t.description == ""
 
 
 def test_terminal_mpn_field():
