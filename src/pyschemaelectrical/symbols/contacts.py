@@ -147,7 +147,7 @@ three_pole_normally_closed_symbol = multipole(normally_closed_symbol, poles=3)
 
 
 def spdt_contact_symbol(
-    label: str = "", pins: tuple[str, ...] = ("1", "2", "4"), inverted: bool = False
+    label: str = "", pins: tuple[str, ...] = ("11", "12", "14"), inverted: bool = False
 ) -> Symbol:
     r"""
     Create an IEC 60617 Single Pole Double Throw (SPDT) Contact (Changeover).
@@ -171,6 +171,9 @@ def spdt_contact_symbol(
     - NC is on the left.
     - Blade spans from Common (Right) to NC (Left).
 
+    Port keys match pin labels (e.g. "11" for COM, "12" for NC, "14" for NO),
+    consistent with NO contact convention ("13", "14").
+
     Args:
         label (str): The component tag.
         pins (tuple): A tuple of 3 pin numbers (Common, NC, NO).
@@ -193,6 +196,12 @@ def spdt_contact_symbol(
 
     elements: list[Element] = []
 
+    # Port keys = pin labels
+    p_safe = pad_pins(pins, 3)
+    com_key = p_safe[0] or "11"
+    nc_key = p_safe[1] or "12"
+    no_key = p_safe[2] or "14"
+
     if not inverted:
         # Standard: Common (Input) - Bottom Right
         l_com = Line(Point(x_right, bot_y), Point(x_right, h_half), style)
@@ -213,9 +222,9 @@ def spdt_contact_symbol(
         target_y = top_y
 
         ports = {
-            "1": Port("1", Point(x_right, h_half), Vector(0, 1)),  # Common (Bottom)
-            "2": Port("2", Point(x_left, -h_half), Vector(0, -1)),  # NC (Top Left)
-            "4": Port("4", Point(x_right, -h_half), Vector(0, -1)),  # NO (Top Right)
+            com_key: Port(com_key, Point(x_right, h_half), Vector(0, 1)),
+            nc_key: Port(nc_key, Point(x_left, -h_half), Vector(0, -1)),
+            no_key: Port(no_key, Point(x_right, -h_half), Vector(0, -1)),
         }
     else:
         # Inverted: Common (Input) - Top Right
@@ -238,9 +247,9 @@ def spdt_contact_symbol(
         target_y = bot_y
 
         ports = {
-            "1": Port("1", Point(x_right, -h_half), Vector(0, -1)),  # Common (Top)
-            "2": Port("2", Point(x_left, h_half), Vector(0, 1)),  # NC (Bottom Left)
-            "4": Port("4", Point(x_right, h_half), Vector(0, 1)),  # NO (Bottom Right)
+            com_key: Port(com_key, Point(x_right, -h_half), Vector(0, -1)),
+            nc_key: Port(nc_key, Point(x_left, h_half), Vector(0, 1)),
+            no_key: Port(no_key, Point(x_right, h_half), Vector(0, 1)),
         }
 
     # Calculate Blade (Shared Logic)
@@ -253,16 +262,12 @@ def spdt_contact_symbol(
         elements.append(standard_text(label, Point(0, 0)))
 
     if pins:
-        # Expected tuple: (Common, NC, NO)
-        p_safe = pad_pins(pins, 3)
-
         common_pin, nc_pin, no_pin = p_safe[0], p_safe[1], p_safe[2]
 
         offset = SPDT_PIN_LABEL_OFFSET
 
-        if common_pin and "1" in ports:
-            pos = ports["1"].position
-            # Common aligns Right
+        if common_pin:
+            pos = ports[com_key].position
             elements.append(
                 Text(
                     content=common_pin,
@@ -277,9 +282,8 @@ def spdt_contact_symbol(
                 )
             )
 
-        if nc_pin and "2" in ports:
-            pos = ports["2"].position
-            # NC aligns Left
+        if nc_pin:
+            pos = ports[nc_key].position
             elements.append(
                 Text(
                     content=nc_pin,
@@ -294,9 +298,8 @@ def spdt_contact_symbol(
                 )
             )
 
-        if no_pin and "4" in ports:
-            pos = ports["4"].position
-            # NO aligns Right
+        if no_pin:
+            pos = ports[no_key].position
             elements.append(
                 Text(
                     content=no_pin,
@@ -315,8 +318,8 @@ def spdt_contact_symbol(
 
 
 def multi_pole_spdt_symbol(
-    poles: int = 3,
     label: str = "",
+    poles: int = 3,
     pins: tuple[str, ...] = (),
 ) -> Symbol:
     """
@@ -331,8 +334,8 @@ def multi_pole_spdt_symbol(
               Defaults to standard IEC numbering (11,12,14, 21,22,24, ...).
 
     Returns:
-        Symbol with ports keyed as "{pole_index}_{type}":
-        "1_com", "1_nc", "1_no", "2_com", etc.
+        Symbol with ports keyed by pin labels:
+        "11", "12", "14", "21", "22", "24", etc.
     """
     expected = poles * 3
     if not pins:
@@ -342,31 +345,18 @@ def multi_pole_spdt_symbol(
 
     spacing = SPACING_NARROW
 
-    pole_syms = []
     all_elements = []
+    all_ports: dict = {}
     for i in range(poles):
         p = spdt_contact_symbol(
             label=label if i == 0 else "", pins=pins[i * 3 : i * 3 + 3]
         )
         if i > 0:
             p = translate(p, spacing * i, 0)
-        pole_syms.append(p)
         all_elements.extend(p.elements)
+        all_ports.update(p.ports)
 
-    new_ports = {}
-    for i, p in enumerate(pole_syms):
-        pole_id = str(i + 1)
-        if "1" in p.ports:
-            new_key = f"{pole_id}_com"
-            new_ports[new_key] = replace(p.ports["1"], id=new_key)
-        if "2" in p.ports:
-            new_key = f"{pole_id}_nc"
-            new_ports[new_key] = replace(p.ports["2"], id=new_key)
-        if "4" in p.ports:
-            new_key = f"{pole_id}_no"
-            new_ports[new_key] = replace(p.ports["4"], id=new_key)
-
-    return Symbol(all_elements, new_ports, label=label)
+    return Symbol(all_elements, all_ports, label=label)
 
 
 def three_pole_spdt_symbol(

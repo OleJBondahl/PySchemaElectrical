@@ -458,6 +458,82 @@ class CircuitBuilder:
         idx = len(self._spec.components) - 1
         return ComponentRef(self, idx, tag_prefix)
 
+    def add_spdt(
+        self,
+        tag_prefix: str = "K",
+        poles: int = 1,
+        pins: list[str] | tuple[str, ...] | None = None,
+        inverted: bool = False,
+        x_offset: float = 0.0,
+        y_increment: float | None = None,
+        device: "InternalDevice | None" = None,
+    ) -> "ComponentRef":
+        """Add an SPDT (changeover) contact to the circuit.
+
+        Supports both single-pole and multi-pole SPDT symbols.
+        Port keys match pin labels (e.g. ``"11"`` for COM, ``"12"`` for NC,
+        ``"14"`` for NO).  Use with :meth:`place_above` / :meth:`place_below`
+        to attach terminals to individual pins.
+
+        Default pins follow IEC numbering: ``("11","12","14")`` for 1 pole,
+        ``("11","12","14","21","22","24",...)`` for N poles.
+
+        Always sets ``auto_connect_next=False`` since SPDT contacts branch
+        and cannot participate in a linear auto-connect chain.
+
+        Args:
+            tag_prefix: Tag prefix for autonumbering (default ``"K"``).
+            poles: Number of poles (default 1).
+            pins: Explicit pin labels.  If *None*, IEC defaults are generated.
+            inverted: If *True*, COM is at top, NC/NO at bottom.
+            x_offset: Horizontal offset in mm.
+            y_increment: Vertical spacing override in mm.
+            device: Optional InternalDevice for BOM tracking.
+
+        Returns:
+            ComponentRef for the added SPDT component.
+        """
+        from pyschemaelectrical.symbols.contacts import (
+            multi_pole_spdt_symbol,
+            spdt_contact_symbol,
+        )
+
+        self._check_not_frozen()
+
+        # Generate default IEC pins if not provided
+        if pins is None:
+            pins = tuple(
+                f"{p}{s}" for p in range(1, poles + 1) for s in ("1", "2", "4")
+            )
+
+        if poles == 1:
+            func = spdt_contact_symbol
+        else:
+            func = multi_pole_spdt_symbol
+
+        # Build kwargs for the symbol factory (poles + inverted)
+        sym_kwargs: dict = {}
+        if poles > 1:
+            sym_kwargs["poles"] = poles
+        if inverted:
+            sym_kwargs["inverted"] = inverted
+
+        spec = ComponentSpec(
+            func=func,
+            tag_prefix=tag_prefix,
+            kind="symbol",
+            poles=poles,
+            pins=pins,
+            x_offset=x_offset,
+            y_increment=y_increment,
+            auto_connect_next=False,
+            device=device,
+            kwargs=sym_kwargs,
+        )
+        self._spec.components.append(spec)
+        idx = len(self._spec.components) - 1
+        return ComponentRef(self, idx, tag_prefix)
+
     def add_reference(
         self,
         ref_id: str,
@@ -556,7 +632,9 @@ class CircuitBuilder:
         tm_id: "str | Terminal",
         poles: int = 1,
         pins: list[str] | tuple[str, ...] | None = None,
+        pin_prefixes: tuple[str, ...] | None = None,
         label_pos: str | None = None,
+        pin_label_pos: str | None = None,
         y_offset: float | None = None,
         wire_label: str | None = None,
     ) -> "ComponentRef":
@@ -577,6 +655,7 @@ class CircuitBuilder:
                 otherwise a physical terminal symbol.
             poles: Number of poles (default 1).
             pins: Explicit pin labels. If None, auto-allocated.
+            pin_prefixes: Override the terminal's default pin prefixes.
             label_pos: Label position ('left' or 'right').
             y_offset: Distance above the port. If None, uses
                 ``symbol_spacing / 2``.
@@ -616,12 +695,14 @@ class CircuitBuilder:
                 kind="terminal",
                 poles=poles,
                 pins=pins,
+                pin_prefixes=pin_prefixes,
                 y_increment=y_inc,
                 auto_connect_next=False,
                 placed_above_of=(ref_idx, pin_name),
                 kwargs={
                     "tm_id": tm_id,
                     "label_pos": label_pos or "left",
+                    "pin_label_pos": pin_label_pos,
                 },
             )
 
@@ -642,7 +723,9 @@ class CircuitBuilder:
         tm_id: "str | Terminal",
         poles: int = 1,
         pins: list[str] | tuple[str, ...] | None = None,
+        pin_prefixes: tuple[str, ...] | None = None,
         label_pos: str | None = None,
+        pin_label_pos: str | None = None,
         y_offset: float | None = None,
         wire_label: str | None = None,
     ) -> "ComponentRef":
@@ -657,6 +740,7 @@ class CircuitBuilder:
             tm_id: Terminal or reference ID.
             poles: Number of poles (default 1).
             pins: Explicit pin labels. If None, auto-allocated.
+            pin_prefixes: Override the terminal's default pin prefixes.
             label_pos: Label position ('left' or 'right').
             y_offset: Distance below the port. If None, uses
                 ``symbol_spacing / 2``.
@@ -694,12 +778,14 @@ class CircuitBuilder:
                 kind="terminal",
                 poles=poles,
                 pins=pins,
+                pin_prefixes=pin_prefixes,
                 y_increment=y_inc,
                 auto_connect_next=False,
                 placed_below_of=(ref_idx, pin_name),
                 kwargs={
                     "tm_id": tm_id,
                     "label_pos": label_pos or "left",
+                    "pin_label_pos": pin_label_pos,
                 },
             )
 

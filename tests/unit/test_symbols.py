@@ -388,24 +388,24 @@ class TestSpdtContactSymbol:
 
     def test_basic_creation(self):
         """SPDT contact returns a Symbol with 3 ports."""
-        sym = spdt_contact_symbol(label="-K1", pins=("1", "2", "4"))
+        sym = spdt_contact_symbol(label="-K1", pins=("11", "12", "14"))
         assert isinstance(sym, Symbol)
         assert sym.label == "-K1"
         assert len(sym.ports) == 3
 
     def test_port_ids(self):
-        """Ports should be '1' (common), '2' (NC), '4' (NO) per IEC convention."""
+        """Port keys match pin labels: '11' (common), '12' (NC), '14' (NO)."""
         sym = spdt_contact_symbol()
-        assert "1" in sym.ports  # Common
-        assert "2" in sym.ports  # NC
-        assert "4" in sym.ports  # NO
+        assert "11" in sym.ports  # Common
+        assert "12" in sym.ports  # NC
+        assert "14" in sym.ports  # NO
 
     def test_standard_orientation_positions(self):
         """In standard orientation, common is bottom, NC/NO are top."""
         sym = spdt_contact_symbol(inverted=False)
-        com_y = sym.ports["1"].position.y
-        nc_y = sym.ports["2"].position.y
-        no_y = sym.ports["4"].position.y
+        com_y = sym.ports["11"].position.y
+        nc_y = sym.ports["12"].position.y
+        no_y = sym.ports["14"].position.y
         # Common is at bottom (larger Y)
         assert com_y > nc_y
         assert com_y > no_y
@@ -413,9 +413,9 @@ class TestSpdtContactSymbol:
     def test_inverted_orientation_positions(self):
         """In inverted orientation, common is top, NC/NO are bottom."""
         sym = spdt_contact_symbol(inverted=True)
-        com_y = sym.ports["1"].position.y
-        nc_y = sym.ports["2"].position.y
-        no_y = sym.ports["4"].position.y
+        com_y = sym.ports["11"].position.y
+        nc_y = sym.ports["12"].position.y
+        no_y = sym.ports["14"].position.y
         # Common is at top (smaller Y)
         assert com_y < nc_y
         assert com_y < no_y
@@ -423,15 +423,15 @@ class TestSpdtContactSymbol:
     def test_nc_left_no_right_standard(self):
         """In standard orientation, NC is left of NO."""
         sym = spdt_contact_symbol(inverted=False)
-        nc_x = sym.ports["2"].position.x
-        no_x = sym.ports["4"].position.x
+        nc_x = sym.ports["12"].position.x
+        no_x = sym.ports["14"].position.x
         assert nc_x < no_x
 
     def test_nc_left_no_right_inverted(self):
         """In inverted orientation, NC is still left of NO."""
         sym = spdt_contact_symbol(inverted=True)
-        nc_x = sym.ports["2"].position.x
-        no_x = sym.ports["4"].position.x
+        nc_x = sym.ports["12"].position.x
+        no_x = sym.ports["14"].position.x
         assert nc_x < no_x
 
     def test_label_present_in_elements(self):
@@ -450,7 +450,7 @@ class TestSpdtContactSymbol:
 
     def test_pin_labels_added(self):
         """Providing pins should add text elements for the pin labels."""
-        sym_with = spdt_contact_symbol(pins=("1", "2", "4"))
+        sym_with = spdt_contact_symbol(pins=("11", "12", "14"))
         sym_without = spdt_contact_symbol(pins=())
         assert len(sym_with.elements) > len(sym_without.elements)
 
@@ -472,34 +472,34 @@ class TestMultiPoleSpdtSymbol:
         assert len(sym.ports) == 9
 
     def test_port_naming_convention(self):
-        """Ports should be named {pole}_{type}: 1_com, 1_nc, 1_no, etc."""
+        """Ports keyed by pin labels: 11, 12, 14, 21, 22, 24, etc."""
         sym = multi_pole_spdt_symbol(poles=3)
         for pole in range(1, 4):
-            assert f"{pole}_com" in sym.ports
-            assert f"{pole}_nc" in sym.ports
-            assert f"{pole}_no" in sym.ports
+            assert f"{pole}1" in sym.ports
+            assert f"{pole}2" in sym.ports
+            assert f"{pole}4" in sym.ports
 
     def test_two_pole(self):
         """Two-pole SPDT should have 6 ports."""
         sym = multi_pole_spdt_symbol(poles=2, label="-K2")
         assert len(sym.ports) == 6
-        assert "1_com" in sym.ports
-        assert "2_com" in sym.ports
+        assert "11" in sym.ports
+        assert "21" in sym.ports
 
     def test_single_pole(self):
         """Single-pole via multi_pole should have 3 ports."""
         sym = multi_pole_spdt_symbol(poles=1)
         assert len(sym.ports) == 3
-        assert "1_com" in sym.ports
-        assert "1_nc" in sym.ports
-        assert "1_no" in sym.ports
+        assert "11" in sym.ports
+        assert "12" in sym.ports
+        assert "14" in sym.ports
 
     def test_pole_horizontal_spacing(self):
         """Each successive pole should be offset by SPDT_POLE_SPACING (40mm)."""
         sym = multi_pole_spdt_symbol(poles=3)
-        x1 = sym.ports["1_com"].position.x
-        x2 = sym.ports["2_com"].position.x
-        x3 = sym.ports["3_com"].position.x
+        x1 = sym.ports["11"].position.x
+        x2 = sym.ports["21"].position.x
+        x3 = sym.ports["31"].position.x
         # SPDT_POLE_SPACING = 40.0
         assert abs(x2 - x1 - 40.0) < 0.001
         assert abs(x3 - x2 - 40.0) < 0.001
