@@ -12,10 +12,10 @@ from pyschemaelectrical.model.core import Point, Port, Style, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     create_extended_blade,
     create_pin_labels,
+    multipole,
     pad_pins,
     standard_style,
     standard_text,
-    three_pole_factory,
 )
 from pyschemaelectrical.model.primitives import Element, Line, Text
 from pyschemaelectrical.utils.transform import translate
@@ -28,24 +28,6 @@ This module contains functions to generate contact symbols including:
 - Normally Closed (NC)
 - Changeover (SPDT)
 """
-
-
-def three_pole_normally_open_symbol(
-    label: str = "", pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6")
-) -> Symbol:
-    """
-    Create an IEC 60617 Three Pole Normally Open Contact.
-
-    Composed of 3 single NO contacts.
-
-    Args:
-        label (str): The component tag (e.g. "-K1").
-        pins (tuple): A tuple of 6 pin numbers (e.g. ("1","2","3","4","5","6")).
-
-    Returns:
-        Symbol: The 3-pole symbol.
-    """
-    return three_pole_factory(normally_open_symbol, label, pins)
 
 
 def normally_open_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
@@ -104,20 +86,7 @@ def normally_open_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
     return Symbol(elements, ports, label=label)
 
 
-def three_pole_normally_closed_symbol(
-    label: str = "", pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6")
-) -> Symbol:
-    """
-    Create an IEC 60617 Three Pole Normally Closed Contact.
-
-    Args:
-        label (str): The component tag.
-        pins (tuple): A tuple of 6 pin numbers.
-
-    Returns:
-        Symbol: The 3-pole symbol.
-    """
-    return three_pole_factory(normally_closed_symbol, label, pins)
+three_pole_normally_open_symbol = multipole(normally_open_symbol, poles=3)
 
 
 def normally_closed_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
@@ -172,6 +141,9 @@ def normally_closed_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbo
         elements.extend(create_pin_labels(ports, pins))
 
     return Symbol(elements, ports, label=label)
+
+
+three_pole_normally_closed_symbol = multipole(normally_closed_symbol, poles=3)
 
 
 def spdt_contact_symbol(

@@ -320,55 +320,77 @@ def pad_pins(pins: tuple[str, ...], count: int, fill: str = "") -> list[str]:
     return result
 
 
+def multipole(
+    single_pole_func: Callable[..., Symbol],
+    poles: int,
+    pole_spacing: float = DEFAULT_POLE_SPACING,
+) -> Callable[..., Symbol]:
+    """Create an N-pole symbol factory from a single-pole factory.
+
+    Returns a new factory function with the same signature as single-pole
+    factories: (label, pins, **kwargs) -> Symbol.
+
+    The returned factory:
+    1. Calls single_pole_func N times
+    2. Translates each pole horizontally by pole_spacing
+    3. Shows label only on the first pole
+    4. Remaps ports to sequential IDs (1,2,3,4,...,2N)
+    5. Concatenates all elements
+
+    Args:
+        single_pole_func: A function (label, pins, **kwargs) -> Symbol.
+        poles: Number of poles (must be >= 1).
+        pole_spacing: Horizontal spacing between poles.
+    """
+    if poles < 1:
+        raise ValueError(f"poles must be >= 1, got {poles}")
+    if pole_spacing <= 0:
+        raise ValueError(f"pole_spacing must be positive, got {pole_spacing}")
+
+    expected_pins = poles * 2
+    default_pins = tuple(str(i) for i in range(1, expected_pins + 1))
+
+    def _factory(
+        label: str = "",
+        pins: tuple[str, ...] = default_pins,
+        **kwargs: Any,
+    ) -> Symbol:
+        if len(pins) != expected_pins:
+            msg = (
+                f"{poles}-pole symbol requires "
+                f"{expected_pins} pin labels, got {len(pins)}"
+            )
+            raise ValueError(msg)
+
+        all_elements: list[Element] = []
+        new_ports: dict = {}
+
+        for i in range(poles):
+            pole_label = label if i == 0 else ""
+            pole_pins = (pins[i * 2], pins[i * 2 + 1])
+            pole_sym = single_pole_func(label=pole_label, pins=pole_pins, **kwargs)
+
+            if i > 0:
+                pole_sym = translate(pole_sym, pole_spacing * i, 0)
+
+            all_elements.extend(pole_sym.elements)
+
+            port_ids = (str(i * 2 + 1), str(i * 2 + 2))
+            _add_remapped_ports(pole_sym, "1", "2", port_ids, new_ports)
+
+        return Symbol(elements=all_elements, ports=new_ports, label=label)
+
+    return _factory
+
+
 def three_pole_factory(
     single_pole_func: Callable[..., Symbol],
     label: str = "",
     pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6"),
     pole_spacing: float = DEFAULT_POLE_SPACING,
 ) -> Symbol:
-    """
-    Factory to create a three pole symbol from a single pole function.
-
-    Args:
-        single_pole_func (Callable): A function that returns a single pole Symbol.
-        label (str): The label for the composite symbol (e.g. "-Q1").
-        pins (tuple[str, ...]): A tuple of 6 pin labels (use "" to hide label).
-        pole_spacing (float): Horizontal spacing between poles.
-
-    Returns:
-        Symbol: The combined 3-pole symbol.
-
-    Raises:
-        ValueError: If pins tuple does not have exactly 6 elements.
-    """
-    if len(pins) != 6:
-        raise ValueError(f"Three pole symbol requires 6 pin labels, got {len(pins)}")
-    if pole_spacing <= 0:
-        raise ValueError(f"pole_spacing must be positive, got {pole_spacing}")
-
-    # Pole 1
-    p1 = single_pole_func(label=label, pins=(pins[0], pins[1]))
-
-    # Pole 2
-    p2 = single_pole_func(label="", pins=(pins[2], pins[3]))
-    p2 = translate(p2, pole_spacing, 0)
-
-    # Pole 3
-    p3 = single_pole_func(label="", pins=(pins[4], pins[5]))
-    p3 = translate(p3, pole_spacing * 2, 0)
-
-    # Combine elements
-    all_elements = p1.elements + p2.elements + p3.elements
-
-    new_ports: dict = {}
-
-    # Use fixed port IDs (1-6) regardless of pin labels
-    # This ensures ports always exist even if pin labels are empty
-    _add_remapped_ports(p1, "1", "2", ("1", "2"), new_ports)
-    _add_remapped_ports(p2, "1", "2", ("3", "4"), new_ports)
-    _add_remapped_ports(p3, "1", "2", ("5", "6"), new_ports)
-
-    return Symbol(elements=all_elements, ports=new_ports, label=label)
+    """Deprecated: use ``multipole(func, poles=3)`` instead."""
+    return multipole(single_pole_func, poles=3, pole_spacing=pole_spacing)(label, pins)
 
 
 def two_pole_factory(
@@ -377,37 +399,5 @@ def two_pole_factory(
     pins: tuple[str, ...] = ("1", "2", "3", "4"),
     pole_spacing: float = DEFAULT_POLE_SPACING,
 ) -> Symbol:
-    """
-    Factory to create a two pole symbol from a single pole function.
-
-    Args:
-        single_pole_func (Callable): A function that returns a single pole Symbol.
-        label (str): The label for the composite symbol (e.g. "-F1").
-        pins (tuple[str, ...]): A tuple of 4 pin labels.
-        pole_spacing (float): Horizontal spacing between poles.
-
-    Returns:
-        Symbol: The combined 2-pole symbol.
-    """
-    if len(pins) != 4:
-        raise ValueError(f"Two pole symbol requires 4 pin labels, got {len(pins)}")
-    if pole_spacing <= 0:
-        raise ValueError(f"pole_spacing must be positive, got {pole_spacing}")
-
-    # Pole 1
-    p1 = single_pole_func(label=label, pins=(pins[0], pins[1]))
-
-    # Pole 2
-    p2 = single_pole_func(label="", pins=(pins[2], pins[3]))
-    p2 = translate(p2, pole_spacing, 0)
-
-    # Combine elements
-    all_elements = p1.elements + p2.elements
-
-    new_ports: dict = {}
-
-    # Use fixed port IDs (1-4)
-    _add_remapped_ports(p1, "1", "2", ("1", "2"), new_ports)
-    _add_remapped_ports(p2, "1", "2", ("3", "4"), new_ports)
-
-    return Symbol(elements=all_elements, ports=new_ports, label=label)
+    """Deprecated: use ``multipole(func, poles=2)`` instead."""
+    return multipole(single_pole_func, poles=2, pole_spacing=pole_spacing)(label, pins)

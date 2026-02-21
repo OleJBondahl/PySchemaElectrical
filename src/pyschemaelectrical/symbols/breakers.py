@@ -2,10 +2,9 @@ from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
 from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     create_pin_labels,
+    multipole,
     standard_style,
     standard_text,
-    three_pole_factory,
-    two_pole_factory,
 )
 from pyschemaelectrical.model.primitives import Line
 
@@ -79,36 +78,5 @@ def circuit_breaker_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbo
     return Symbol(elements, ports, label=label)
 
 
-def three_pole_circuit_breaker_symbol(
-    label: str = "",
-    pins: tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
-) -> Symbol:
-    """IEC 60617 Three Pole Circuit Breaker.
-
-    Composed of 3 single-pole circuit breaker symbols.
-
-    Args:
-        label (str): Component label (e.g., "F1").
-        pins (tuple): Six pin designations for the three poles.
-
-    Returns:
-        Symbol: Three pole circuit breaker symbol.
-    """
-    return three_pole_factory(circuit_breaker_symbol, label, pins)
-
-
-def two_pole_circuit_breaker_symbol(
-    label: str = "", pins: tuple[str, str, str, str] = ("1", "2", "3", "4")
-) -> Symbol:
-    """IEC 60617 Two Pole Circuit Breaker.
-
-    Composed of 2 single-pole circuit breaker symbols.
-
-    Args:
-        label (str): Component label (e.g., "F1").
-        pins (tuple): Four pin designations.
-
-    Returns:
-        Symbol: Two pole circuit breaker symbol.
-    """
-    return two_pole_factory(circuit_breaker_symbol, label, pins)
+three_pole_circuit_breaker_symbol = multipole(circuit_breaker_symbol, poles=3)
+two_pole_circuit_breaker_symbol = multipole(circuit_breaker_symbol, poles=2)

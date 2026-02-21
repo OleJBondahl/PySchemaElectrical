@@ -3,9 +3,9 @@ from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     box,
     create_pin_labels,
+    multipole,
     standard_style,
     standard_text,
-    three_pole_factory,
 )
 from pyschemaelectrical.model.primitives import Line
 
@@ -79,14 +79,7 @@ def thermal_overload_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symb
     return Symbol(elements, ports, label=label)
 
 
-def three_pole_thermal_overload_symbol(
-    label: str = "", pins: tuple[str, ...] = ("1", "2", "3", "4", "5", "6")
-) -> Symbol:
-    """IEC 60617 Three Pole Thermal Overload Protection.
-
-    Composed of 3 single thermal overload symbols.
-    """
-    return three_pole_factory(thermal_overload_symbol, label, pins)
+three_pole_thermal_overload_symbol = multipole(thermal_overload_symbol, poles=3)
 
 
 def fuse_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
