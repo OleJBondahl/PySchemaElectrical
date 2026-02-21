@@ -946,6 +946,9 @@ class Project:
         result = cdef.builder_fn(self._state, **cdef.params)
         if isinstance(result, BuildResult):
             return result
+        # Support frozen CircuitBuilder return
+        if isinstance(result, CircuitBuilder) and result._frozen:
+            return result._result
         # Support tuple return: (state, circuit, used_terminals)
         state, circuit, used_terminals = result
         return BuildResult(
