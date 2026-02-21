@@ -72,6 +72,9 @@ class ComponentSpec:
     # Device metadata for BOM tracking
     device: "InternalDevice | None" = None
 
+    # Bridge control for terminals
+    bridge: bool | str = False  # False, True, or "auto"
+
     def get_y_increment(self, default: float) -> float:
         return self.y_increment if self.y_increment is not None else default
 
@@ -342,6 +345,7 @@ class CircuitBuilder:
         y_increment: float | None = None,
         auto_connect_next: bool = True,
         connection_side: str | None = None,
+        bridge: bool | str = False,
         **kwargs,
     ) -> "ComponentRef":
         """Add a terminal block to the circuit chain.
@@ -364,6 +368,9 @@ class CircuitBuilder:
             auto_connect_next: Auto-connect to next component (default True).
             connection_side: Override the auto-determined side ('top' or
                 'bottom') for the terminal CSV from/to column.
+            bridge: Bridge control. ``False`` (default) = no bridge.
+                ``True`` = always bridge all poles. ``"auto"`` = derive
+                from the Terminal object's ``bridge`` attribute.
 
         Returns:
             ComponentRef for the added terminal.
@@ -382,6 +389,7 @@ class CircuitBuilder:
             y_increment=y_increment,
             auto_connect_next=auto_connect_next,
             connection_side=connection_side,
+            bridge=bridge,
             kwargs={
                 "tm_id": tm_id,
                 "label_pos": label_pos,
@@ -814,6 +822,42 @@ class CircuitBuilder:
                 result[str_key] = source
         return result
 
+    def _derive_bridge_groups(
+        self, terminal_pin_map: dict[str, list[str]]
+    ) -> dict[str, list[tuple[int, int]]]:
+        """Auto-derive bridge groups from terminals with bridge enabled."""
+        bridge_groups: dict[str, list[tuple[int, int]]] = {}
+        for comp in self._spec.components:
+            if comp.kind != "terminal" or comp.bridge is False:
+                continue
+            if comp.poles < 2:
+                continue
+
+            tm_id = comp.kwargs.get("tm_id")
+            tid = str(tm_id)
+
+            # For bridge="auto", check the Terminal object's bridge attribute
+            if comp.bridge == "auto":
+                term_bridge = getattr(tm_id, "bridge", None)
+                if term_bridge != "all":
+                    continue
+
+            pins = terminal_pin_map.get(tid, [])
+            if len(pins) < 2:
+                continue
+
+            # Group pins by poles per instance
+            poles = comp.poles
+            for i in range(0, len(pins), poles):
+                chunk = pins[i : i + poles]
+                if len(chunk) >= 2:
+                    int_pins = sorted(int(p.split(":")[-1]) for p in chunk)
+                    bridge_groups.setdefault(tid, []).append(
+                        (int_pins[0], int_pins[-1])
+                    )
+
+        return bridge_groups
+
     def build(  # noqa: C901
         self,
         count: int = 1,
@@ -950,6 +994,9 @@ class CircuitBuilder:
                 if tid not in used_terminals:
                     used_terminals.append(tid)
 
+        # Auto-derive bridge groups from terminal specs
+        auto_bridges = self._derive_bridge_groups(captured_terminal_pins)
+
         result = BuildResult(
             state=final_state,
             circuit=c,
@@ -958,6 +1005,7 @@ class CircuitBuilder:
             terminal_pin_map=captured_terminal_pins,
             device_registry=captured_device_registry,
             wire_connections=captured_wire_connections,
+            bridge_groups=auto_bridges,
         )
         self._result = result
         self._frozen = True
