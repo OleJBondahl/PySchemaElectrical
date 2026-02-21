@@ -1323,30 +1323,34 @@ def _phase2_register_connections(  # noqa: C901
             elif (
                 curr["spec"].kind == "reference" and next_comp["spec"].kind == "symbol"
             ):
+                state, ref_pins = next_terminal_pins(state, curr["tag"], 1)
+                ref_pin = ref_pins[0]
                 state = register_connection(
                     state,
                     curr["tag"],
-                    str(p + 1),
+                    ref_pin,
                     next_comp["tag"],
                     next_pin,
                     side="bottom",
                 )
                 wire_connections.append(
-                    (curr["tag"], str(p + 1), next_comp["tag"], next_pin)
+                    (curr["tag"], ref_pin, next_comp["tag"], next_pin)
                 )
             elif (
                 curr["spec"].kind == "symbol" and next_comp["spec"].kind == "reference"
             ):
+                state, ref_pins = next_terminal_pins(state, next_comp["tag"], 1)
+                ref_pin = ref_pins[0]
                 state = register_connection(
                     state,
                     next_comp["tag"],
-                    str(p + 1),
+                    ref_pin,
                     curr["tag"],
                     curr_pin,
                     side="top",
                 )
                 wire_connections.append(
-                    (curr["tag"], curr_pin, next_comp["tag"], str(p + 1))
+                    (curr["tag"], curr_pin, next_comp["tag"], ref_pin)
                 )
             elif curr["spec"].kind == "symbol" and next_comp["spec"].kind == "symbol":
                 wire_connections.append(
@@ -1383,15 +1387,19 @@ def _phase2_register_connections(  # noqa: C901
             )
             wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], reg_pin_b))
         elif comp_a["spec"].kind == "reference" and comp_b["spec"].kind == "symbol":
+            state, ref_pins = next_terminal_pins(state, comp_a["tag"], 1)
+            ref_pin = ref_pins[0]
             state = register_connection(
-                state, comp_a["tag"], str(p_a + 1), comp_b["tag"], pin_b, side=side_a
+                state, comp_a["tag"], ref_pin, comp_b["tag"], pin_b, side=side_a
             )
-            wire_connections.append((comp_a["tag"], str(p_a + 1), comp_b["tag"], pin_b))
+            wire_connections.append((comp_a["tag"], ref_pin, comp_b["tag"], pin_b))
         elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "reference":
+            state, ref_pins = next_terminal_pins(state, comp_b["tag"], 1)
+            ref_pin = ref_pins[0]
             state = register_connection(
-                state, comp_b["tag"], str(p_b + 1), comp_a["tag"], pin_a, side=side_b
+                state, comp_b["tag"], ref_pin, comp_a["tag"], pin_a, side=side_b
             )
-            wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], str(p_b + 1)))
+            wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], ref_pin))
         elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "symbol":
             wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], pin_b))
 
