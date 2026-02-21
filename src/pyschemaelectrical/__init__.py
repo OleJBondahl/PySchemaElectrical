@@ -100,4 +100,3 @@ from .utils.utils import (
     set_terminal_counter,
 )
 from .wire import wire
-from . import std_circuits  # noqa: E402, I001 — must be last to avoid circular imports

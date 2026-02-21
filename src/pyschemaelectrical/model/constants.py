@@ -115,7 +115,7 @@ class StandardCircuitKeys:
 
 
 # =============================================================================
-# Layout Constants for std_circuits
+# Layout Constants
 # =============================================================================
 # These constants define geometric layout values used in standard circuit creation.
 # They are derived from GRID_SIZE for consistency.

@@ -55,46 +55,6 @@ def test_set_pin_start():
     assert p._state.terminal_counters["X1"] == 5
 
 
-def test_dol_starter_registration():
-    """dol_starter should register a circuit definition."""
-    p = Project()
-    p.dol_starter("motors", count=2, tm_top="X1", tm_bot="X2")
-    assert len(p._circuit_defs) == 1
-    assert p._circuit_defs[0].key == "motors"
-    assert p._circuit_defs[0].factory == "dol_starter"
-    assert p._circuit_defs[0].count == 2
-
-
-def test_psu_registration():
-    """psu should register a circuit definition."""
-    p = Project()
-    p.psu("psu1", tm_top="X2", tm_bot_left="X3", tm_bot_right="X4")
-    assert len(p._circuit_defs) == 1
-    assert p._circuit_defs[0].factory == "psu"
-
-
-def test_changeover_registration():
-    """changeover should register a circuit definition."""
-    p = Project()
-    p.changeover("co", tm_top_left="X5", tm_top_right="X6", tm_bot="X7")
-    assert p._circuit_defs[0].factory == "changeover"
-
-
-def test_emergency_stop_registration():
-    """emergency_stop should register a circuit definition."""
-    p = Project()
-    p.emergency_stop("estop", tm_top="X3", tm_bot="X20")
-    assert p._circuit_defs[0].factory == "emergency_stop"
-
-
-def test_coil_registration():
-    """coil should register a circuit definition."""
-    p = Project()
-    p.coil("coils", count=3, tm_top="X3")
-    assert p._circuit_defs[0].factory == "coil"
-    assert p._circuit_defs[0].count == 3
-
-
 def test_page_registration():
     """Pages should be registered in order."""
     p = Project()
@@ -142,10 +102,14 @@ def test_circuit_descriptor_registration():
 
 def test_build_svgs():
     """build_svgs should generate SVG files for each circuit."""
+
+    def my_builder(state, **kwargs):
+        return BuildResult(state=state, circuit=Circuit(), used_terminals=["X3", "X4"])
+
     with tempfile.TemporaryDirectory() as tmpdir:
         p = Project()
         p.terminals(Terminal("X3", "24V"), Terminal("X4", "GND"))
-        p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
+        p.custom("estop", my_builder)
 
         output_dir = os.path.join(tmpdir, "output")
         p.build_svgs(output_dir)
@@ -161,19 +125,24 @@ def test_build_svgs():
 
 def test_build_multiple_circuits():
     """build_svgs should handle multiple circuits."""
+
+    def builder_a(state, **kwargs):
+        return BuildResult(state=state, circuit=Circuit(), used_terminals=["X3", "X4"])
+
+    def builder_b(state, **kwargs):
+        return BuildResult(state=state, circuit=Circuit(), used_terminals=["X5", "X6"])
+
     with tempfile.TemporaryDirectory() as tmpdir:
         p = Project()
         p.terminals(
-            Terminal("X1", "Power"),
             Terminal("X3", "24V"),
             Terminal("X4", "GND"),
             Terminal("X5", "Supply 1"),
             Terminal("X6", "Supply 2"),
-            Terminal("X7", "Output"),
         )
 
-        p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
-        p.changeover("co", tm_top_left="X5", tm_top_right="X6", tm_bot="X7")
+        p.custom("estop", builder_a)
+        p.custom("co", builder_b)
 
         output_dir = os.path.join(tmpdir, "output")
         p.build_svgs(output_dir)
@@ -347,24 +316,6 @@ class TestSetPinStart:
 class TestCircuitRegistration:
     """Tests for all circuit registration methods."""
 
-    def test_spdt_registration(self):
-        """spdt should register a circuit definition."""
-        p = Project()
-        p.spdt("relays", count=2, tm_top="X3", tm_bot_left="X4", tm_bot_right="X5")
-        assert len(p._circuit_defs) == 1
-        assert p._circuit_defs[0].key == "relays"
-        assert p._circuit_defs[0].factory == "spdt"
-        assert p._circuit_defs[0].count == 2
-
-    def test_no_contact_registration(self):
-        """no_contact should register a circuit definition."""
-        p = Project()
-        p.no_contact("contacts", count=4, tm_top="X3", tm_bot="X4")
-        assert len(p._circuit_defs) == 1
-        assert p._circuit_defs[0].key == "contacts"
-        assert p._circuit_defs[0].factory == "no_contact"
-        assert p._circuit_defs[0].count == 4
-
     def test_custom_registration(self):
         """custom() should register a custom builder function circuit."""
 
@@ -386,24 +337,36 @@ class TestCircuitRegistration:
 
     def test_circuit_with_wire_labels(self):
         """Circuit registration should store wire_labels correctly."""
+        from pyschemaelectrical import comp, term
+        from pyschemaelectrical.symbols.coils import coil_symbol
+
         p = Project()
-        p.dol_starter(
-            "motors",
+        p.circuit(
+            "coils",
+            components=[
+                term("X3"),
+                comp(coil_symbol, "K", pins=("A1", "A2")),
+                term("X4"),
+            ],
             count=2,
-            tm_top="X1",
-            tm_bot="X2",
             wire_labels=["L1", "L2"],
         )
         assert p._circuit_defs[0].wire_labels == ["L1", "L2"]
 
     def test_circuit_with_reuse_tags(self):
         """Circuit registration should store reuse_tags correctly."""
+        from pyschemaelectrical import comp, term
+        from pyschemaelectrical.symbols.contacts import normally_open_symbol
+
         p = Project()
-        p.no_contact(
+        p.circuit(
             "contacts",
+            components=[
+                term("X3"),
+                comp(normally_open_symbol, "K", pins=("13", "14")),
+                term("X4"),
+            ],
             count=2,
-            tm_top="X3",
-            tm_bot="X4",
             reuse_tags={"K": "coils"},
         )
         assert p._circuit_defs[0].reuse_tags == {"K": "coils"}
@@ -430,10 +393,19 @@ class TestCircuitRegistration:
 
     def test_multiple_circuits_registered_in_order(self):
         """Multiple circuits should be registered in order."""
+        from pyschemaelectrical import comp, term
+        from pyschemaelectrical.symbols.coils import coil_symbol
+
         p = Project()
-        p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
-        p.coil("coils", count=2, tm_top="X3")
-        p.no_contact("contacts", count=2, tm_top="X3", tm_bot="X4")
+        for key in ("estop", "coils", "contacts"):
+            p.circuit(
+                key,
+                components=[
+                    term("X3"),
+                    comp(coil_symbol, "K", pins=("A1", "A2")),
+                    term("X4"),
+                ],
+            )
         assert len(p._circuit_defs) == 3
         assert p._circuit_defs[0].key == "estop"
         assert p._circuit_defs[1].key == "coils"
@@ -608,13 +580,19 @@ class TestBuildSvgs:
 
     def test_build_svgs_with_bridge_defs(self):
         """build_svgs should apply bridge definitions from non-reference terminals."""
+
+        def my_builder(state, **kwargs):
+            return BuildResult(
+                state=state, circuit=Circuit(), used_terminals=["X3", "X4"]
+            )
+
         with tempfile.TemporaryDirectory() as tmpdir:
             p = Project()
             p.terminals(
                 Terminal("X3", "24V", bridge="all"),
                 Terminal("X4", "GND", bridge="all"),
             )
-            p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
+            p.custom("estop", my_builder)
 
             output_dir = os.path.join(tmpdir, "output")
             p.build_svgs(output_dir)
@@ -625,6 +603,12 @@ class TestBuildSvgs:
 
     def test_build_svgs_reference_terminals_excluded_from_bridges(self):
         """Reference terminals should not contribute bridge definitions."""
+
+        def my_builder(state, **kwargs):
+            return BuildResult(
+                state=state, circuit=Circuit(), used_terminals=["X3", "X4"]
+            )
+
         with tempfile.TemporaryDirectory() as tmpdir:
             p = Project()
             p.terminals(
@@ -632,7 +616,7 @@ class TestBuildSvgs:
                 Terminal("X3", "24V"),
                 Terminal("X4", "GND"),
             )
-            p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
+            p.custom("estop", my_builder)
 
             output_dir = os.path.join(tmpdir, "output")
             p.build_svgs(output_dir)
@@ -864,6 +848,12 @@ class TestBuildMethod:
 
     def test_build_calls_typst_compiler(self):
         """build() should create TypstCompiler, add pages, and compile."""
+
+        def my_builder(state, **kwargs):
+            return BuildResult(
+                state=state, circuit=Circuit(), used_terminals=["X3", "X4"]
+            )
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_pdf = os.path.join(tmpdir, "output.pdf")
             temp_dir = os.path.join(tmpdir, "temp")
@@ -877,7 +867,7 @@ class TestBuildMethod:
                 font="Arial",
             )
             p.terminals(Terminal("X3", "24V"), Terminal("X4", "GND"))
-            p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
+            p.custom("estop", my_builder)
             p.page("Test Page", "estop")
 
             mock_module, mock_compiler = self._mock_build(
@@ -889,13 +879,19 @@ class TestBuildMethod:
 
     def test_build_generates_per_circuit_csv(self):
         """build() should generate per-circuit terminal CSV for circuits with used_terminals."""
+
+        def my_builder(state, **kwargs):
+            return BuildResult(
+                state=state, circuit=Circuit(), used_terminals=["X3", "X4"]
+            )
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_pdf = os.path.join(tmpdir, "output.pdf")
             temp_dir = os.path.join(tmpdir, "temp")
 
             p = Project()
             p.terminals(Terminal("X3", "24V"), Terminal("X4", "GND"))
-            p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
+            p.custom("estop", my_builder)
 
             self._mock_build(p, output_pdf, temp_dir, keep_temp=True)
 
@@ -905,6 +901,12 @@ class TestBuildMethod:
 
     def test_build_with_bridge_defs(self):
         """build() should apply bridge definitions from terminals."""
+
+        def my_builder(state, **kwargs):
+            return BuildResult(
+                state=state, circuit=Circuit(), used_terminals=["X3", "X4"]
+            )
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_pdf = os.path.join(tmpdir, "output.pdf")
             temp_dir = os.path.join(tmpdir, "temp")
@@ -914,7 +916,7 @@ class TestBuildMethod:
                 Terminal("X3", "24V", bridge="all"),
                 Terminal("X4", "GND", bridge="all"),
             )
-            p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
+            p.custom("estop", my_builder)
 
             self._mock_build(p, output_pdf, temp_dir, keep_temp=True)
 
@@ -1035,25 +1037,6 @@ class TestBuildAllCircuits:
             assert len(p._results) == 1
 
 
-class TestBuildStdCircuit:
-    """Tests for _build_std_circuit with wire_labels."""
-
-    def test_std_circuit_with_wire_labels(self):
-        """Standard circuits should pass wire_labels to the factory."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            p = Project()
-            p.terminals(Terminal("X3", "24V"), Terminal("X4", "GND"))
-            p.emergency_stop(
-                "estop",
-                tm_top="X3",
-                tm_bot="X4",
-                wire_labels=["BKWH1", "BKWH2"],
-            )
-
-            p.build_svgs(tmpdir)
-            assert os.path.exists(os.path.join(tmpdir, "estop.svg"))
-
-
 class TestEdgeCases:
     """Edge case and integration tests."""
 
@@ -1093,11 +1076,17 @@ class TestEdgeCases:
 
     def test_build_svgs_no_bridge_when_no_bridge_defs(self):
         """build_svgs should not call update_csv when no bridge defs exist."""
+
+        def my_builder(state, **kwargs):
+            return BuildResult(
+                state=state, circuit=Circuit(), used_terminals=["X3", "X4"]
+            )
+
         with tempfile.TemporaryDirectory() as tmpdir:
             p = Project()
             # Terminals without bridge
             p.terminals(Terminal("X3", "24V"), Terminal("X4", "GND"))
-            p.emergency_stop("estop", tm_top="X3", tm_bot="X4")
+            p.custom("estop", my_builder)
             p.build_svgs(tmpdir)
             # Should succeed without issues
             assert os.path.exists(os.path.join(tmpdir, "system_terminals.csv"))

@@ -42,7 +42,7 @@ class _CircuitDef:
     """Internal deferred circuit definition."""
 
     key: str
-    factory: str  # "dol_starter", "psu", "changeover", etc. or "descriptors" / "custom"
+    factory: str  # "descriptors" or "custom"
     params: dict[str, Any] = field(default_factory=dict)
     count: int = 1
     wire_labels: list[str] | None = None
@@ -94,8 +94,7 @@ class Project:
             Terminal("X3", "Fused 24V", bridge="all"),
             Terminal("X4", "Ground", bridge="all"),
         )
-        project.dol_starter("motors", count=3, tm_top="X1",
-                            tm_bot=["X10","X11","X12"])
+        project.add_circuit("motors", my_builder, count=3)
         project.page("Motor Circuits", "motors")
         project.terminal_report()
         project.build("output.pdf")
@@ -188,88 +187,7 @@ class Project:
         )
 
     # ------------------------------------------------------------------
-    # Standard circuit registration
-    # ------------------------------------------------------------------
-
-    def dol_starter(self, key: str, count: int = 1, **kwargs):
-        """Register a DOL starter motor circuit.
-
-        Args:
-            key: Unique circuit identifier.
-            count: Number of instances.
-            **kwargs: Passed to ``std_circuits.dol_starter()``
-                (tm_top, tm_bot, poles, etc.).
-        """
-        self._add_std_circuit(key, "dol_starter", count, **kwargs)
-
-    def psu(self, key: str, count: int = 1, **kwargs):
-        """Register a PSU (power supply unit) circuit.
-
-        Args:
-            key: Unique circuit identifier.
-            count: Number of instances.
-            **kwargs: Passed to ``std_circuits.psu()``
-                (tm_top, tm_bot_left, tm_bot_right, etc.).
-        """
-        self._add_std_circuit(key, "psu", count, **kwargs)
-
-    def changeover(self, key: str, count: int = 1, **kwargs):
-        """Register a changeover switch circuit.
-
-        Args:
-            key: Unique circuit identifier.
-            count: Number of instances.
-            **kwargs: Passed to ``std_circuits.changeover()``
-                (tm_top_left, tm_top_right, tm_bot, poles, etc.).
-        """
-        self._add_std_circuit(key, "changeover", count, **kwargs)
-
-    def spdt(self, key: str, count: int = 1, **kwargs):
-        """Register an SPDT relay circuit.
-
-        Args:
-            key: Unique circuit identifier.
-            count: Number of instances.
-            **kwargs: Passed to ``std_circuits.spdt()``
-                (tm_top, tm_bot_left, tm_bot_right, etc.).
-        """
-        self._add_std_circuit(key, "spdt", count, **kwargs)
-
-    def coil(self, key: str, count: int = 1, **kwargs):
-        """Register a coil circuit.
-
-        Args:
-            key: Unique circuit identifier.
-            count: Number of instances.
-            **kwargs: Passed to ``std_circuits.coil()``
-                (tm_top, tm_bot, etc.).
-        """
-        self._add_std_circuit(key, "coil", count, **kwargs)
-
-    def emergency_stop(self, key: str, count: int = 1, **kwargs):
-        """Register an emergency stop circuit.
-
-        Args:
-            key: Unique circuit identifier.
-            count: Number of instances.
-            **kwargs: Passed to ``std_circuits.emergency_stop()``
-                (tm_top, tm_bot, etc.).
-        """
-        self._add_std_circuit(key, "emergency_stop", count, **kwargs)
-
-    def no_contact(self, key: str, count: int = 1, **kwargs):
-        """Register a normally-open contact circuit.
-
-        Args:
-            key: Unique circuit identifier.
-            count: Number of instances.
-            **kwargs: Passed to ``std_circuits.no_contact()``
-                (tm_top, tm_bot, etc.).
-        """
-        self._add_std_circuit(key, "no_contact", count, **kwargs)
-
-    # ------------------------------------------------------------------
-    # Custom circuit registration
+    # Circuit registration
     # ------------------------------------------------------------------
 
     def circuit(
@@ -346,10 +264,9 @@ class Project:
     ) -> CircuitBuilder:
         """Build a CircuitBuilder immediately and register its result.
 
-        Unlike the deferred ``dol_starter()`` / ``circuit()`` methods,
-        ``add_circuit()`` builds the circuit right away and stores the
-        ``BuildResult``. State is advanced so subsequent circuits see
-        the updated tag/terminal counters.
+        Builds the circuit right away and stores the ``BuildResult``.
+        State is advanced so subsequent circuits see the updated
+        tag/terminal counters.
 
         Args:
             name: Unique circuit identifier (used as key in results and
@@ -886,34 +803,10 @@ class Project:
         elif cdef.factory == "custom":
             return self._build_custom_circuit(cdef)
         else:
-            return self._build_std_circuit(cdef, resolved_reuse)
-
-    def _build_std_circuit(
-        self, cdef: _CircuitDef, resolved_reuse: dict | None
-    ) -> BuildResult:
-        """Build a standard circuit (dol_starter, psu, etc.)."""
-        from pyschemaelectrical import std_circuits
-
-        try:
-            factory_fn = getattr(std_circuits, cdef.factory)
-        except AttributeError:
-            available = [n for n in dir(std_circuits) if not n.startswith("_")]
             raise ValueError(
-                f"Unknown circuit factory '{cdef.factory}'. Available: {available}"
-            ) from None
-
-        # Build kwargs from params
-        kwargs = dict(cdef.params)
-        kwargs["count"] = cdef.count
-        if cdef.wire_labels:
-            kwargs["wire_labels"] = cdef.wire_labels
-
-        # Standard circuits use positional x, y -- default to 0, 0
-        x = kwargs.pop("x", 0.0)
-        y = kwargs.pop("y", 0.0)
-
-        # Standard circuits now return BuildResult directly
-        return factory_fn(self._state, x, y, **kwargs)
+                f"Unknown circuit factory '{cdef.factory}'. "
+                f"Use 'descriptors' or 'custom'."
+            )
 
     def _build_descriptor_circuit(
         self, cdef: _CircuitDef, resolved_reuse: dict | None
@@ -955,21 +848,6 @@ class Project:
             state=state,
             circuit=circuit,
             used_terminals=used_terminals,
-        )
-
-    def _add_std_circuit(self, key: str, factory: str, count: int, **kwargs):
-        """Register a standard circuit definition."""
-        wire_labels = kwargs.pop("wire_labels", None)
-        reuse_tags = kwargs.pop("reuse_tags", None)
-        self._circuit_defs.append(
-            _CircuitDef(
-                key=key,
-                factory=factory,
-                count=count,
-                wire_labels=wire_labels,
-                reuse_tags=reuse_tags,
-                params=kwargs,
-            )
         )
 
     # ------------------------------------------------------------------
