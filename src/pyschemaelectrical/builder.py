@@ -467,6 +467,7 @@ class CircuitBuilder:
         x_offset: float = 0.0,
         y_increment: float | None = None,
         device: "InternalDevice | None" = None,
+        wire_labels_above: list[str] | tuple[str, ...] | None = None,
     ) -> "ComponentRef":
         """Add an SPDT (changeover) contact to the circuit.
 
@@ -489,6 +490,8 @@ class CircuitBuilder:
             x_offset: Horizontal offset in mm.
             y_increment: Vertical spacing override in mm.
             device: Optional InternalDevice for BOM tracking.
+            wire_labels_above: Wire labels for the wires above this component
+                (connecting it to the previous component). One label per pole.
 
         Returns:
             ComponentRef for the added SPDT component.
@@ -528,6 +531,7 @@ class CircuitBuilder:
             y_increment=y_increment,
             auto_connect_next=False,
             device=device,
+            wire_labels_above=wire_labels_above,
             kwargs=sym_kwargs,
         )
         self._spec.components.append(spec)
@@ -684,6 +688,7 @@ class CircuitBuilder:
                 tag_prefix=str(tm_id),
                 kind="reference",
                 poles=poles,
+                pins=pins,
                 y_increment=y_inc,
                 auto_connect_next=False,
                 placed_above_of=(ref_idx, pin_name),
@@ -767,6 +772,7 @@ class CircuitBuilder:
                 tag_prefix=str(tm_id),
                 kind="reference",
                 poles=poles,
+                pins=pins,
                 y_increment=y_inc,
                 auto_connect_next=False,
                 placed_below_of=(ref_idx, pin_name),
@@ -1583,15 +1589,21 @@ def _phase2_register_connections(  # noqa: C901
             )
             wire_connections.append((comp_a["tag"], pin_a, comp_b["tag"], reg_pin_b))
         elif comp_a["spec"].kind == "reference" and comp_b["spec"].kind == "symbol":
-            state, ref_pins = next_terminal_pins(state, comp_a["tag"], 1)
-            ref_pin = ref_pins[0]
+            if comp_a["pins"]:
+                ref_pin = comp_a["pins"][0]
+            else:
+                state, ref_pins = next_terminal_pins(state, comp_a["tag"], 1)
+                ref_pin = ref_pins[0]
             state = register_connection(
                 state, comp_a["tag"], ref_pin, comp_b["tag"], pin_b, side=side_a
             )
             wire_connections.append((comp_a["tag"], ref_pin, comp_b["tag"], pin_b))
         elif comp_a["spec"].kind == "symbol" and comp_b["spec"].kind == "reference":
-            state, ref_pins = next_terminal_pins(state, comp_b["tag"], 1)
-            ref_pin = ref_pins[0]
+            if comp_b["pins"]:
+                ref_pin = comp_b["pins"][0]
+            else:
+                state, ref_pins = next_terminal_pins(state, comp_b["tag"], 1)
+                ref_pin = ref_pins[0]
             state = register_connection(
                 state, comp_b["tag"], ref_pin, comp_a["tag"], pin_a, side=side_b
             )
