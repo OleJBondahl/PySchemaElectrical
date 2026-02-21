@@ -896,6 +896,67 @@ class TestPlacement:
         spec = builder._spec.components[tm_ref._index]
         assert spec.y_increment == 30.0
 
+    def test_place_below_stores_spec_correctly(self):
+        """place_below should store a ComponentSpec with placed_below_of set."""
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        comp = builder.add_component(mock_symbol, tag_prefix="K", pins=["1", "2"])
+
+        tm_ref = builder.place_below(comp.pin("1"), "X99", poles=1)
+
+        spec = builder._spec.components[tm_ref._index]
+        assert spec.placed_below_of == (comp._index, "1")
+        assert spec.kind == "terminal"
+        assert spec.auto_connect_next is False
+
+    def test_place_below_registers_connection(self):
+        """place_below should automatically register a connection."""
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        comp = builder.add_component(mock_symbol, tag_prefix="K", pins=["1", "2"])
+
+        builder.place_below(comp.pin("1"), "X99")
+
+        assert len(builder._spec.manual_connections) == 1
+
+    def test_place_below_builds_successfully(self):
+        """A circuit with place_below should build without error."""
+        state = create_autonumberer()
+        builder = CircuitBuilder(state)
+        builder.set_layout(0, 0)
+        comp = builder.add_component(mock_symbol, tag_prefix="K", pins=["1", "2"])
+        builder.place_below(comp.pin("1"), "X99", poles=1)
+
+        result = builder.build(count=1)
+        assert result.circuit is not None
+
+    def test_place_below_with_reference_terminal(self):
+        """place_below with a reference Terminal should create a reference spec."""
+        from pyschemaelectrical.terminal import Terminal
+
+        builder = CircuitBuilder(create_autonumberer())
+        builder.set_layout(0, 0)
+        comp = builder.add_component(mock_symbol, tag_prefix="K", pins=["1", "2"])
+
+        ref_tm = Terminal("PLC:DO", reference=True)
+        tm_ref = builder.place_below(comp.pin("1"), ref_tm)
+
+        spec = builder._spec.components[tm_ref._index]
+        assert spec.kind == "reference"
+        assert spec.kwargs.get("direction") == "down"
+
+    def test_place_below_wire_connection(self):
+        """place_below should register wire connection from target to placed."""
+        state = create_autonumberer()
+        builder = CircuitBuilder(state)
+        builder.set_layout(0, 0)
+        comp = builder.add_component(mock_symbol, tag_prefix="K", pins=["1", "2"])
+        builder.place_below(comp.pin("1"), "X99", poles=1)
+
+        result = builder.build(count=1)
+        # Should have wire connection from component to terminal
+        assert len(result.wire_connections) >= 1
+
 
 # ---------------------------------------------------------------------------
 # add_reference tests

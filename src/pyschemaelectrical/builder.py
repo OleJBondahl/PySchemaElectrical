@@ -66,14 +66,18 @@ class ComponentSpec:
     # Horizontal placement reference (index of component this was placed_right of)
     placed_right_of: int | None = None
 
-    # Vertical placement reference (index of component + pin name to place above)
+    # Vertical placement reference (index of component + pin name to place above/below)
     placed_above_of: tuple[int, str] | None = None
+    placed_below_of: tuple[int, str] | None = None
 
     # Device metadata for BOM tracking
     device: "InternalDevice | None" = None
 
     # Bridge control for terminals
     bridge: bool | str = False  # False, True, or "auto"
+
+    # Per-connection wire labels for the wires directly above this component
+    wire_labels_above: list[str] | tuple[str, ...] | None = None
 
     def get_y_increment(self, default: float) -> float:
         return self.y_increment if self.y_increment is not None else default
@@ -93,6 +97,8 @@ class CircuitSpec:
     matching_connections: list[tuple[int, int, list[str] | None, str, str]] = field(
         default_factory=list
     )
+    # Per-connection wire labels keyed by manual_connections index
+    connection_wire_labels: dict[int, str] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -412,6 +418,7 @@ class CircuitBuilder:
         y_increment: float | None = None,
         auto_connect_next: bool = True,
         device: "InternalDevice | None" = None,
+        wire_labels_above: list[str] | tuple[str, ...] | None = None,
         **kwargs,
     ) -> "ComponentRef":
         """Add a generic component to the circuit chain.
@@ -426,6 +433,8 @@ class CircuitBuilder:
                 ``symbol_spacing``.
             auto_connect_next: Auto-connect to next component (default True).
             device: Optional InternalDevice for BOM tracking.
+            wire_labels_above: Wire labels for the wires above this component
+                (connecting it to the previous component). One label per pole.
             **kwargs: Passed to the symbol factory function.
 
         Returns:
@@ -442,6 +451,7 @@ class CircuitBuilder:
             y_increment=y_increment,
             auto_connect_next=auto_connect_next,
             device=device,
+            wire_labels_above=wire_labels_above,
             kwargs=kwargs,
         )
         self._spec.components.append(spec)
@@ -548,6 +558,7 @@ class CircuitBuilder:
         pins: list[str] | tuple[str, ...] | None = None,
         label_pos: str | None = None,
         y_offset: float | None = None,
+        wire_label: str | None = None,
     ) -> "ComponentRef":
         """
         Place a terminal or reference above a component's pin.
@@ -619,7 +630,87 @@ class CircuitBuilder:
         new_ref = ComponentRef(self, idx, str(tm_id))
 
         # Register connection: placed terminal/ref bottom → target pin
-        self.connect(new_ref.pole(0), ref, side_a="bottom", side_b="top")
+        self.connect(
+            new_ref.pole(0), ref, side_a="bottom", side_b="top", wire_label=wire_label
+        )
+
+        return new_ref
+
+    def place_below(
+        self,
+        ref: PortRef,
+        tm_id: "str | Terminal",
+        poles: int = 1,
+        pins: list[str] | tuple[str, ...] | None = None,
+        label_pos: str | None = None,
+        y_offset: float | None = None,
+        wire_label: str | None = None,
+    ) -> "ComponentRef":
+        """
+        Place a terminal or reference below a component's pin.
+
+        Mirror of :meth:`place_above` but positions the component below the
+        target port and reverses the connection direction.
+
+        Args:
+            ref: PortRef identifying the target component and pin.
+            tm_id: Terminal or reference ID.
+            poles: Number of poles (default 1).
+            pins: Explicit pin labels. If None, auto-allocated.
+            label_pos: Label position ('left' or 'right').
+            y_offset: Distance below the port. If None, uses
+                ``symbol_spacing / 2``.
+
+        Returns: ComponentRef for the placed terminal/reference.
+        """
+        self._check_not_frozen()
+        ref_idx = ref.component._index
+        pin_name = str(ref.port)
+        is_ref = getattr(tm_id, "reference", False)
+
+        y_inc = y_offset if y_offset is not None else None
+
+        if is_ref:
+            from pyschemaelectrical.symbols.references import ref_symbol
+
+            def fixed_gen(state):
+                return state, str(tm_id)
+
+            self._fixed_tag_generators[str(tm_id)] = fixed_gen
+
+            spec = ComponentSpec(
+                func=ref_symbol,
+                tag_prefix=str(tm_id),
+                kind="reference",
+                poles=poles,
+                y_increment=y_inc,
+                auto_connect_next=False,
+                placed_below_of=(ref_idx, pin_name),
+                kwargs={"direction": "down", "label_pos": label_pos or "left"},
+            )
+        else:
+            spec = ComponentSpec(
+                func=None,
+                kind="terminal",
+                poles=poles,
+                pins=pins,
+                y_increment=y_inc,
+                auto_connect_next=False,
+                placed_below_of=(ref_idx, pin_name),
+                kwargs={
+                    "tm_id": tm_id,
+                    "label_pos": label_pos or "left",
+                },
+            )
+
+        self._spec.components.append(spec)
+        idx = len(self._spec.components) - 1
+        new_ref = ComponentRef(self, idx, str(tm_id))
+
+        # Register connection: target pin bottom → placed terminal/ref top
+        self.connect(
+            ref, new_ref.pole(0), side_a="bottom", side_b="top", wire_label=wire_label
+        )
 
         return new_ref
 
@@ -658,6 +749,7 @@ class CircuitBuilder:
         b: PortRef,
         side_a: str | None = None,
         side_b: str | None = None,
+        wire_label: str | None = None,
     ) -> "CircuitBuilder":
         """
         Connect two ports by pin name or pole index.
@@ -669,6 +761,7 @@ class CircuitBuilder:
             b: Target port reference (e.g., cb.pin("1") or psu.pin("L")).
             side_a: Connection side on component a. If None, inferred.
             side_b: Connection side on component b. If None, inferred.
+            wire_label: Wire label string for this connection.
 
         Returns: self for chaining.
         """
@@ -685,7 +778,9 @@ class CircuitBuilder:
         if side_b is None:
             side_b = "top"
 
-        return self.add_connection(idx_a, pole_a, idx_b, pole_b, side_a, side_b)
+        return self.add_connection(
+            idx_a, pole_a, idx_b, pole_b, side_a, side_b, wire_label=wire_label
+        )
 
     def _resolve_port_ref_to_pole(self, port_ref: PortRef) -> int:
         """Resolve a PortRef to a pole index."""
@@ -730,6 +825,7 @@ class CircuitBuilder:
         pole_idx_b: int,
         side_a: str = "bottom",
         side_b: str = "top",
+        wire_label: str | None = None,
     ) -> "CircuitBuilder":
         """Add an explicit connection between components by index.
 
@@ -743,6 +839,7 @@ class CircuitBuilder:
             pole_idx_b: Target pole index (0-based).
             side_a: Connection side on component a ('top' or 'bottom').
             side_b: Connection side on component b ('top' or 'bottom').
+            wire_label: Wire label string for this connection.
 
         Returns:
             self for method chaining.
@@ -751,6 +848,9 @@ class CircuitBuilder:
         self._spec.manual_connections.append(
             (comp_idx_a, pole_idx_a, comp_idx_b, pole_idx_b, side_a, side_b)
         )
+        if wire_label is not None:
+            conn_idx = len(self._spec.manual_connections) - 1
+            self._spec.connection_wire_labels[conn_idx] = wire_label
         return self
 
     def _validate_connections(self) -> None:
@@ -978,10 +1078,15 @@ class CircuitBuilder:
 
         c = Circuit(elements=elements)
 
-        # Apply wire labels if provided
-        from pyschemaelectrical.layout.wire_labels import apply_wire_labels
+        # Apply wire labels — per-connection labels (inline in Phase 4) take
+        # priority; the flat list is only used when no per-connection labels exist.
+        has_per_connection = bool(self._spec.connection_wire_labels) or any(
+            comp.wire_labels_above for comp in self._spec.components
+        )
+        if not has_per_connection:
+            from pyschemaelectrical.layout.wire_labels import apply_wire_labels
 
-        c = apply_wire_labels(c, wire_labels)
+            c = apply_wire_labels(c, wire_labels)
 
         # Extract used terminals
         used_terminals = []
@@ -1239,6 +1344,9 @@ def _phase1_tag_and_state(  # noqa: C901
         elif component_spec.placed_above_of is not None:
             # Placeholder — actual Y resolved in Phase 3 from port position
             comp_y = current_y
+        elif component_spec.placed_below_of is not None:
+            # Placeholder — actual Y resolved in Phase 3 from port position
+            comp_y = current_y
         else:
             comp_y = current_y
             # Only advance vertical stack for normally-placed components
@@ -1274,10 +1382,12 @@ def _phase2_register_connections(  # noqa: C901
         if not curr["spec"].auto_connect_next:
             continue
 
-        # Skip auto-connect for place_right / place_above components
+        # Skip auto-connect for place_right / place_above / place_below components
         if next_comp["spec"].placed_right_of is not None:
             continue
         if next_comp["spec"].placed_above_of is not None:
+            continue
+        if next_comp["spec"].placed_below_of is not None:
             continue
 
         poles = min(curr["spec"].poles, next_comp["spec"].poles)
@@ -1438,6 +1548,18 @@ def _phase3_instantiate_symbols(  # noqa: C901
                 else spec.layout.symbol_spacing / 2
             )
             rc["y"] = port.position.y - y_offset
+        elif component_spec.placed_below_of is not None:
+            ref_idx, pin_name = component_spec.placed_below_of
+            ref_rc = realized_components[ref_idx]
+            ref_sym = ref_rc["symbol"]
+            port = ref_sym.ports[pin_name]
+            final_x = port.position.x + component_spec.x_offset
+            y_offset = (
+                component_spec.y_increment
+                if component_spec.y_increment is not None
+                else spec.layout.symbol_spacing / 2
+            )
+            rc["y"] = port.position.y + y_offset
         elif component_spec.placed_right_of is not None:
             ref_rc = realized_components[component_spec.placed_right_of]
             ref_x_offset = ref_rc["spec"].x_offset
@@ -1497,13 +1619,27 @@ def _phase4_render_graphics(  # noqa: C901
 
     Draws lines for manual connections and matching connections, then
     runs auto_connect_circuit to wire sequential symbols. Mutates circuit c.
+
+    If per-connection wire labels are present (via ``wire_labels_above`` on
+    components or ``connection_wire_labels`` on the spec), labels are applied
+    inline during line creation.
     """
+    from pyschemaelectrical.layout.wire_labels import (
+        calculate_wire_label_position,
+        create_wire_label_text,
+    )
     from pyschemaelectrical.model.parts import standard_style
     from pyschemaelectrical.model.primitives import Line
 
+    has_per_connection_labels = bool(spec.connection_wire_labels) or any(
+        rc["spec"].wire_labels_above for rc in realized_components
+    )
+
     # 1. Manual Connections Rendering
     style = standard_style()
-    for idx_a, p_a, idx_b, p_b, side_a, side_b in spec.manual_connections:
+    for conn_idx, (idx_a, p_a, idx_b, p_b, side_a, side_b) in enumerate(
+        spec.manual_connections
+    ):
         if idx_a >= len(realized_components) or idx_b >= len(realized_components):
             continue
 
@@ -1526,6 +1662,14 @@ def _phase4_render_graphics(  # noqa: C901
             # Draw direct line
             line = Line(port_a.position, port_b.position, style)
             c.elements.append(line)
+
+            # Apply per-connection wire label
+            label = spec.connection_wire_labels.get(conn_idx)
+            if label:
+                is_vertical = abs(line.start.x - line.end.x) < 0.1
+                if is_vertical:
+                    pos = calculate_wire_label_position(line.start, line.end)
+                    c.elements.append(create_wire_label_text(label, pos))
 
     # 2. Matching Connections Rendering (connect_matching)
     for idx_a, idx_b, pin_filter, _side_a, _side_b in spec.matching_connections:
@@ -1557,8 +1701,35 @@ def _phase4_render_graphics(  # noqa: C901
                 line = Line(port_a.position, port_b.position, style)
                 c.elements.append(line)
 
-    # 3. Auto Connections
-    auto_connect_circuit(c)
+    # 3. Auto Connections (with optional per-connection wire labels)
+    if has_per_connection_labels:
+        # Inline auto-connect with wire label support
+        from pyschemaelectrical.layout.layout import auto_connect
+
+        sym_id_to_spec = {
+            id(rc["symbol"]): rc["spec"]
+            for rc in realized_components
+            if "symbol" in rc
+        }
+        connectable = [s for s in c.symbols if not s.skip_auto_connect]
+        for i in range(len(connectable) - 1):
+            s1 = connectable[i]
+            s2 = connectable[i + 1]
+            lines = auto_connect(s1, s2)
+            c.elements.extend(lines)
+
+            s2_spec = sym_id_to_spec.get(id(s2))
+            if s2_spec and s2_spec.wire_labels_above:
+                for j, wire_line in enumerate(lines):
+                    if j < len(s2_spec.wire_labels_above):
+                        wl = s2_spec.wire_labels_above[j]
+                        if wl:
+                            pos = calculate_wire_label_position(
+                                wire_line.start, wire_line.end
+                            )
+                            c.elements.append(create_wire_label_text(wl, pos))
+    else:
+        auto_connect_circuit(c)
 
 
 def _create_single_circuit_from_spec(
