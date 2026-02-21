@@ -1016,6 +1016,83 @@ class CircuitBuilder:
     def reuse_terminals(self, key: str) -> Callable:
         return self._check_built().reuse_terminals(key)
 
+    # ------------------------------------------------------------------
+    # Merge — combine multiple frozen builders into one
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def merge(*builders: "CircuitBuilder") -> "CircuitBuilder":
+        """Merge multiple frozen CircuitBuilders into one.
+
+        All builders must be frozen (already built). Returns a new frozen
+        CircuitBuilder with merged circuits, terminals, wire_connections,
+        device_registry, bridge_groups, component_map, and terminal_pin_map.
+        State is taken from the last builder.
+        """
+        if not builders:
+            raise ValueError("merge() requires at least one CircuitBuilder")
+        for b in builders:
+            if not b._frozen:
+                raise RuntimeError("All builders must be frozen (built) before merging")
+
+        results = [b._result for b in builders]
+        merged_result = _merge_build_results(results)
+
+        # Create a new frozen builder with the merged result
+        new_builder = CircuitBuilder.__new__(CircuitBuilder)
+        new_builder._frozen = True
+        new_builder._result = merged_result
+        new_builder._initial_state = merged_result.state
+        new_builder._spec = CircuitSpec()
+        new_builder._fixed_tag_generators = {}
+        return new_builder
+
+
+def _merge_build_results(results: list[BuildResult]) -> BuildResult:
+    """Merge a list of BuildResult instances into a single BuildResult."""
+    from pyschemaelectrical.system.system import merge_circuits
+    from pyschemaelectrical.utils.utils import merge_terminals
+
+    merged_circuit = Circuit()
+    for r in results:
+        merged_circuit = merge_circuits(merged_circuit, r.circuit)
+
+    merged_used_terminals: list[Any] = []
+    for r in results:
+        merged_used_terminals = merge_terminals(merged_used_terminals, r.used_terminals)
+
+    merged_wire_connections: list[tuple[str, str, str, str]] = []
+    for r in results:
+        merged_wire_connections.extend(r.wire_connections)
+
+    merged_device_registry: dict[str, Any] = {}
+    for r in results:
+        merged_device_registry.update(r.device_registry)
+
+    merged_bridge_groups = _merge_dict_of_lists(r.bridge_groups for r in results)
+    merged_component_map = _merge_dict_of_lists(r.component_map for r in results)
+    merged_terminal_pin_map = _merge_dict_of_lists(r.terminal_pin_map for r in results)
+
+    return BuildResult(
+        state=results[-1].state,
+        circuit=merged_circuit,
+        used_terminals=merged_used_terminals,
+        wire_connections=merged_wire_connections,
+        device_registry=merged_device_registry,
+        bridge_groups=merged_bridge_groups,
+        component_map=merged_component_map,
+        terminal_pin_map=merged_terminal_pin_map,
+    )
+
+
+def _merge_dict_of_lists(dicts) -> dict:
+    """Merge an iterable of dict[str, list] by extending lists per key."""
+    merged: dict = {}
+    for d in dicts:
+        for key, values in d.items():
+            merged.setdefault(key, []).extend(values)
+    return merged
+
 
 def _phase1_tag_and_state(  # noqa: C901
     state: "GenerationState",
