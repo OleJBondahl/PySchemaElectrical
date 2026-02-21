@@ -256,6 +256,7 @@ See `todo.md` for the complete audit-driven task list. It contains:
 
 ### Agent Git Workflow
 
+- **Before committing**, update the MCP memory server for any changed/added/removed functions, classes, config, types, or device definitions. Search first (`mcp__memory__search_nodes`) to avoid duplicates, then create/update/delete entities to match the current code. This is mandatory, not optional.
 - After completing each self-contained task, commit using the `commit-commands:commit` skill
 - This ensures changes are reversible and the working tree stays clean between tasks
 - Use git worktrees (via `superpowers:using-git-worktrees` skill) when starting work that may conflict with another running agent session
