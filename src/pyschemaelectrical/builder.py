@@ -773,7 +773,7 @@ class CircuitBuilder:
 
     def _build_effective_tag_generators(
         self,
-        reuse_tags: dict[str, "BuildResult"] | None,
+        reuse_tags: "dict[str, BuildResult | CircuitBuilder] | None",
         tag_generators: dict[str, Callable | str] | None,
     ) -> dict[str, Callable] | None:
         """
@@ -787,7 +787,7 @@ class CircuitBuilder:
         effective: dict[str, Callable] = self._fixed_tag_generators.copy()
         if reuse_tags:
             for prefix, source_result in reuse_tags.items():
-                if isinstance(source_result, BuildResult):
+                if isinstance(source_result, (BuildResult, CircuitBuilder)):
                     effective[prefix] = source_result.reuse_tags(prefix)
                 elif callable(source_result):
                     effective[prefix] = source_result
@@ -803,7 +803,7 @@ class CircuitBuilder:
 
     def _build_terminal_reuse_generators(
         self,
-        reuse_terminals: dict[str, "BuildResult"] | None,
+        reuse_terminals: "dict[str, BuildResult | CircuitBuilder] | None",
     ) -> dict[str, Callable]:
         """
         Convert reuse_terminals mapping to callable pin generators.
@@ -816,7 +816,7 @@ class CircuitBuilder:
             return result
         for key, source in reuse_terminals.items():
             str_key = str(key)
-            if isinstance(source, BuildResult):
+            if isinstance(source, (BuildResult, CircuitBuilder)):
                 result[str_key] = source.reuse_terminals(str_key)
             elif callable(source):
                 result[str_key] = source
