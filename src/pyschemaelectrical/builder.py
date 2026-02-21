@@ -284,17 +284,26 @@ class CircuitBuilder:
         Each builder should be used for a single ``.build()`` call.
     """
 
-    def __init__(self, state: "GenerationState") -> None:
-        """Initialize a CircuitBuilder with autonumbering state.
+    def __init__(self, state: "GenerationState | None" = None) -> None:
+        """Initialize a CircuitBuilder with optional autonumbering state.
 
         Args:
             state: The autonumbering state dict (from ``create_autonumberer()``
-                or returned by a previous ``BuildResult.state``).
+                or returned by a previous ``BuildResult.state``). If None,
+                state must be provided at build time via ``build(state=...)``.
         """
         self._initial_state = state
         self._spec = CircuitSpec()
         # Fixed tag generators added by add_reference()
         self._fixed_tag_generators: dict[str, Callable] = {}
+        self._frozen = False
+        self._result: BuildResult | None = None
+
+    def _check_not_frozen(self) -> None:
+        if self._frozen:
+            raise RuntimeError(
+                "Cannot modify a frozen CircuitBuilder. Create a new builder instead."
+            )
 
     def set_layout(
         self,
@@ -314,6 +323,7 @@ class CircuitBuilder:
         Returns:
             self for method chaining.
         """
+        self._check_not_frozen()
         self._spec.layout = LayoutConfig(
             start_x=x, start_y=y, spacing=spacing, symbol_spacing=symbol_spacing
         )
@@ -358,6 +368,7 @@ class CircuitBuilder:
         Returns:
             ComponentRef for the added terminal.
         """
+        self._check_not_frozen()
         if logical_name:
             self._spec.terminal_map[logical_name] = tm_id
 
@@ -412,6 +423,7 @@ class CircuitBuilder:
         Returns:
             ComponentRef for the added component.
         """
+        self._check_not_frozen()
         spec = ComponentSpec(
             func=symbol_func,
             tag_prefix=tag_prefix,
@@ -450,6 +462,7 @@ class CircuitBuilder:
 
         Returns: ComponentRef
         """
+        self._check_not_frozen()
         from pyschemaelectrical.symbols.references import ref_symbol
 
         # Register a fixed tag generator for this reference ID
@@ -500,6 +513,7 @@ class CircuitBuilder:
 
         Returns: ComponentRef for the new component.
         """
+        self._check_not_frozen()
         ref_idx = ref._index
 
         spec = ComponentSpec(
@@ -550,6 +564,7 @@ class CircuitBuilder:
 
         Returns: ComponentRef for the placed terminal/reference.
         """
+        self._check_not_frozen()
         ref_idx = ref.component._index
         pin_name = str(ref.port)
         is_ref = getattr(tm_id, "reference", False)
@@ -623,6 +638,7 @@ class CircuitBuilder:
 
         Returns: self for chaining.
         """
+        self._check_not_frozen()
         self._spec.matching_connections.append(
             (ref_a._index, ref_b._index, pins, side_a, side_b)
         )
@@ -648,6 +664,7 @@ class CircuitBuilder:
 
         Returns: self for chaining.
         """
+        self._check_not_frozen()
         # Resolve pin names to pole indices
         idx_a = a.component._index
         idx_b = b.component._index
@@ -722,6 +739,7 @@ class CircuitBuilder:
         Returns:
             self for method chaining.
         """
+        self._check_not_frozen()
         self._spec.manual_connections.append(
             (comp_idx_a, pole_idx_a, comp_idx_b, pole_idx_b, side_a, side_b)
         )
@@ -806,6 +824,7 @@ class CircuitBuilder:
         reuse_tags: dict[str, "BuildResult"] | None = None,
         reuse_terminals: dict[str, "BuildResult"] | None = None,
         wire_labels: list[str] | None = None,
+        state: "GenerationState | None" = None,
     ) -> BuildResult:
         """
         Generate the circuits.
@@ -826,6 +845,8 @@ class CircuitBuilder:
                         e.g., {Terminals.IO_EXT: pump_result} reuses IO_EXT pins.
             wire_labels: Wire label strings to apply to vertical wires.
                          Applied per instance (cycled if count > 1).
+            state: Override the state for this build. If provided, takes
+                   precedence over the state passed to ``CircuitBuilder()``.
 
         Returns:
             BuildResult with state, circuit, used_terminals, component_map,
@@ -837,16 +858,21 @@ class CircuitBuilder:
             TagReuseError: If reuse_tags runs out of tags from the source.
             TerminalReuseError: If reuse_terminals runs out of pins.
         """
+        self._check_not_frozen()
         self._validate_connections()
-        state = self._initial_state
+        effective_state = state if state is not None else self._initial_state
+        if effective_state is None:
+            raise ValueError(
+                "No state provided. Pass state to CircuitBuilder() or build(state=...)."
+            )
 
         # Apply override counters
         if start_indices:
             for prefix, val in start_indices.items():
-                state = set_tag_counter(state, prefix, val)
+                effective_state = set_tag_counter(effective_state, prefix, val)
         if terminal_start_indices:
             for t_id, val in terminal_start_indices.items():
-                state = set_terminal_counter(state, t_id, val)
+                effective_state = set_terminal_counter(effective_state, t_id, val)
 
         # Build effective tag_generators and terminal reuse generators
         final_tag_generators = self._build_effective_tag_generators(
@@ -893,7 +919,7 @@ class CircuitBuilder:
 
         # Use generic layout
         final_state, elements = create_horizontal_layout(
-            state=state,
+            state=effective_state,
             start_x=self._spec.layout.start_x,
             start_y=self._spec.layout.start_y,
             count=count,
@@ -924,7 +950,7 @@ class CircuitBuilder:
                 if tid not in used_terminals:
                     used_terminals.append(tid)
 
-        return BuildResult(
+        result = BuildResult(
             state=final_state,
             circuit=c,
             used_terminals=used_terminals,
@@ -933,6 +959,62 @@ class CircuitBuilder:
             device_registry=captured_device_registry,
             wire_connections=captured_wire_connections,
         )
+        self._result = result
+        self._frozen = True
+        return result
+
+    # ------------------------------------------------------------------
+    # Properties — accessible only after build()
+    # ------------------------------------------------------------------
+
+    def _check_built(self) -> BuildResult:
+        if not self._frozen or self._result is None:
+            raise RuntimeError(
+                "CircuitBuilder has not been built yet. Call build() first."
+            )
+        return self._result
+
+    @property
+    def state(self) -> "GenerationState":
+        return self._check_built().state
+
+    @property
+    def circuit(self) -> Circuit:
+        return self._check_built().circuit
+
+    @property
+    def used_terminals(self) -> list[Any]:
+        return self._check_built().used_terminals
+
+    @property
+    def component_map(self) -> dict[str, list[str]]:
+        return self._check_built().component_map
+
+    @property
+    def terminal_pin_map(self) -> dict[str, list[str]]:
+        return self._check_built().terminal_pin_map
+
+    @property
+    def device_registry(self) -> "dict[str, InternalDevice]":
+        return self._check_built().device_registry
+
+    @property
+    def wire_connections(self) -> list[tuple[str, str, str, str]]:
+        return self._check_built().wire_connections
+
+    @property
+    def bridge_groups(self) -> dict[str, list[tuple[int, int]]]:
+        return self._check_built().bridge_groups
+
+    # ------------------------------------------------------------------
+    # Reuse helpers — forwarded to stored BuildResult
+    # ------------------------------------------------------------------
+
+    def reuse_tags(self, prefix: str) -> Callable:
+        return self._check_built().reuse_tags(prefix)
+
+    def reuse_terminals(self, key: str) -> Callable:
+        return self._check_built().reuse_terminals(key)
 
 
 def _phase1_tag_and_state(  # noqa: C901
