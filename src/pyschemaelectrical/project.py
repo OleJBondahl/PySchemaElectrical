@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
-from pyschemaelectrical.builder import BuildResult
+from pyschemaelectrical.builder import BuildResult, CircuitBuilder
 
 if TYPE_CHECKING:
     from pyschemaelectrical.field_devices import ConnectionRow
@@ -327,6 +327,110 @@ class Project:
         )
 
     # ------------------------------------------------------------------
+    # CircuitBuilder-based circuit registration
+    # ------------------------------------------------------------------
+
+    def add_circuit(
+        self,
+        name: str,
+        builder: CircuitBuilder,
+        *,
+        count: int = 1,
+        reuse_tags: dict[str, str] | None = None,
+        reuse_terminals: dict[str, str] | None = None,
+        start_indices: dict[str, int] | None = None,
+        terminal_start_indices: dict[str, int] | None = None,
+        tag_generators: dict | None = None,
+        terminal_maps: dict | None = None,
+        wire_labels: list[str] | None = None,
+    ) -> CircuitBuilder:
+        """Build a CircuitBuilder immediately and register its result.
+
+        Unlike the deferred ``dol_starter()`` / ``circuit()`` methods,
+        ``add_circuit()`` builds the circuit right away and stores the
+        ``BuildResult``. State is advanced so subsequent circuits see
+        the updated tag/terminal counters.
+
+        Args:
+            name: Unique circuit identifier (used as key in results and
+                for SVG/CSV filenames).
+            builder: An un-built (not frozen) ``CircuitBuilder`` instance.
+            count: Number of circuit instances to create.
+            reuse_tags: Dict mapping tag prefix to the *name* of a
+                previously added circuit whose tags should be reused.
+                E.g. ``{"K": "coils"}`` reuses K tags from the circuit
+                registered under the name ``"coils"``.
+            reuse_terminals: Dict mapping terminal key to the *name* of
+                a previously added circuit whose terminal pins should be
+                reused. E.g. ``{"X008": "pumps"}`` reuses X008 pins.
+            start_indices: Override tag counters (e.g. ``{"K": 3}``).
+            terminal_start_indices: Override terminal pin counters.
+            tag_generators: Custom tag generator functions or fixed-tag
+                strings. Merged with resolved reuse generators (manual
+                overrides win).
+            terminal_maps: Terminal ID overrides by logical name.
+            wire_labels: Wire label strings for vertical wires.
+
+        Returns:
+            The frozen ``CircuitBuilder`` (callers can use it for inline
+            reuse via ``builder.reuse_tags()`` etc.).
+
+        Raises:
+            RuntimeError: If the builder is already frozen.
+            ValueError: If a reuse_tags/reuse_terminals reference names a
+                circuit that hasn't been added yet.
+        """
+        if builder._frozen:
+            raise RuntimeError(
+                f"Cannot add_circuit('{name}'): the CircuitBuilder is already "
+                f"frozen. Pass an un-built builder."
+            )
+
+        # Resolve reuse_tags: name -> BuildResult
+        resolved_reuse_tags: dict[str, BuildResult] | None = None
+        if reuse_tags:
+            resolved_reuse_tags = {}
+            for prefix, source_name in reuse_tags.items():
+                if source_name not in self._results:
+                    raise ValueError(
+                        f"add_circuit('{name}') references '{source_name}' via "
+                        f"reuse_tags['{prefix}'], but it hasn't been added yet. "
+                        f"Add '{source_name}' before '{name}'."
+                    )
+                resolved_reuse_tags[prefix] = self._results[source_name]
+
+        # Resolve reuse_terminals: name -> BuildResult
+        resolved_reuse_terminals: dict[str, BuildResult] | None = None
+        if reuse_terminals:
+            resolved_reuse_terminals = {}
+            for key, source_name in reuse_terminals.items():
+                if source_name not in self._results:
+                    raise ValueError(
+                        f"add_circuit('{name}') references '{source_name}' via "
+                        f"reuse_terminals['{key}'], but it hasn't been added yet. "
+                        f"Add '{source_name}' before '{name}'."
+                    )
+                resolved_reuse_terminals[key] = self._results[source_name]
+
+        builder.build(
+            state=self._state,
+            count=count,
+            reuse_tags=resolved_reuse_tags,
+            reuse_terminals=resolved_reuse_terminals,
+            start_indices=start_indices,
+            terminal_start_indices=terminal_start_indices,
+            tag_generators=tag_generators,
+            terminal_maps=terminal_maps,
+            wire_labels=wire_labels,
+        )
+
+        result = builder._result
+        assert result is not None  # guaranteed after successful build()
+        self._results[name] = result
+        self._state = builder.state
+        return builder
+
+    # ------------------------------------------------------------------
     # PLC rack and external connections
     # ------------------------------------------------------------------
 
@@ -364,6 +468,56 @@ class Project:
         """
         self._external_connections = list(connections)
         return self
+
+    def add_field_devices(
+        self,
+        connections: "list[ConnectionRow]",
+        reuse_terminals: dict[str, str] | None = None,
+    ) -> "Project":
+        """Register external field device connections.
+
+        Alias for ``external_connections()`` with an optional
+        ``reuse_terminals`` parameter for future expansion.
+
+        Args:
+            connections: List of ``ConnectionRow`` tuples.
+            reuse_terminals: Reserved for future use. Currently ignored.
+
+        Returns:
+            self (for method chaining).
+        """
+        self._external_connections = list(connections)
+        return self
+
+    # ------------------------------------------------------------------
+    # Query properties
+    # ------------------------------------------------------------------
+
+    @property
+    def device_registry(self) -> dict:
+        """Merged device registry from all built circuits."""
+        merged: dict = {}
+        for result in self._results.values():
+            merged.update(result.device_registry)
+        return merged
+
+    @property
+    def bridge_groups(self) -> dict:
+        """Merged bridge groups from all built circuits."""
+        merged: dict = {}
+        for result in self._results.values():
+            for key, groups in result.bridge_groups.items():
+                merged.setdefault(key, []).extend(groups)
+        return merged
+
+    @property
+    def wire_connections(self) -> dict[str, list]:
+        """Wire connections grouped by circuit name."""
+        return {
+            key: result.wire_connections
+            for key, result in self._results.items()
+            if result.wire_connections
+        }
 
     # ------------------------------------------------------------------
     # Page management
@@ -562,6 +716,145 @@ class Project:
         print(f"SVGs and CSVs written to: {output_dir}")
 
     # ------------------------------------------------------------------
+    # Separate output methods
+    # ------------------------------------------------------------------
+
+    def render_svgs(self, output_dir: str) -> None:
+        """Render all circuit SVGs and per-circuit terminal CSVs to *output_dir*.
+
+        Unlike ``build_svgs()``, this method does **not** build deferred
+        circuits. It only renders results already present in ``_results``
+        (populated by ``add_circuit()`` or a prior ``_build_all_circuits()``
+        call).
+
+        Args:
+            output_dir: Directory for output SVG and CSV files.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+
+        for key, result in self._results.items():
+            svg_path = os.path.join(output_dir, f"{key}.svg")
+            render_system(result.circuit, svg_path)
+
+            if result.used_terminals:
+                csv_path = os.path.join(output_dir, f"{key}_terminals.csv")
+                export_terminal_list(csv_path, result.used_terminals)
+
+    def export_csvs(self, output_dir: str) -> None:
+        """Export system terminal CSV with bridge info to *output_dir*.
+
+        Also generates the PLC connections CSV when a rack has been
+        registered via ``plc_rack()``.
+
+        Args:
+            output_dir: Directory for output CSV files.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+
+        # System terminal CSV
+        system_csv_path = os.path.join(output_dir, "system_terminals.csv")
+        registry = get_registry(self._state)
+        export_registry_to_csv(registry, system_csv_path, state=self._state)
+
+        # Bridge info
+        bridge_defs = {}
+        for tid, t in self._terminals.items():
+            if t.bridge and not t.reference:
+                bridge_defs[tid] = t.bridge
+        if bridge_defs:
+            update_csv_with_internal_connections(system_csv_path, bridge_defs)
+
+        # PLC connections CSV
+        if self._plc_rack is not None:
+            plc_csv_path = os.path.join(output_dir, "plc_connections.csv")
+            self._generate_plc_csv(plc_csv_path)
+
+    def compile_pdf(
+        self,
+        output: str,
+        temp_dir: str = "temp",
+        keep_temp: bool = False,
+    ) -> None:
+        """Compile the full PDF using TypstCompiler with the defined page flow.
+
+        This method renders SVGs, exports CSVs, and compiles the Typst
+        document into a single PDF. It operates on results already present
+        in ``_results`` (populated by ``add_circuit()`` or a prior
+        ``_build_all_circuits()`` call).
+
+        Args:
+            output: Path for the output PDF file.
+            temp_dir: Directory for intermediate files.
+            keep_temp: If True, keep intermediate files after compilation.
+        """
+        from pyschemaelectrical.rendering.typst.compiler import (
+            TypstCompiler as _TypstCompiler,
+        )
+        from pyschemaelectrical.rendering.typst.compiler import (
+            TypstCompilerConfig,
+        )
+
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Render SVGs and per-circuit terminal CSVs
+        svg_paths: dict[str, str] = {}
+        csv_paths: dict[str, str] = {}
+
+        for key, result in self._results.items():
+            svg_path = os.path.join(temp_dir, f"{key}.svg")
+            render_system(result.circuit, svg_path)
+            svg_paths[key] = svg_path
+
+            if result.used_terminals:
+                csv_path = os.path.join(temp_dir, f"{key}_terminals.csv")
+                export_terminal_list(csv_path, result.used_terminals)
+                csv_paths[key] = csv_path
+
+        # System terminal CSV with bridge info
+        system_csv_path = os.path.join(temp_dir, "system_terminals.csv")
+        registry = get_registry(self._state)
+        export_registry_to_csv(registry, system_csv_path, state=self._state)
+
+        bridge_defs = {}
+        for tid, t in self._terminals.items():
+            if t.bridge and not t.reference:
+                bridge_defs[tid] = t.bridge
+        if bridge_defs:
+            update_csv_with_internal_connections(system_csv_path, bridge_defs)
+
+        # PLC connections CSV
+        plc_csv_path = ""
+        if self._plc_rack is not None:
+            plc_csv_path = os.path.join(temp_dir, "plc_connections.csv")
+            self._generate_plc_csv(plc_csv_path)
+
+        # Assemble Typst document
+        root_dir = os.getcwd()
+        config = TypstCompilerConfig(
+            drawing_name=self.title,
+            drawing_number=self.drawing_number,
+            author=self.author,
+            project=self.project,
+            revision=self.revision,
+            logo_path=os.path.abspath(self.logo) if self.logo else None,
+            font_family=self.font,
+            root_dir=root_dir,
+            temp_dir=os.path.relpath(os.path.abspath(temp_dir), root_dir),
+        )
+        compiler = _TypstCompiler(config)
+
+        for page_def in self._pages:
+            self._add_page_to_compiler(
+                compiler, page_def, svg_paths, csv_paths, system_csv_path, plc_csv_path
+            )
+
+        compiler.compile(output)
+        print(f"PDF compiled: {output}")
+
+        if not keep_temp:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    # ------------------------------------------------------------------
     # Internal: circuit building
     # ------------------------------------------------------------------
 
@@ -700,9 +993,7 @@ class Project:
             compiler.add_front_page(page_def.md_path, notice=page_def.notice)
         elif page_def.page_type == "terminal_report":
             titles = {
-                str(t): t.title
-                for t in self._terminals.values()
-                if not t.reference
+                str(t): t.title for t in self._terminals.values() if not t.reference
             }
             compiler.add_terminal_report(system_csv_path, titles)
         elif page_def.page_type == "plc_report":
