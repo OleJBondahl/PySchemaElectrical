@@ -1540,7 +1540,10 @@ def _phase3_instantiate_symbols(  # noqa: C901
             ref_idx, pin_name = component_spec.placed_above_of
             ref_rc = realized_components[ref_idx]
             ref_sym = ref_rc["symbol"]
-            port = ref_sym.ports[pin_name]
+            port = _find_port(ref_sym, pin_name, ref_rc["spec"].pins)
+            if port is None:
+                msg = f"Port '{pin_name}' not found on symbol '{ref_rc['tag']}'"
+                raise ValueError(msg)
             final_x = port.position.x + component_spec.x_offset
             y_offset = (
                 component_spec.y_increment
@@ -1552,7 +1555,10 @@ def _phase3_instantiate_symbols(  # noqa: C901
             ref_idx, pin_name = component_spec.placed_below_of
             ref_rc = realized_components[ref_idx]
             ref_sym = ref_rc["symbol"]
-            port = ref_sym.ports[pin_name]
+            port = _find_port(ref_sym, pin_name, ref_rc["spec"].pins)
+            if port is None:
+                msg = f"Port '{pin_name}' not found on symbol '{ref_rc['tag']}'"
+                raise ValueError(msg)
             final_x = port.position.x + component_spec.x_offset
             y_offset = (
                 component_spec.y_increment
@@ -1655,8 +1661,8 @@ def _phase4_render_graphics(  # noqa: C901
         pin_a = _resolve_pin(comp_a, p_a, is_input=(side_a == "top"))
         pin_b = _resolve_pin(comp_b, p_b, is_input=(side_b == "top"))
 
-        port_a = sym_a.ports.get(pin_a)
-        port_b = sym_b.ports.get(pin_b)
+        port_a = _find_port(sym_a, pin_a, comp_a["spec"].pins)
+        port_b = _find_port(sym_b, pin_b, comp_b["spec"].pins)
 
         if port_a and port_b:
             # Draw direct line
@@ -1860,6 +1866,34 @@ def _get_absolute_x_offset(
             realized_components, rc["spec"].placed_right_of
         )
     return x_offset
+
+
+def _find_port(sym: "Symbol", pin_name: str, spec_pins: tuple | list | None = None):
+    """Look up a port on a placed symbol by pin name or port key.
+
+    Tries direct key lookup first (works when pin labels == port keys,
+    e.g. current transducer with port "53").  Falls back to mapping the
+    pin label to a port key via the component's flat pins list — needed
+    when port keys differ from pin labels (e.g. multi-pole SPDT where
+    pin "12" maps to port "1_nc").
+
+    Returns the Port object or *None* if no match is found.
+    """
+    # Direct lookup — covers the common case
+    port = sym.ports.get(pin_name)
+    if port is not None:
+        return port
+
+    # Fallback: map pin label → port key via index
+    if spec_pins:
+        pins_list = list(spec_pins)
+        if pin_name in pins_list:
+            pin_idx = pins_list.index(pin_name)
+            port_keys = list(sym.ports.keys())
+            if pin_idx < len(port_keys):
+                return sym.ports[port_keys[pin_idx]]
+
+    return None
 
 
 def _resolve_pin(component_data: dict[str, Any], pole_idx: int, is_input: bool) -> str:
