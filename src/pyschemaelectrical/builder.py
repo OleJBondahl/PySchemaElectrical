@@ -135,6 +135,7 @@ class BuildResult:
     terminal_pin_map: dict[str, list[str]] = field(default_factory=dict)
     device_registry: "dict[str, InternalDevice]" = field(default_factory=dict)
     wire_connections: list[tuple[str, str, str, str]] = field(default_factory=list)
+    bridge_groups: dict[str, list[tuple[int, int]]] = field(default_factory=dict)
 
     def __iter__(self) -> Iterator[Any]:
         return iter((self.state, self.circuit, self.used_terminals))
