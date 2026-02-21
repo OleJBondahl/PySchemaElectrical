@@ -24,9 +24,13 @@ from .exceptions import (
 # Internal device metadata
 from .internal_device import InternalDevice
 from .field_devices import (
+    CableData,
     ConnectionRow,
+    ConnectorData,
+    DeviceCable,
     DeviceEntry,
     DeviceTemplate,
+    FieldDevice,
     FixedPin,
     PinDef,
     PrefixedPin,

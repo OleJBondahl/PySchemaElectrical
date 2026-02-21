@@ -9,6 +9,7 @@ import pytest
 
 from pyschemaelectrical.field_devices import (
     DeviceTemplate,
+    FieldDevice,
     FixedPin,
     PinDef,
     PrefixedPin,
@@ -16,6 +17,11 @@ from pyschemaelectrical.field_devices import (
     generate_field_connections,
 )
 from pyschemaelectrical.terminal import Terminal
+
+
+def _fd(tag, template, terminal=None):
+    """Shorthand for FieldDevice in tests."""
+    return FieldDevice(tag, template, terminal=terminal)
 
 # ---------------------------------------------------------------------------
 # Fixtures: reusable terminals and templates
@@ -191,7 +197,7 @@ class TestPinDefSubclasses:
                 FixedPin("PE", power_terminal, terminal_pin="PE"),
             ),
         )
-        rows = generate_field_connections([("DEV-01", template)])
+        rows = generate_field_connections([_fd("DEV-01", template)])
 
         assert len(rows) == 5
         # SequentialPin rows: auto-numbered on signal_terminal
@@ -221,7 +227,7 @@ class TestSequentialPins:
                 PinDef("GND", signal_terminal),
             ),
         )
-        rows = generate_field_connections([("PT-01", template)])
+        rows = generate_field_connections([_fd("PT-01", template)])
 
         assert len(rows) == 2
         # Row structure: (tag, device_pin, terminal, terminal_pin, plc_tag, "")
@@ -239,8 +245,8 @@ class TestSequentialPins:
         )
         rows = generate_field_connections(
             [
-                ("PT-01", template),
-                ("PT-02", template),
+                _fd("PT-01", template),
+                _fd("PT-02", template),
             ]
         )
 
@@ -263,8 +269,8 @@ class TestSequentialPins:
         )
         rows = generate_field_connections(
             [
-                ("LS-01", template),
-                ("LS-02", template),
+                _fd("LS-01", template),
+                _fd("LS-02", template),
             ]
         )
 
@@ -297,7 +303,7 @@ class TestPrefixedPins:
                 PinDef("N", terminal, pin_prefix="N"),
             ),
         )
-        rows = generate_field_connections([("400V Main", template)])
+        rows = generate_field_connections([_fd("400V Main", template)])
 
         assert len(rows) == 4
         assert rows[0][3] == "L1:1"
@@ -318,8 +324,8 @@ class TestPrefixedPins:
         )
         rows = generate_field_connections(
             [
-                ("Feed A", template),
-                ("Feed B", template),
+                _fd("Feed A", template),
+                _fd("Feed B", template),
             ]
         )
 
@@ -354,8 +360,8 @@ class TestPrefixedPins:
         )
         rows = generate_field_connections(
             [
-                ("Dev A", template_full),
-                ("Dev B", template_n_only),
+                _fd("Dev A", template_full),
+                _fd("Dev B", template_n_only),
             ]
         )
 
@@ -388,7 +394,7 @@ class TestFixedPins:
                 PinDef("W1", terminal, terminal_pin="L3"),
             ),
         )
-        rows = generate_field_connections([("PU-01", template)])
+        rows = generate_field_connections([_fd("PU-01", template)])
 
         assert len(rows) == 3
         assert rows[0][3] == "L1"
@@ -408,8 +414,8 @@ class TestFixedPins:
         )
         rows = generate_field_connections(
             [
-                ("M-01", fixed_template),
-                ("S-01", seq_template),
+                _fd("M-01", fixed_template),
+                _fd("S-01", seq_template),
             ]
         )
 
@@ -435,7 +441,7 @@ class TestTerminalOverride:
                 PinDef("V1", terminal_pin="L2"),
             ),
         )
-        rows = generate_field_connections([("M-01", template, override)])
+        rows = generate_field_connections([_fd("M-01", template, override)])
 
         assert len(rows) == 2
         assert rows[0][2] is override
@@ -452,7 +458,7 @@ class TestTerminalOverride:
                 PinDef("2"),  # No terminal, will use override
             ),
         )
-        rows = generate_field_connections([("D-01", template, override)])
+        rows = generate_field_connections([_fd("D-01", template, override)])
 
         assert rows[0][2] is specific
         assert rows[1][2] is override
@@ -473,7 +479,7 @@ class TestErrors:
             pins=(PinDef("1"),),
         )
         with pytest.raises(ValueError, match="no terminal in template"):
-            generate_field_connections([("D-01", template)])
+            generate_field_connections([_fd("D-01", template)])
 
 
 # ---------------------------------------------------------------------------
@@ -489,7 +495,7 @@ class TestPlcReferences:
             mpn="Sensor",
             pins=(PinDef("Sig+", signal_terminal, plc_ai),),
         )
-        rows = generate_field_connections([("PT-01", template)])
+        rows = generate_field_connections([_fd("PT-01", template)])
         assert rows[0][4] == "PLC:AI"
 
     def test_plc_tag_absent(self, signal_terminal):
@@ -497,7 +503,7 @@ class TestPlcReferences:
             mpn="Sensor",
             pins=(PinDef("GND", signal_terminal),),
         )
-        rows = generate_field_connections([("PT-01", template)])
+        rows = generate_field_connections([_fd("PT-01", template)])
         assert rows[0][4] == ""
 
 
@@ -519,7 +525,7 @@ class TestReuseTerminals:
             ),
         )
         rows = generate_field_connections(
-            [("PT-01", template)],
+            [_fd("PT-01", template)],
             reuse_terminals={"X100": ["42", "43"]},
         )
 
@@ -538,7 +544,7 @@ class TestReuseTerminals:
             ),
         )
         rows = generate_field_connections(
-            [("LS-01", template)],
+            [_fd("LS-01", template)],
             reuse_terminals={"X100": ["99"]},
         )
 
@@ -565,7 +571,7 @@ class TestMixedModes:
                 PinDef("B1", terminal),  # sequential
             ),
         )
-        rows = generate_field_connections([("XV-01", template)])
+        rows = generate_field_connections([_fd("XV-01", template)])
 
         assert rows[0][3] == "N:1"
         assert rows[1][3] == "L:1"
@@ -585,7 +591,7 @@ class TestConnectionRowStructure:
             mpn="Simple",
             pins=(PinDef("1", signal_terminal),),
         )
-        rows = generate_field_connections([("D-01", template)])
+        rows = generate_field_connections([_fd("D-01", template)])
         assert len(rows) == 1
         assert len(rows[0]) == 6
 
@@ -594,7 +600,7 @@ class TestConnectionRowStructure:
             mpn="Simple",
             pins=(PinDef("1", signal_terminal, plc_ai),),
         )
-        rows = generate_field_connections([("D-01", template)])
+        rows = generate_field_connections([_fd("D-01", template)])
         row = rows[0]
         assert isinstance(row[0], str)  # tag
         assert isinstance(row[1], str)  # device_pin

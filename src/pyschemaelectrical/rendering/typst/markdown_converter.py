@@ -34,23 +34,31 @@ def markdown_to_typst(
         print(f"Warning: {md_path} not found, skipping front page.")
         return ""
 
-    typst_lines = _convert_lines(lines, width)
+    typst_lines, extracted_notice = _convert_lines(lines, width)
 
-    if notice:
-        typst_lines.append(_notice_block(notice, width))
+    effective_notice = notice if notice is not None else extracted_notice
+    if effective_notice:
+        typst_lines.append(_notice_block(effective_notice, width))
 
     typst_lines.append("#pagebreak()")
     return "\n".join(typst_lines)
 
 
-def _convert_lines(lines: list[str], width: str) -> list[str]:
-    """Convert markdown lines to Typst markup."""
+def _convert_lines(lines: list[str], width: str) -> tuple[list[str], str | None]:
+    """Convert markdown lines to Typst markup.
+
+    Returns a tuple of (typst_lines, extracted_notice). If the markdown
+    contains a ``## Notice`` section, its body text is extracted and
+    returned separately (not rendered inline).
+    """
     typst_lines = []
     typst_lines.append(r"#align(center + horizon)[")
     typst_lines.append(f"  #block(width: {width})[")
 
     in_table = False
     table_rows: list[str] = []
+    in_notice = False
+    notice_parts: list[str] = []
 
     for line in lines:
         line = line.strip()
@@ -64,9 +72,14 @@ def _convert_lines(lines: list[str], width: str) -> list[str]:
         if line.startswith("# "):
             typst_lines.append(f"    = {line[2:]}")
             typst_lines.append(r"    #v(1em)")
+        elif line.lower() == "## notice":
+            in_notice = True
         elif line.startswith("## "):
+            in_notice = False
             typst_lines.append(f"    == {line[3:]}")
             typst_lines.append(r"    #v(0.5em)")
+        elif in_notice:
+            notice_parts.append(line)
         elif line.startswith("### "):
             typst_lines.append(f"    === {line[4:]}")
             typst_lines.append(r"    #v(0.5em)")
@@ -84,7 +97,9 @@ def _convert_lines(lines: list[str], width: str) -> list[str]:
 
     typst_lines.append(r"  ]")
     typst_lines.append(r"]")
-    return typst_lines
+
+    extracted_notice = " ".join(notice_parts) if notice_parts else None
+    return typst_lines, extracted_notice
 
 
 def _flush_table(rows: list[str]) -> list[str]:

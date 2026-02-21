@@ -81,6 +81,76 @@ for any pin that has no terminal in its PinDef.
 
 
 @dataclass(frozen=True)
+class ConnectorData:
+    """Physical connector properties for one connector on a field device."""
+
+    pins: tuple[str, ...]
+    """Device pins this connector covers."""
+    type: str | None = None
+    """WireViz type (e.g. "Crimp ferrule", "M12")."""
+    subtype: str | None = None
+    """WireViz subtype (e.g. "female", "0.75mm²")."""
+    style: str | None = None
+    """WireViz style (e.g. "simple" for ferrules)."""
+    notes: str | None = None
+    """Free text shown on diagram."""
+    loops: tuple[tuple[int | str, int | str], ...] | None = None
+    """Pin pairs to show as internal jumpers (WireViz ``loops``)."""
+
+
+@dataclass(frozen=True)
+class CableData:
+    """Physical cable properties for a field device connection."""
+
+    wire_gauge: float
+    """Wire cross-section in mm²."""
+    wire_colour: str | None = None
+    """Wire colour code, e.g. "BK", "RD"."""
+    wire_colors: tuple[str, ...] | None = None
+    """Per-wire color codes in order, e.g. ("BN", "BU", "GNYE")."""
+    cable_length: float | None = None
+    """Cable length in mm."""
+    cable_note: str | None = None
+    """Free-text note, e.g. "3P+PE", "Shielded"."""
+    category: str = "cable"
+    """WireViz category: "cable" or "bundle"."""
+
+
+@dataclass(frozen=True)
+class DeviceCable:
+    """One cable+connector pair on a multi-cable device.
+
+    Groups a subset of device pins into a single cable with its own
+    physical properties and optional connector.
+    """
+
+    pins: tuple[str, ...]
+    """Which device pins use this cable."""
+    cable: CableData
+    """Wire gauge, colors, category, etc."""
+    connector: ConnectorData | None = None
+    """Physical connector (cable gland, ferrule, etc.)."""
+
+
+@dataclass(frozen=True)
+class FieldDevice:
+    """A specific field device instance with its connection template and optional cable data."""
+
+    tag: str
+    """Device tag, e.g. "PU-01-CX"."""
+    template: DeviceTemplate
+    """Connection pattern defining pins and terminal assignments."""
+    terminal: Terminal | None = None
+    """Device-level terminal override (used when PinDef has no terminal)."""
+    cable: CableData | None = None
+    """Physical cable properties (single-cable devices)."""
+    connectors: tuple[ConnectorData, ...] | None = None
+    """Physical connector properties (single-cable devices)."""
+    cables: tuple[DeviceCable, ...] | None = None
+    """Multiple cable+connector pairs (multi-cable devices like valves)."""
+
+
+@dataclass(frozen=True)
 class PinDef:
     """
     Defines one pin on a field device template.
@@ -266,7 +336,7 @@ def _build_reuse_iters(
 
 
 def generate_field_connections(
-    devices: list[DeviceEntry],
+    devices: list[FieldDevice],
     reuse_terminals: dict[str, list[str] | BuildResult] | None = None,
 ) -> list[ConnectionRow]:
     """
@@ -277,8 +347,7 @@ def generate_field_connections(
     ``PlcMapper`` or project-specific PLC modules).
 
     Args:
-        devices: List of ``(tag, template)`` or
-            ``(tag, template, terminal_override)`` tuples.
+        devices: List of :class:`FieldDevice` instances.
         reuse_terminals: Optional dict mapping terminal key to a list of
             pin strings or a ``BuildResult``.  When a terminal key
             matches, pins are consumed from the reuse source instead of
@@ -298,12 +367,10 @@ def generate_field_connections(
 
     connections: list[ConnectionRow] = []
 
-    for entry in devices:
-        tag: str = entry[0]
-        template: DeviceTemplate = entry[1]
-        terminal_override: Terminal | None = (
-            entry[2] if len(entry) > 2 else None  # type: ignore[arg-type]
-        )
+    for device in devices:
+        tag = device.tag
+        template = device.template
+        terminal_override = device.terminal
 
         device_prefix_indices: dict[str, int] = {}
 

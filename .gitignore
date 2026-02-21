@@ -25,5 +25,6 @@ dist/
 examples/output/project_temp/
 examples/output/project_svgs/*.csv
 
-# IDE and tool config
-.claude/
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/

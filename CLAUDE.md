@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Knowledge Graph (MCP Memory)
+
+The memory server contains full API signatures for this library (`CircuitBuilder`, `std_circuits.*`, `TypstCompiler`, `BuildResult`, `GenerationState`, `Terminal`, `InternalDevice`, `Descriptors/Project API`, wire labels, export utilities) and the consumer project's config (terminals, devices, PLC rack, circuit functions, field devices). **Search memory before re-reading source files** — e.g. `mcp__memory__search_nodes("CircuitBuilder")` or `mcp__memory__search_nodes("BuildResult")`.
+
 ## Project Overview
 
 PySchemaElectrical is a Python library for programmatically generating IEC 60617-compliant electrical schematic diagrams as SVG files. It has **zero runtime dependencies** and targets **Python 3.12+** (`requires-python = ">=3.12"` in `pyproject.toml`). Current version: 0.1.7 (Alpha).
