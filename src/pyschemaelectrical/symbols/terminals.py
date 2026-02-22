@@ -84,7 +84,8 @@ def terminal_symbol(
     if label:
         elements.append(
             terminal_text(
-                label, Point(0, 0),
+                label,
+                Point(0, 0),
                 label_pos=label_pos,
                 pin_label_pos=pin_label_pos,
             )

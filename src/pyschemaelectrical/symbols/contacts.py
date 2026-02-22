@@ -1,4 +1,3 @@
-
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
     GRID_SIZE,
