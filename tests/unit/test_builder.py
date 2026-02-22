@@ -793,165 +793,180 @@ class TestTerminalLogicalNames:
 
 
 # ---------------------------------------------------------------------------
-# place_right and place_above tests
+# add_symbol(position="right") and add_terminal(position="above"/"below") tests
 # ---------------------------------------------------------------------------
 
 
 class TestPlacement:
-    """Tests for place_right and place_above."""
+    """Tests for add_symbol(position="right") and add_terminal(position="above"/"below")."""
 
-    def test_place_right_stores_spec_correctly(self):
-        """place_right should store a ComponentSpec with placed_right_of set."""
+    def test_add_symbol_right_stores_spec_correctly(self):
+        """add_symbol with position="right" should store a ComponentSpec with placed_right_of set."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         ref_a = builder.add_symbol(mock_symbol, tag_prefix="K")
-        ref_b = builder.place_right(ref_a, mock_symbol, tag_prefix="Q", spacing=50.0)
+        ref_b = builder.add_symbol(
+            mock_symbol, "Q", relative_to=ref_a, position="right", spacing=50.0
+        )
 
         spec = builder._spec.components[ref_b._index]
         assert spec.placed_right_of == ref_a._index
-        assert spec.x_offset == 50.0
-        assert spec.y_increment == 0
-        assert spec.auto_connect_next is False  # default
+        assert spec.spacing_override == 50.0
+        assert spec.auto_connect_next is False
 
-    def test_place_right_returns_component_ref(self):
-        """place_right should return a ComponentRef."""
+    def test_add_symbol_right_returns_component_ref(self):
+        """add_symbol with position="right" should return a ComponentRef."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         ref_a = builder.add_symbol(mock_symbol, tag_prefix="K")
-        ref_b = builder.place_right(ref_a, mock_symbol, tag_prefix="Q")
+        ref_b = builder.add_symbol(
+            mock_symbol, "Q", relative_to=ref_a, position="right"
+        )
 
         assert isinstance(ref_b, ComponentRef)
         assert ref_b.tag_prefix == "Q"
 
-    def test_place_right_builds_successfully(self):
-        """A circuit with place_right should build without error."""
+    def test_add_symbol_right_builds_successfully(self):
+        """A circuit with add_symbol(position="right") should build without error."""
         state = create_autonumberer()
         builder = CircuitBuilder(state)
         builder.set_layout(0, 0)
         ref_a = builder.add_symbol(mock_symbol, tag_prefix="K")
-        builder.place_right(ref_a, mock_symbol, tag_prefix="Q", spacing=40.0)
+        builder.add_symbol(
+            mock_symbol, "Q", relative_to=ref_a, position="right", spacing=40.0
+        )
 
         result = builder.build(count=1)
 
         assert "K" in result.component_map
         assert "Q" in result.component_map
 
-    def test_place_above_stores_spec_correctly(self):
-        """place_above should store a ComponentSpec with placed_above_of set."""
+    def test_add_terminal_above_stores_spec_correctly(self):
+        """add_terminal with position="above" should store a ComponentSpec with placed_above_of set."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        tm_ref = builder.place_above(comp.pin("1"), "X99", poles=1)
+        tm_ref = builder.add_terminal(
+            "X99", poles=1, relative_to=comp.pin("1"), position="above"
+        )
 
         spec = builder._spec.components[tm_ref._index]
         assert spec.placed_above_of == (comp._index, "1")
         assert spec.kind == "terminal"
         assert spec.auto_connect_next is False
 
-    def test_place_above_registers_connection(self):
-        """place_above should automatically register a connection."""
+    def test_add_terminal_above_registers_connection(self):
+        """add_terminal with position="above" should automatically register a connection."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        builder.place_above(comp.pin("1"), "X99")
+        builder.add_terminal("X99", relative_to=comp.pin("1"), position="above")
 
         # There should be a manual connection registered
         assert len(builder._spec.manual_connections) == 1
 
-    def test_place_above_builds_successfully(self):
-        """A circuit with place_above should build without error."""
+    def test_add_terminal_above_builds_successfully(self):
+        """A circuit with add_terminal(position="above") should build without error."""
         state = create_autonumberer()
         builder = CircuitBuilder(state)
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
-        builder.place_above(comp.pin("1"), "X99", poles=1)
+        builder.add_terminal(
+            "X99", poles=1, relative_to=comp.pin("1"), position="above"
+        )
 
         result = builder.build(count=1)
         assert result.circuit is not None
 
-    def test_place_above_with_reference_terminal(self):
-        """place_above with a reference Terminal should create a reference spec."""
-        from pyschemaelectrical.terminal import Terminal
-
+    def test_add_reference_above_creates_reference_spec(self):
+        """add_reference with position="above" should create a kind="reference" spec."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        ref_tm = Terminal("PLC:DO", reference=True)
-        tm_ref = builder.place_above(comp.pin("1"), ref_tm)
+        tm_ref = builder.add_reference(
+            "PLC:DO", relative_to=comp.pin("1"), position="above"
+        )
 
         spec = builder._spec.components[tm_ref._index]
         assert spec.kind == "reference"
 
-    def test_place_above_with_y_offset(self):
-        """place_above should respect custom y_offset."""
+    def test_add_terminal_above_with_spacing(self):
+        """add_terminal with position="above" should respect custom spacing."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        tm_ref = builder.place_above(comp.pin("1"), "X1", y_offset=30.0)
+        tm_ref = builder.add_terminal(
+            "X1", relative_to=comp.pin("1"), position="above", spacing=30.0
+        )
 
         spec = builder._spec.components[tm_ref._index]
-        assert spec.y_increment == 30.0
+        assert spec.spacing_override == 30.0
 
-    def test_place_below_stores_spec_correctly(self):
-        """place_below should store a ComponentSpec with placed_below_of set."""
+    def test_add_terminal_below_stores_spec_correctly(self):
+        """add_terminal with position="below" should store a ComponentSpec with placed_below_of set."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        tm_ref = builder.place_below(comp.pin("1"), "X99", poles=1)
+        tm_ref = builder.add_terminal(
+            "X99", poles=1, relative_to=comp.pin("1"), position="below"
+        )
 
         spec = builder._spec.components[tm_ref._index]
         assert spec.placed_below_of == (comp._index, "1")
         assert spec.kind == "terminal"
         assert spec.auto_connect_next is False
 
-    def test_place_below_registers_connection(self):
-        """place_below should automatically register a connection."""
+    def test_add_terminal_below_registers_connection(self):
+        """add_terminal with position="below" should automatically register a connection."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        builder.place_below(comp.pin("1"), "X99")
+        builder.add_terminal("X99", relative_to=comp.pin("1"), position="below")
 
         assert len(builder._spec.manual_connections) == 1
 
-    def test_place_below_builds_successfully(self):
-        """A circuit with place_below should build without error."""
+    def test_add_terminal_below_builds_successfully(self):
+        """A circuit with add_terminal(position="below") should build without error."""
         state = create_autonumberer()
         builder = CircuitBuilder(state)
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
-        builder.place_below(comp.pin("1"), "X99", poles=1)
+        builder.add_terminal(
+            "X99", poles=1, relative_to=comp.pin("1"), position="below"
+        )
 
         result = builder.build(count=1)
         assert result.circuit is not None
 
-    def test_place_below_with_reference_terminal(self):
-        """place_below with a reference Terminal should create a reference spec."""
-        from pyschemaelectrical.terminal import Terminal
-
+    def test_add_reference_below_creates_reference_spec(self):
+        """add_reference with position="below" should create a kind="reference" spec."""
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        ref_tm = Terminal("PLC:DO", reference=True)
-        tm_ref = builder.place_below(comp.pin("1"), ref_tm)
+        tm_ref = builder.add_reference(
+            "PLC:DO", relative_to=comp.pin("1"), position="below"
+        )
 
         spec = builder._spec.components[tm_ref._index]
         assert spec.kind == "reference"
-        assert spec.kwargs.get("direction") == "down"
+        assert spec.placed_below_of == (comp._index, "1")
 
-    def test_place_below_wire_connection(self):
-        """place_below should register wire connection from target to placed."""
+    def test_add_terminal_below_wire_connection(self):
+        """add_terminal with position="below" should register wire connection from target to placed."""
         state = create_autonumberer()
         builder = CircuitBuilder(state)
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
-        builder.place_below(comp.pin("1"), "X99", poles=1)
+        builder.add_terminal(
+            "X99", poles=1, relative_to=comp.pin("1"), position="below"
+        )
 
         result = builder.build(count=1)
         # Should have wire connection from component to terminal
@@ -1351,11 +1366,12 @@ class TestBuildIntegration:
             pins=["1", "2"],
             auto_connect_next=False,
         )
-        ref_b = builder.place_right(
-            ref_a,
+        ref_b = builder.add_symbol(
             mock_symbol_with_pins,
-            tag_prefix="Q",
+            "Q",
             pins=["1", "2"],
+            relative_to=ref_a,
+            position="right",
             spacing=50.0,
         )
         builder.connect_matching(ref_a, ref_b, pins=["1", "2"])
@@ -1474,18 +1490,14 @@ class TestBuildIntegration:
 class TestAdditionalCoverage:
     """Tests targeting specific uncovered lines in builder.py."""
 
-    def test_place_above_reference_builds_with_fixed_gen(self):
-        """place_above with a reference Terminal should build and use
-        the fixed_gen defined in the is_ref branch (line 465)."""
-        from pyschemaelectrical.terminal import Terminal
-
+    def test_add_reference_above_builds_with_fixed_gen(self):
+        """add_reference with position="above" should build and use the fixed_gen."""
         state = create_autonumberer()
         builder = CircuitBuilder(state)
         builder.set_layout(0, 0)
         comp = builder.add_symbol(mock_symbol, tag_prefix="K", pins=["1", "2"])
 
-        ref_tm = Terminal("PLC:DO", reference=True)
-        builder.place_above(comp.pin("1"), ref_tm)
+        builder.add_reference("PLC:DO", relative_to=comp.pin("1"), position="above")
 
         result = builder.build(count=1)
         # The reference should appear in the component_map with its fixed ID
@@ -1550,17 +1562,21 @@ class TestAdditionalCoverage:
         result = builder.build(count=1)
         assert result.circuit is not None
 
-    def test_chained_place_right_in_build(self):
-        """Chained place_right should trigger the _get_absolute_x_offset path
-        in Phase 3 instantiation (line 1010)."""
+    def test_chained_add_symbol_right_in_build(self):
+        """Chained add_symbol(position="right") should trigger the _get_absolute_x_offset path
+        in Phase 3 instantiation."""
         state = create_autonumberer()
         builder = CircuitBuilder(state)
         builder.set_layout(0, 0)
 
         base = builder.add_symbol(mock_symbol, tag_prefix="K")
-        right1 = builder.place_right(base, mock_symbol, tag_prefix="Q", spacing=40.0)
+        right1 = builder.add_symbol(
+            mock_symbol, "Q", relative_to=base, position="right", spacing=40.0
+        )
         # Chain: place another component to the right of the first right-placed one
-        builder.place_right(right1, mock_symbol, tag_prefix="F", spacing=30.0)
+        builder.add_symbol(
+            mock_symbol, "F", relative_to=right1, position="right", spacing=30.0
+        )
 
         result = builder.build(count=1)
         assert "K" in result.component_map
