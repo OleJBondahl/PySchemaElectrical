@@ -139,6 +139,8 @@ class Project:
         self._results: dict[str, BuildResult] = {}
         self._plc_rack: "PlcRack | None" = None
         self._external_connections: "list[ConnectionRow]" = []
+        self._wire_label_export: tuple[str, dict[str, str] | None] | None = None
+        self._taglist_export: str | None = None
 
     # ------------------------------------------------------------------
     # Terminal registration
@@ -542,6 +544,18 @@ class Project:
             _PageDef(page_type="custom", title=title, typst_content=typst_content)
         )
 
+    def export_wire_labels(
+        self, path: str, titles: dict[str, str] | None = None
+    ) -> "Project":
+        """Register a wire label CSV export. Written during build()."""
+        self._wire_label_export = (path, titles)
+        return self
+
+    def export_taglist(self, path: str) -> "Project":
+        """Register a taglist CSV export. Written during build()."""
+        self._taglist_export = path
+        return self
+
     # ------------------------------------------------------------------
     # Build pipeline
     # ------------------------------------------------------------------
@@ -596,6 +610,8 @@ class Project:
                 csv_paths[key] = csv_path
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
+        self._export_wire_labels()
+        self._export_taglist()
 
         # 3. Generate system terminal CSV with bridge info
         system_csv_path = self._generate_system_csv(temp_dir)
@@ -666,6 +682,8 @@ class Project:
                 csv_paths[key] = csv_path
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, output_dir)
+        self._export_wire_labels()
+        self._export_taglist()
 
         # System terminal CSV
         self._generate_system_csv(output_dir)
@@ -758,6 +776,8 @@ class Project:
                 csv_paths[key] = csv_path
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
+        self._export_wire_labels()
+        self._export_taglist()
 
         # System terminal CSV with bridge info
         system_csv_path = self._generate_system_csv(temp_dir)
@@ -898,6 +918,55 @@ class Project:
                         csv_paths[merged_key] = csv_path_m
                     # Point page_def to merged key for compiler
                     page_def.circuit_key = merged_key
+
+    # ------------------------------------------------------------------
+    # Internal: wire label and taglist exports
+    # ------------------------------------------------------------------
+
+    def _export_wire_labels(self) -> None:
+        if self._wire_label_export is None:
+            return
+        import csv as _csv
+
+        path, titles = self._wire_label_export
+        titles = titles or {}
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with open(path, "w", newline="") as f:
+            writer = _csv.writer(f)
+            for circuit_key, result in self._results.items():
+                if not result.wire_connections:
+                    continue
+                title = titles.get(circuit_key, circuit_key)
+                writer.writerow([title])
+                for tag_a, pin_a, tag_b, pin_b in result.wire_connections:
+                    writer.writerow([f"{tag_a}:{pin_a}"])
+                    writer.writerow([f"{tag_b}:{pin_b}"])
+                writer.writerow([])
+
+    def _export_taglist(self) -> None:
+        if self._taglist_export is None:
+            return
+        import csv as _csv
+
+        from pyschemaelectrical.utils.utils import natural_sort_key
+
+        tags: set[str] = set()
+        for result in self._results.values():
+            tags.update(result.device_registry.keys())
+        for tid in self._terminals:
+            tags.add(tid)
+        if self._plc_rack:
+            for slot_name, _module in self._plc_rack:
+                tags.add(slot_name)
+
+        os.makedirs(
+            os.path.dirname(os.path.abspath(self._taglist_export)), exist_ok=True
+        )
+        with open(self._taglist_export, "w", newline="") as f:
+            writer = _csv.writer(f)
+            writer.writerow(["Tag"])
+            for tag in sorted(tags, key=natural_sort_key):
+                writer.writerow([tag])
 
     # ------------------------------------------------------------------
     # Internal: system CSV generation

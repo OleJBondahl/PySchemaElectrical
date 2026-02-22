@@ -1429,3 +1429,72 @@ class TestMultiCircuitPage:
         p.page("Single", "my_circuit")
         assert p._pages[0].circuit_key == "my_circuit"
         assert p._pages[0].circuit_keys is None
+
+
+class TestExportWireLabels:
+    def test_writes_csv_during_build(self):
+        def builder(state, **_kw):
+            return BuildResult(
+                state=state,
+                circuit=Circuit(),
+                used_terminals=[],
+                wire_connections=[("Q1", "1", "X1", "1")],
+            )
+
+        p = Project()
+        p.custom("motors", builder)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = os.path.join(tmpdir, "wire_labels.csv")
+            p.export_wire_labels(csv_path, titles={"motors": "Motor Circuits"})
+            p.build_svgs(tmpdir)
+
+            assert os.path.exists(csv_path)
+            with open(csv_path) as f:
+                content = f.read()
+            assert "Motor Circuits" in content
+            assert "Q1:1" in content
+
+    def test_skips_circuits_without_wire_connections(self):
+        def builder(state, **_kw):
+            return BuildResult(state=state, circuit=Circuit(), used_terminals=[])
+
+        p = Project()
+        p.custom("empty", builder)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = os.path.join(tmpdir, "wire_labels.csv")
+            p.export_wire_labels(csv_path)
+            p.build_svgs(tmpdir)
+
+            with open(csv_path) as f:
+                content = f.read()
+            assert content.strip() == ""
+
+
+class TestExportTaglist:
+    def test_writes_sorted_tags(self):
+        def builder(state, **_kw):
+            return BuildResult(
+                state=state,
+                circuit=Circuit(),
+                used_terminals=[],
+                device_registry={"Q1": MagicMock(), "F2": MagicMock()},
+            )
+
+        t = Terminal("X1", "Test")
+        p = Project()
+        p.terminals(t)
+        p.custom("circuit", builder)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = os.path.join(tmpdir, "taglist.csv")
+            p.export_taglist(csv_path)
+            p.build_svgs(tmpdir)
+
+            with open(csv_path) as f:
+                content = f.read()
+            assert "Tag" in content  # header
+            assert "F2" in content
+            assert "Q1" in content
+            assert "X1" in content
