@@ -23,6 +23,8 @@ from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
 from pyschemaelectrical.utils.utils import set_tag_counter, set_terminal_counter
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pyschemaelectrical.internal_device import InternalDevice
     from pyschemaelectrical.model.core import Port
     from pyschemaelectrical.model.state import GenerationState
@@ -169,6 +171,7 @@ class BuildResult:
     device_registry: "dict[str, InternalDevice]" = field(default_factory=dict)
     wire_connections: list[tuple[str, str, str, str]] = field(default_factory=list)
     bridge_groups: dict[str, list[tuple[int, int]]] = field(default_factory=dict)
+    connection_log: list[str] = field(default_factory=list)
 
     def __iter__(self) -> Iterator[Any]:
         return iter((self.state, self.circuit, self.used_terminals))
@@ -1301,6 +1304,7 @@ class CircuitBuilder:
         ) = None,
         wire_labels: list[str] | None = None,
         state: "GenerationState | None" = None,
+        connection_log_path: "str | Path | None" = None,
     ) -> BuildResult:
         """
         Generate the circuits.
@@ -1434,6 +1438,23 @@ class CircuitBuilder:
         # Auto-derive bridge groups from terminal specs
         auto_bridges = self._derive_bridge_groups(captured_terminal_pins)
 
+        # Build connection log from resolved wire connections
+        connection_log_entries = [
+            f"{src_tag}:{src_pin} -> {tgt_tag}:{tgt_pin}"
+            for src_tag, src_pin, tgt_tag, tgt_pin in captured_wire_connections
+        ]
+
+        # Write log file if path provided
+        if connection_log_path is not None:
+            from datetime import datetime
+            from pathlib import Path
+
+            log_path = Path(connection_log_path)
+            with open(log_path, "w") as f:
+                f.write(f"# Connection Log — {datetime.now().isoformat()}\n")
+                for entry in connection_log_entries:
+                    f.write(f"{entry}\n")
+
         result = BuildResult(
             state=final_state,
             circuit=c,
@@ -1443,6 +1464,7 @@ class CircuitBuilder:
             device_registry=captured_device_registry,
             wire_connections=captured_wire_connections,
             bridge_groups=auto_bridges,
+            connection_log=connection_log_entries,
         )
         self._result = result
         self._frozen = True
@@ -1558,6 +1580,10 @@ def merge_build_results(results: list[BuildResult]) -> BuildResult:
     merged_component_map = _merge_dict_of_lists(r.component_map for r in results)
     merged_terminal_pin_map = _merge_dict_of_lists(r.terminal_pin_map for r in results)
 
+    merged_connection_log: list[str] = []
+    for r in results:
+        merged_connection_log.extend(r.connection_log)
+
     return BuildResult(
         state=results[-1].state,
         circuit=merged_circuit,
@@ -1567,6 +1593,7 @@ def merge_build_results(results: list[BuildResult]) -> BuildResult:
         bridge_groups=merged_bridge_groups,
         component_map=merged_component_map,
         terminal_pin_map=merged_terminal_pin_map,
+        connection_log=merged_connection_log,
     )
 
 
