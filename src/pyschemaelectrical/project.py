@@ -589,6 +589,27 @@ class Project:
         self._taglist_export = path
         return self
 
+    def export_cable_csv(
+        self, output_path: str
+    ) -> "tuple[str, int, dict[str, str], dict[str, dict]]":
+        """Generate wireviz-compatible cable CSV from field devices.
+
+        Requires build_circuits() to have been called first.
+
+        Args:
+            output_path: Path for the output CSV file.
+
+        Returns:
+            (csv_path, cable_count, cable_titles, connector_overrides)
+        """
+        from pyschemaelectrical.cable_export import generate_cable_csv
+
+        all_devices = []
+        for devices, _reuse in self._field_device_defs:
+            all_devices.extend(devices)
+
+        return generate_cable_csv(self._external_connections, all_devices, output_path)
+
     # ------------------------------------------------------------------
     # Build pipeline
     # ------------------------------------------------------------------
