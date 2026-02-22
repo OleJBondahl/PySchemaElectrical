@@ -27,9 +27,9 @@ from pyschemaelectrical.system.connection_registry import (
 from pyschemaelectrical.system.system import render_system
 from pyschemaelectrical.terminal import Terminal
 from pyschemaelectrical.utils.autonumbering import create_autonumberer
-from pyschemaelectrical.utils.export_utils import export_terminal_list
-from pyschemaelectrical.utils.terminal_bridges import (
-    update_csv_with_internal_connections,
+from pyschemaelectrical.utils.export_utils import (
+    export_terminal_list,
+    finalize_terminal_csv,
 )
 
 # ---------------------------------------------------------------------------
@@ -500,6 +500,10 @@ class Project:
     # Build pipeline
     # ------------------------------------------------------------------
 
+    def build_circuits(self) -> None:
+        """Build all deferred circuits. State is advanced automatically."""
+        self._build_all_circuits()
+
     def build(
         self,
         output: str,
@@ -546,17 +550,7 @@ class Project:
                 csv_paths[key] = csv_path
 
         # 3. Generate system terminal CSV with bridge info
-        system_csv_path = os.path.join(temp_dir, "system_terminals.csv")
-        registry = get_registry(self._state)
-        export_registry_to_csv(registry, system_csv_path, state=self._state)
-
-        # Add bridge info from registered terminals
-        bridge_defs = {}
-        for tid, t in self._terminals.items():
-            if t.bridge and not t.reference:
-                bridge_defs[tid] = t.bridge
-        if bridge_defs:
-            update_csv_with_internal_connections(system_csv_path, bridge_defs)
+        system_csv_path = self._generate_system_csv(temp_dir)
 
         # 3.5. Auto-generate PLC connections CSV if rack is configured
         plc_csv_path = ""
@@ -619,16 +613,7 @@ class Project:
                 export_terminal_list(csv_path, result.used_terminals)
 
         # System terminal CSV
-        system_csv_path = os.path.join(output_dir, "system_terminals.csv")
-        registry = get_registry(self._state)
-        export_registry_to_csv(registry, system_csv_path, state=self._state)
-
-        bridge_defs = {}
-        for tid, t in self._terminals.items():
-            if t.bridge and not t.reference:
-                bridge_defs[tid] = t.bridge
-        if bridge_defs:
-            update_csv_with_internal_connections(system_csv_path, bridge_defs)
+        self._generate_system_csv(output_dir)
 
         print(f"SVGs and CSVs written to: {output_dir}")
 
@@ -669,17 +654,7 @@ class Project:
         os.makedirs(output_dir, exist_ok=True)
 
         # System terminal CSV
-        system_csv_path = os.path.join(output_dir, "system_terminals.csv")
-        registry = get_registry(self._state)
-        export_registry_to_csv(registry, system_csv_path, state=self._state)
-
-        # Bridge info
-        bridge_defs = {}
-        for tid, t in self._terminals.items():
-            if t.bridge and not t.reference:
-                bridge_defs[tid] = t.bridge
-        if bridge_defs:
-            update_csv_with_internal_connections(system_csv_path, bridge_defs)
+        self._generate_system_csv(output_dir)
 
         # PLC connections CSV
         if self._plc_rack is not None:
@@ -728,16 +703,7 @@ class Project:
                 csv_paths[key] = csv_path
 
         # System terminal CSV with bridge info
-        system_csv_path = os.path.join(temp_dir, "system_terminals.csv")
-        registry = get_registry(self._state)
-        export_registry_to_csv(registry, system_csv_path, state=self._state)
-
-        bridge_defs = {}
-        for tid, t in self._terminals.items():
-            if t.bridge and not t.reference:
-                bridge_defs[tid] = t.bridge
-        if bridge_defs:
-            update_csv_with_internal_connections(system_csv_path, bridge_defs)
+        system_csv_path = self._generate_system_csv(temp_dir)
 
         # PLC connections CSV
         plc_csv_path = ""
@@ -849,6 +815,49 @@ class Project:
             circuit=circuit,
             used_terminals=used_terminals,
         )
+
+    # ------------------------------------------------------------------
+    # Internal: system CSV generation
+    # ------------------------------------------------------------------
+
+    def _generate_system_csv(self, output_dir: str) -> str:
+        """Generate system terminal CSV with bridge info and external connections.
+
+        PLC-prefixed connections are filtered out (they appear in the
+        PLC report instead).
+        """
+        from pyschemaelectrical.system.connection_registry import TerminalRegistry
+
+        csv_path = os.path.join(output_dir, "system_terminals.csv")
+        registry = get_registry(self._state)
+        filtered = tuple(
+            c for c in registry.connections if not c.terminal_tag.startswith("PLC:")
+        )
+        registry = TerminalRegistry(connections=filtered)
+        export_registry_to_csv(registry, csv_path, state=self._state)
+
+        # Bridge defs from Terminal objects
+        bridge_defs: dict = {}
+        prefix_bridge_tags: set[str] = set()
+        for tid, t in self._terminals.items():
+            if t.bridge and not t.reference:
+                if t.bridge == "per_prefix":
+                    prefix_bridge_tags.add(tid)
+                else:
+                    bridge_defs[tid] = t.bridge
+
+        # Bridge groups from circuit results
+        for result in self._results.values():
+            for key, groups in result.bridge_groups.items():
+                bridge_defs.setdefault(key, []).extend(groups)
+
+        finalize_terminal_csv(
+            csv_path,
+            bridge_defs=bridge_defs or None,
+            prefix_bridge_tags=prefix_bridge_tags or None,
+            external_connections=self._external_connections or None,
+        )
+        return csv_path
 
     # ------------------------------------------------------------------
     # Internal: page compilation
