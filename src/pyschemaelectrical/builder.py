@@ -723,25 +723,41 @@ class CircuitBuilder:
                     )
                 )
 
-        # For non-chain placements with autoconnect, record a pin_placement connection
+        # For non-chain placements with autoconnect, connect via position
+        new_ref = ComponentRef(self, idx, tag_prefix)
         if not is_chain_component and autoconnect and resolved_relative_to is not None:
-            self._spec.planned_connections.append(
-                PlannedConnection(
-                    source_idx=(
-                        resolved_relative_to
-                        if isinstance(resolved_relative_to, int)
-                        else resolved_relative_to[0]
-                    ),
-                    target_idx=idx,
-                    kind="pin_placement",
+            if position == "above" and isinstance(resolved_relative_to, tuple):
+                self.connect(
+                    new_ref.pole(0),
+                    relative_to,  # type: ignore[arg-type]
+                    side_a="bottom",
+                    side_b="top",
                 )
-            )
+            elif position == "below" and isinstance(resolved_relative_to, tuple):
+                self.connect(
+                    relative_to,  # type: ignore[arg-type]
+                    new_ref.pole(0),
+                    side_a="bottom",
+                    side_b="top",
+                )
+            else:
+                self._spec.planned_connections.append(
+                    PlannedConnection(
+                        source_idx=(
+                            resolved_relative_to
+                            if isinstance(resolved_relative_to, int)
+                            else resolved_relative_to[0]
+                        ),
+                        target_idx=idx,
+                        kind="pin_placement",
+                    )
+                )
 
         # Update last chain index for normally-placed components
         if is_chain_component:
             self._last_chain_idx = idx
 
-        return ComponentRef(self, idx, tag_prefix)
+        return new_ref
 
     def add_spdt(  # noqa: C901
         self,
@@ -892,25 +908,41 @@ class CircuitBuilder:
                     )
                 )
 
-        # For non-chain placements with autoconnect, record a pin_placement connection
+        # For non-chain placements with autoconnect, connect via position
+        new_ref = ComponentRef(self, idx, tag_prefix)
         if not is_chain_component and autoconnect and resolved_relative_to is not None:
-            self._spec.planned_connections.append(
-                PlannedConnection(
-                    source_idx=(
-                        resolved_relative_to
-                        if isinstance(resolved_relative_to, int)
-                        else resolved_relative_to[0]
-                    ),
-                    target_idx=idx,
-                    kind="pin_placement",
+            if position == "above" and isinstance(resolved_relative_to, tuple):
+                self.connect(
+                    new_ref.pole(0),
+                    relative_to,  # type: ignore[arg-type]
+                    side_a="bottom",
+                    side_b="top",
                 )
-            )
+            elif position == "below" and isinstance(resolved_relative_to, tuple):
+                self.connect(
+                    relative_to,  # type: ignore[arg-type]
+                    new_ref.pole(0),
+                    side_a="bottom",
+                    side_b="top",
+                )
+            else:
+                self._spec.planned_connections.append(
+                    PlannedConnection(
+                        source_idx=(
+                            resolved_relative_to
+                            if isinstance(resolved_relative_to, int)
+                            else resolved_relative_to[0]
+                        ),
+                        target_idx=idx,
+                        kind="pin_placement",
+                    )
+                )
 
         # Update last chain index (add_spdt always has auto_connect_next=False,
         # so _last_chain_idx advances here but won't emit a connection forward)
         self._last_chain_idx = idx
 
-        return ComponentRef(self, idx, tag_prefix)
+        return new_ref
 
     def add_reference(
         self,
@@ -1027,19 +1059,34 @@ class CircuitBuilder:
                     )
                 )
 
-        # For non-chain placements with autoconnect, record a pin_placement connection
+        # For non-chain placements with autoconnect, connect via position
         if not is_chain_component and autoconnect and resolved_relative_to is not None:
-            self._spec.planned_connections.append(
-                PlannedConnection(
-                    source_idx=(
-                        resolved_relative_to
-                        if isinstance(resolved_relative_to, int)
-                        else resolved_relative_to[0]
-                    ),
-                    target_idx=idx,
-                    kind="pin_placement",
+            if position == "above" and isinstance(resolved_relative_to, tuple):
+                self.connect(
+                    new_ref.pole(0),
+                    relative_to,  # type: ignore[arg-type]
+                    side_a="bottom",
+                    side_b="top",
                 )
-            )
+            elif position == "below" and isinstance(resolved_relative_to, tuple):
+                self.connect(
+                    relative_to,  # type: ignore[arg-type]
+                    new_ref.pole(0),
+                    side_a="bottom",
+                    side_b="top",
+                )
+            else:
+                self._spec.planned_connections.append(
+                    PlannedConnection(
+                        source_idx=(
+                            resolved_relative_to
+                            if isinstance(resolved_relative_to, int)
+                            else resolved_relative_to[0]
+                        ),
+                        target_idx=idx,
+                        kind="pin_placement",
+                    )
+                )
 
         # Update last chain index for normally-placed components
         if is_chain_component:
