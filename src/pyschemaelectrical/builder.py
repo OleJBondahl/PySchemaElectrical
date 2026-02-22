@@ -24,6 +24,7 @@ from pyschemaelectrical.utils.utils import set_tag_counter, set_terminal_counter
 
 if TYPE_CHECKING:
     from pyschemaelectrical.internal_device import InternalDevice
+    from pyschemaelectrical.model.core import Port
     from pyschemaelectrical.model.state import GenerationState
     from pyschemaelectrical.terminal import Terminal
 
@@ -1811,9 +1812,7 @@ def _phase4_render_graphics(  # noqa: C901
         from pyschemaelectrical.layout.layout import auto_connect
 
         sym_id_to_spec = {
-            id(rc["symbol"]): rc["spec"]
-            for rc in realized_components
-            if "symbol" in rc
+            id(rc["symbol"]): rc["spec"] for rc in realized_components if "symbol" in rc
         }
         connectable = [s for s in c.symbols if not s.skip_auto_connect]
         for i in range(len(connectable) - 1):
@@ -1966,7 +1965,9 @@ def _get_absolute_x_offset(
     return x_offset
 
 
-def _find_port(sym: "Symbol", pin_name: str, spec_pins: tuple | list | None = None):
+def _find_port(
+    sym: "Symbol", pin_name: str, spec_pins: tuple | list | None = None
+) -> "Port | None":
     """Look up a port on a placed symbol by pin name or port key.
 
     Tries direct key lookup first (works when pin labels == port keys,

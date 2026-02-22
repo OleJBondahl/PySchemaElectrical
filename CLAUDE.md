@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Knowledge Graph (MCP Memory)
 
-The memory server contains full API signatures for this library (`CircuitBuilder`, `std_circuits.*`, `TypstCompiler`, `BuildResult`, `GenerationState`, `Terminal`, `InternalDevice`, `Descriptors/Project API`, wire labels, export utilities) and the consumer project's config (terminals, devices, PLC rack, circuit functions, field devices). **Search memory before re-reading source files** — e.g. `mcp__memory__search_nodes("CircuitBuilder")` or `mcp__memory__search_nodes("BuildResult")`.
+The memory server contains full API signatures for this library (`CircuitBuilder`, `TypstCompiler`, `BuildResult`, `GenerationState`, `Terminal`, `InternalDevice`, `Descriptors/Project API`, wire labels, export utilities) and the consumer project's config (terminals, devices, PLC rack, circuit functions, field devices). **Search memory before re-reading source files** — e.g. `mcp__memory__search_nodes("CircuitBuilder")` or `mcp__memory__search_nodes("BuildResult")`.
 
 ## Project Overview
 
@@ -58,9 +58,6 @@ uv run ty check
 # Code formatting and linting
 uv run ruff check
 uv run ruff format
-
-# Run an example
-python examples/example_dol_starter.py
 ```
 
 ## Architecture
@@ -68,7 +65,7 @@ python examples/example_dol_starter.py
 ### Three-Layer API Design
 
 1. **Project API** (`project.py`): Top-level orchestration. Manages multi-page schematics, title blocks, and PDF compilation.
-2. **Circuit API** (`std_circuits/`, `builder.py`, `descriptors.py`): For library consumers. Creates complete circuits with automatic state management, autonumbering, layout, and connections.
+2. **Circuit API** (`builder.py`, `descriptors.py`): For library consumers. Creates complete circuits with automatic state management, autonumbering, layout, and connections.
 3. **Symbol API** (`model/`, `system/`, `symbols/`): For extending the library with new components. Direct manipulation of Symbols, Ports, and Circuits.
 
 ### Core Data Flow
@@ -111,7 +108,6 @@ def factory(
 - **`symbols/`** — IEC symbol factory functions (terminals, contacts, coils, breakers, protection, motors, blocks, transducers, assemblies, references). Each returns a `Symbol`.
 - **`system/system.py`** — `Circuit` container (**mutable** — see "Intentional Mutable Builders"), `add_symbol`, `auto_connect_circuit`, `render_system`, `merge_circuits`.
 - **`system/connection_registry.py`** — `TerminalRegistry` (frozen dataclass) for immutable terminal-to-component connection tracking. `register_connection()` returns a new registry.
-- **`std_circuits/`** — High-level circuit factories: `dol_starter`, `psu`, `changeover`, `power_distribution`, `spdt`, `no_contact`, `coil`, `emergency_stop`. All return `BuildResult`.
 - **`builder.py`** — `CircuitBuilder` fluent API for constructing custom linear circuits. Also defines `BuildResult`, `ComponentRef`, `PortRef`, `LayoutConfig`, `ComponentSpec`.
 - **`descriptors.py`** — Lightweight inline descriptors (`ref`, `comp`, `term`) for declarative circuit definition via `build_from_descriptors()`.
 - **`terminal.py`** — First-class `Terminal` type (immutable `str` subclass with metadata: `description`, `bridge`, `reference`, `pin_prefixes`).
@@ -133,7 +129,6 @@ def factory(
 
 **WARNING**: The `__init__.py` files in this project have **deliberate import ordering** to avoid circular imports. Do NOT let auto-formatters (like `ruff` with I001) reorder these imports. Key files:
 
-- `src/pyschemaelectrical/__init__.py` — `std_circuits` must be imported last
 - `src/pyschemaelectrical/model/__init__.py` — `core` must be imported before `parts`
 - `src/pyschemaelectrical/utils/__init__.py` — `utils` must be imported before `autonumbering`
 

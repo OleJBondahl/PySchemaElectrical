@@ -17,7 +17,7 @@ def terminal_box_symbol(
     num_pins: int = 1,
     start_pin_number: int = 1,
     pin_spacing: float = DEFAULT_POLE_SPACING,
-    pins: tuple[str, ...] | None = None,
+    pins: tuple[str, ...] = (),
 ) -> Symbol:
     """
     Create a Rectangular Terminal Box Symbol.
@@ -112,7 +112,7 @@ def terminal_box_symbol(
     return Symbol(elements, ports, label=label)
 
 
-def psu_symbol(label: str = "U1", pins: tuple[str, ...] | None = None) -> Symbol:
+def psu_symbol(label: str = "U1", pins: tuple[str, ...] = ()) -> Symbol:
     """
     Create a Power Supply Unit (PSU) symbol.
 

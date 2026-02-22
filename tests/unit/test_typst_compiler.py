@@ -500,18 +500,18 @@ class TestRenderCustomPage:
         compiler = TypstCompiler(TypstCompilerConfig())
         page = _Page(page_type="custom", title="Notes", typst_content="#text[Notes]")
         result = compiler._render_custom_page(page)
-        assert "// Custom Page: Notes" in result
+        assert "Custom Page: Notes" in result
         assert "#text[Notes]" in result
-        assert "#pagebreak()" in result
+        assert "#pagebreak(weak: true)" in result
 
     def test_without_title(self):
         """Custom page without title should not include a comment line."""
         compiler = TypstCompiler(TypstCompilerConfig())
         page = _Page(page_type="custom", title="", typst_content="#text[Raw]")
         result = compiler._render_custom_page(page)
-        assert "// Custom Page:" not in result
+        assert "Custom Page:" not in result
         assert "#text[Raw]" in result
-        assert "#pagebreak()" in result
+        assert "#pagebreak(weak: true)" in result
 
     def test_content_preserved(self):
         """Custom page should preserve the exact Typst content."""
@@ -736,33 +736,33 @@ class TestMarkdownToTypst:
 class TestConvertLines:
     def test_h1_heading(self):
         """H1 heading should convert to Typst '=' heading."""
-        result = _convert_lines(["# Main Title\n"], "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(["# Main Title\n"], "50%")
+        joined = "\n".join(typst_lines)
         assert "= Main Title" in joined
 
     def test_h2_heading(self):
         """H2 heading should convert to Typst '==' heading."""
-        result = _convert_lines(["## Subtitle\n"], "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(["## Subtitle\n"], "50%")
+        joined = "\n".join(typst_lines)
         assert "== Subtitle" in joined
 
     def test_h3_heading(self):
         """H3 heading should convert to Typst '===' heading."""
-        result = _convert_lines(["### Section\n"], "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(["### Section\n"], "50%")
+        joined = "\n".join(typst_lines)
         assert "=== Section" in joined
 
     def test_paragraph_text(self):
         """Plain text should appear as-is with a parbreak."""
-        result = _convert_lines(["Some plain text\n"], "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(["Some plain text\n"], "50%")
+        joined = "\n".join(typst_lines)
         assert "Some plain text" in joined
         assert "#parbreak()" in joined
 
     def test_empty_lines_ignored(self):
         """Empty lines should be skipped (no extra content)."""
-        result = _convert_lines(["# Title\n", "\n", "Text\n"], "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(["# Title\n", "\n", "Text\n"], "50%")
+        joined = "\n".join(typst_lines)
         assert "= Title" in joined
         assert "Text" in joined
 
@@ -773,8 +773,8 @@ class TestConvertLines:
             "| --- | --- |\n",
             "| val1 | val2 |\n",
         ]
-        result = _convert_lines(lines, "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(lines, "50%")
+        joined = "\n".join(typst_lines)
         assert "#table(" in joined
         assert "[Col A]" in joined
         assert "[val1]" in joined
@@ -787,8 +787,8 @@ class TestConvertLines:
             "| --- | --- |\n",
             "| 1 | 2 |\n",
         ]
-        result = _convert_lines(lines, "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(lines, "50%")
+        joined = "\n".join(typst_lines)
         assert "---" not in joined
 
     def test_table_followed_by_empty_line_flushes(self):
@@ -798,8 +798,8 @@ class TestConvertLines:
             "\n",
             "Paragraph after table\n",
         ]
-        result = _convert_lines(lines, "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(lines, "50%")
+        joined = "\n".join(typst_lines)
         assert "#table(" in joined
         assert "Paragraph after table" in joined
 
@@ -809,22 +809,22 @@ class TestConvertLines:
             "| X | Y |\n",
             "| 1 | 2 |\n",
         ]
-        result = _convert_lines(lines, "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(lines, "50%")
+        joined = "\n".join(typst_lines)
         assert "#table(" in joined
         assert "[X]" in joined
 
     def test_wrapping_structure(self):
         """Output should be wrapped in align and block."""
-        result = _convert_lines(["Hello\n"], "50%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(["Hello\n"], "50%")
+        joined = "\n".join(typst_lines)
         assert "#align(center + horizon)[" in joined
         assert "#block(width: 50%)[" in joined
 
     def test_width_parameter_used(self):
         """The width parameter should appear in the block."""
-        result = _convert_lines(["text\n"], "75%")
-        joined = "\n".join(result)
+        typst_lines, _ = _convert_lines(["text\n"], "75%")
+        joined = "\n".join(typst_lines)
         assert "75%" in joined
 
 

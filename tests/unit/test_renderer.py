@@ -1,8 +1,9 @@
 from pyschemaelectrical.model.core import Point, Style, Symbol
-from pyschemaelectrical.model.primitives import Circle, Line, Text
+from pyschemaelectrical.model.primitives import Circle, Group, Line, Path, Polygon, Text
 from pyschemaelectrical.utils.renderer import (
     calculate_bounds,
     render_to_svg,
+    save_svg,
     to_xml_element,
 )
 
@@ -69,3 +70,51 @@ class TestRendererUnit:
         content = f.read_text(encoding="utf-8")
         assert "<svg" in content
         assert "viewBox" in content
+
+
+class TestRendererExtended:
+    def test_save_svg(self, tmp_path):
+        root = to_xml_element([Line(Point(0, 0), Point(10, 10))])
+        out = tmp_path / "out.svg"
+        save_svg(root, str(out))
+        assert out.exists()
+        content = out.read_text(encoding="utf-8")
+        assert "<?xml" in content
+        assert "<svg" in content
+
+    def test_path_rendering(self):
+        path = Path(d="M 0 0 L 10 10", style=Style(stroke="black"))
+        root = to_xml_element([path])
+        path_elem = root.find("g").find("path")
+        assert path_elem is not None
+        assert path_elem.get("d") == "M 0 0 L 10 10"
+
+    def test_polygon_rendering(self):
+        polygon = Polygon(
+            points=[Point(0, 0), Point(10, 0), Point(5, 10)],
+            style=Style(stroke="black", fill="none"),
+        )
+        root = to_xml_element([polygon])
+        poly_elem = root.find("g").find("polygon")
+        assert poly_elem is not None
+        assert "0,0" in poly_elem.get("points")
+
+    def test_group_rendering(self):
+        group = Group(
+            elements=[Line(Point(0, 0), Point(10, 10))], style=Style(stroke="blue")
+        )
+        root = to_xml_element([group])
+        inner_g = root.find("g").find("g")
+        assert inner_g is not None
+        assert inner_g.find("line") is not None
+        assert "blue" in inner_g.get("style")
+
+    def test_calculate_bounds_empty_list(self):
+        assert calculate_bounds([]) == (0, 0, 100, 100)
+
+    def test_calculate_bounds_single_element(self):
+        assert calculate_bounds([Line(Point(5, 10), Point(15, 20))]) == (5, 10, 15, 20)
+
+    def test_calculate_bounds_polygon(self):
+        polygon = Polygon(points=[Point(0, 0), Point(20, 0), Point(10, 30)])
+        assert calculate_bounds([polygon]) == (0, 0, 20, 30)
