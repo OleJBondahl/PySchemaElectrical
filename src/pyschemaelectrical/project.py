@@ -160,6 +160,10 @@ class Project:
         for t in terminals:
             self._terminals[str(t)] = t
 
+    @property
+    def _terminal_descriptions(self) -> dict[str, str]:
+        return {tag: t.title for tag, t in self._terminals.items() if t.title}
+
     def set_pin_start(self, terminal_id: str, pin: int) -> None:
         """Seed the pin counter for a terminal so auto-allocation starts at *pin*.
 
@@ -666,7 +670,7 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(temp_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals)
+                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
                 csv_paths[key] = csv_path
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
@@ -738,7 +742,7 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(output_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals)
+                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
                 csv_paths[key] = csv_path
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, output_dir)
@@ -773,7 +777,7 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(output_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals)
+                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
 
     def export_csvs(self, output_dir: str) -> None:
         """Export system terminal CSV with bridge info to *output_dir*.
@@ -832,7 +836,7 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(temp_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals)
+                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
                 csv_paths[key] = csv_path
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
@@ -1010,7 +1014,7 @@ class Project:
                         csv_path_m = os.path.join(
                             output_dir, f"{merged_key}_terminals.csv"
                         )
-                        export_terminal_list(csv_path_m, merged.used_terminals)
+                        export_terminal_list(csv_path_m, merged.used_terminals, self._terminal_descriptions)
                         csv_paths[merged_key] = csv_path_m
                     # Point page_def to merged key for compiler
                     page_def.circuit_key = merged_key
