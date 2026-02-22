@@ -1354,3 +1354,42 @@ class TestGeneratePlcCsv:
         )
 
         compiler.add_plc_report.assert_called_once_with("/explicit/path.csv")
+
+
+class TestReservePins:
+    def test_reserves_pins_and_creates_bridge_group(self):
+        t = Terminal("X13", "Test IO")
+        p = Project()
+        p.terminals(t)
+        p.reserve_pins("estop", t, count=2)
+        p.build_circuits()
+
+        result = p._results["estop"]
+        assert result.circuit.elements == []
+        assert result.circuit.symbols == []
+        assert "X13" in result.bridge_groups
+        bridges = result.bridge_groups["X13"]
+        assert len(bridges) == 1
+        start, end = bridges[0]
+        assert end - start == 1  # 2 pins reserved
+
+    def test_advances_terminal_counter(self):
+        from pyschemaelectrical.utils.autonumbering import get_terminal_counter
+
+        t = Terminal("X13", "Test IO")
+        p = Project()
+        p.terminals(t)
+
+        # Build a dummy circuit that uses X13 pin 1
+        def use_one_pin(state):
+            from pyschemaelectrical.utils.autonumbering import set_terminal_counter
+
+            state = set_terminal_counter(state, t, 1)
+            return BuildResult(state=state, circuit=Circuit(), used_terminals=[])
+
+        p.custom("first", use_one_pin)
+        p.reserve_pins("estop", t, count=2)
+        p.build_circuits()
+
+        # After reserve_pins, counter should be at 3 (pin 1 used + 2 reserved)
+        assert get_terminal_counter(p._state, "X13") == 3

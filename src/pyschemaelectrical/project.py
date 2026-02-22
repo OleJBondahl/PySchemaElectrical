@@ -244,6 +244,45 @@ class Project:
             )
         )
 
+    def reserve_pins(self, key: str, terminal: "Terminal", count: int) -> "Project":
+        """Reserve terminal pins with a bridge group (e.g., emergency stop).
+
+        Registers a deferred circuit that advances the pin counter by *count*
+        and creates a bridge group spanning those pins.  The circuit itself
+        is empty (no visual elements).
+
+        Args:
+            key: Unique circuit identifier for this reservation.
+            terminal: Terminal to reserve pins on.
+            count: Number of sequential pins to reserve.
+
+        Returns:
+            self (for method chaining).
+        """
+
+        def _reserve_fn(state, **_kwargs):
+            from pyschemaelectrical.system.system import Circuit
+            from pyschemaelectrical.utils.autonumbering import (
+                get_terminal_counter,
+                set_terminal_counter,
+            )
+
+            tag = str(terminal)
+            start = get_terminal_counter(state, tag) + 1
+            end = start + count - 1
+            state = set_terminal_counter(state, terminal, end)
+            return BuildResult(
+                state=state,
+                circuit=Circuit(),
+                used_terminals=[],
+                bridge_groups={tag: [(start, end)]},
+            )
+
+        self._circuit_defs.append(
+            _CircuitDef(key=key, factory="custom", builder_fn=_reserve_fn)
+        )
+        return self
+
     # ------------------------------------------------------------------
     # CircuitBuilder-based circuit registration
     # ------------------------------------------------------------------
