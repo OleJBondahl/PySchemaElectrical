@@ -954,6 +954,7 @@ class CircuitBuilder:
         x_offset: float = 0.0,
         y_increment: float | None = None,
         auto_connect_next: bool = True,
+        wire_label: str | None = None,
         **kwargs,
     ) -> "ComponentRef":
         """
@@ -977,6 +978,7 @@ class CircuitBuilder:
                 Kept for backward compatibility.
             auto_connect_next: Whether to auto-connect to next component.
                 Kept for backward compatibility.
+            wire_label: Wire label for the connecting wire (e.g. ``wire("RD", "0.5mm2")``).
 
         Returns: ComponentRef
         """
@@ -1067,6 +1069,7 @@ class CircuitBuilder:
                     relative_to,  # type: ignore[arg-type]
                     side_a="bottom",
                     side_b="top",
+                    wire_label=wire_label,
                 )
             elif position == "below" and isinstance(resolved_relative_to, tuple):
                 self.connect(
@@ -1074,6 +1077,7 @@ class CircuitBuilder:
                     new_ref.pole(0),
                     side_a="bottom",
                     side_b="top",
+                    wire_label=wire_label,
                 )
             else:
                 self._spec.planned_connections.append(
