@@ -82,7 +82,13 @@ def terminal_symbol(
 
     elements: list[Element] = [c]
     if label:
-        elements.append(terminal_text(label, Point(0, 0), label_pos=label_pos, pin_label_pos=pin_label_pos))
+        elements.append(
+            terminal_text(
+                label, Point(0, 0),
+                label_pos=label_pos,
+                pin_label_pos=pin_label_pos,
+            )
+        )
 
     # Port 1: Up (Input/From)
     # Port 2: Down (Output/To)

@@ -100,7 +100,7 @@ class TestTerminalRegistry:
         reg = TerminalRegistry()
         try:
             reg.connections = ()
-            assert False, "Should have raised FrozenInstanceError"
+            raise AssertionError("Should have raised FrozenInstanceError")
         except AttributeError:
             pass  # Expected
 
@@ -109,7 +109,7 @@ class TestTerminalRegistry:
         conn = Connection("X1", "1", "F1", "1", "bottom")
         try:
             conn.terminal_tag = "X2"
-            assert False, "Should have raised FrozenInstanceError"
+            raise AssertionError("Should have raised FrozenInstanceError")
         except AttributeError:
             pass  # Expected
 

@@ -1,4 +1,3 @@
-from dataclasses import replace
 
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,

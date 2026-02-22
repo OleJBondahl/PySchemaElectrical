@@ -134,7 +134,8 @@ class DeviceCable:
 
 @dataclass(frozen=True)
 class FieldDevice:
-    """A specific field device instance with its connection template and optional cable data."""
+    """A specific field device instance with its connection template and optional cable
+    data."""
 
     tag: str
     """Device tag, e.g. "PU-01-CX"."""

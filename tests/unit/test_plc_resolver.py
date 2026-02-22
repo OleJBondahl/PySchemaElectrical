@@ -8,6 +8,8 @@ natural_sort_key.
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from pyschemaelectrical.plc_resolver import (
@@ -100,7 +102,7 @@ class TestPlcModuleType:
 
     def test_frozen(self):
         mod = PlcModuleType("", "DI", 8, ("",))
-        with pytest.raises(Exception):  # frozen dataclass raises FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             mod.channels = 4  # type: ignore[misc]
 
     def test_equality(self):
@@ -165,7 +167,7 @@ class TestPlcDesignationParse:
     def test_frozen(self):
         d = PlcDesignation.parse("PLC:DO")
         assert d is not None
-        with pytest.raises(Exception):
+        with pytest.raises(dataclasses.FrozenInstanceError):
             d.type = "DI"  # type: ignore[misc]
 
 

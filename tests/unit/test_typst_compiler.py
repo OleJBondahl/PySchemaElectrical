@@ -37,14 +37,14 @@ from pyschemaelectrical.rendering.typst.markdown_converter import (
 
 def _make_compiler(tmpdir, **config_kwargs):
     """Create a TypstCompiler with a temp root_dir and template in place."""
-    defaults = dict(
-        drawing_name="Test",
-        drawing_number="T-001",
-        author="Author",
-        project="Project",
-        root_dir=tmpdir,
-        temp_dir="temp",
-    )
+    defaults = {
+        "drawing_name": "Test",
+        "drawing_number": "T-001",
+        "author": "Author",
+        "project": "Project",
+        "root_dir": tmpdir,
+        "temp_dir": "temp",
+    }
     defaults.update(config_kwargs)
     config = TypstCompilerConfig(**defaults)
     compiler = TypstCompiler(config)

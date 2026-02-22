@@ -525,7 +525,7 @@ class TestBuildCustomCircuit:
         """Custom builder returning BuildResult should work."""
         from pyschemaelectrical.utils.autonumbering import create_autonumberer
 
-        state = create_autonumberer()
+        create_autonumberer()
 
         def my_builder(state, **kwargs):
             return BuildResult(

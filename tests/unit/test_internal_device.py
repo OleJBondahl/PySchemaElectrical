@@ -15,7 +15,7 @@ def test_internal_device_is_frozen():
     assert dataclasses.is_dataclass(dev)
     try:
         dev.prefix = "X"
-        assert False, "Should be frozen"
+        raise AssertionError("Should be frozen")
     except AttributeError:
         pass
 

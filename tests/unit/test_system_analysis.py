@@ -154,7 +154,7 @@ class TestBuildConnectivityGraph:
         # These two points round to the same key (5.1, 10.2)
         line1 = Line(Point(5.14, 10.24), Point(20, 20))
         line2 = Line(Point(5.05, 10.15), Point(30, 30))
-        graph = build_connectivity_graph([line1, line2])
+        build_connectivity_graph([line1, line2])
 
         # line1 start rounds to (5.1, 10.2), line2 start rounds to (5.0, 10.2)
         # These are actually different keys, so let's use truly matching keys

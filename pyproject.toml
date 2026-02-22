@@ -83,5 +83,6 @@ ignore = []
 "__init__.py" = ["F401", "I001"]  # isort disabled: system.system must be first to avoid circular imports
 # Inline Typst code in string literals has long lines
 "src/pyschemaelectrical/rendering/typst/compiler.py" = ["E501"]
+"tests/**/*.py" = ["E501"]
 
 

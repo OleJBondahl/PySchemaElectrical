@@ -1564,7 +1564,7 @@ class TestAdditionalCoverage:
         base = builder.add_component(mock_symbol, tag_prefix="K")
         right1 = builder.place_right(base, mock_symbol, tag_prefix="Q", spacing=40.0)
         # Chain: place another component to the right of the first right-placed one
-        right2 = builder.place_right(right1, mock_symbol, tag_prefix="F", spacing=30.0)
+        builder.place_right(right1, mock_symbol, tag_prefix="F", spacing=30.0)
 
         result = builder.build(count=1)
         assert "K" in result.component_map
