@@ -1544,3 +1544,57 @@ class TestFieldDevices:
         row = ("A", "1", "X1", "1", "B", "2")
         p.external_connections([row])
         assert p.resolved_connections == [row]
+
+
+class TestBomReport:
+    def test_bom_report_registers_page(self):
+        p = Project()
+        p.bom_report()
+        assert len(p._pages) == 1
+        assert p._pages[0].page_type == "bom_report"
+
+    def test_aggregate_bom_groups_devices(self):
+        device = MagicMock()
+        device.mpn = "ABB-AF09"
+        device.description = "Contactor"
+
+        def builder(state, **_kw):
+            return BuildResult(
+                state=state,
+                circuit=Circuit(),
+                used_terminals=[],
+                device_registry={"Q1": device, "Q2": device},
+            )
+
+        p = Project()
+        p.custom("motors", builder)
+        p.build_circuits()
+
+        rows = p._aggregate_bom()
+        # Should have one row with qty=2 for the contactor
+        contactor_rows = [r for r in rows if r[1] == "ABB-AF09"]
+        assert len(contactor_rows) == 1
+        assert contactor_rows[0][3] == 2  # qty
+
+    def test_aggregate_bom_includes_terminals(self):
+        t = Terminal("X1", "Power", description="Terminal block", mpn="3209510")
+
+        p = Project()
+        p.terminals(t)
+        p.custom(
+            "dummy",
+            lambda s, **_kw: BuildResult(state=s, circuit=Circuit(), used_terminals=[]),
+        )
+        p.build_circuits()
+
+        rows = p._aggregate_bom()
+        terminal_rows = [r for r in rows if r[1] == "3209510"]
+        assert len(terminal_rows) >= 1
+
+    def test_generate_bom_typst_produces_markup(self):
+        p = Project()
+        rows = [("Q1/Q2", "ABB-AF09", "Contactor", 2)]
+        typst = p._generate_bom_typst(rows)
+        assert "Bill of Materials" in typst
+        assert "ABB-AF09" in typst
+        assert "Contactor" in typst

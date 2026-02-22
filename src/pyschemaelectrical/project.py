@@ -572,6 +572,11 @@ class Project:
             _PageDef(page_type="custom", title=title, typst_content=typst_content)
         )
 
+    def bom_report(self) -> "Project":
+        """Add an auto-generated Bill of Materials page."""
+        self._pages.append(_PageDef(page_type="bom_report"))
+        return self
+
     def export_wire_labels(
         self, path: str, titles: dict[str, str] | None = None
     ) -> "Project":
@@ -1078,6 +1083,107 @@ class Project:
         return csv_path
 
     # ------------------------------------------------------------------
+    # Internal: BOM aggregation
+    # ------------------------------------------------------------------
+
+    def _count_terminal_pins(self) -> dict[str, int]:
+        """Count unique pins per terminal from all connection sources."""
+        pin_sets: dict[str, set] = {}
+        for conn in get_registry(self._state).connections:
+            pin_sets.setdefault(conn.terminal_tag, set()).add(conn.terminal_pin)
+        for row in self._external_connections:
+            tag, pin = str(row[2]), row[3]
+            if tag and pin:
+                pin_sets.setdefault(tag, set()).add(pin)
+        return {k: len(v) for k, v in pin_sets.items()}
+
+    def _aggregate_bom(self) -> list[tuple[str, str, str, int]]:
+        """Aggregate BOM from device registries, terminals, and PLC modules."""
+        from pyschemaelectrical.utils.utils import natural_sort_key
+
+        terminal_pin_counts = self._count_terminal_pins()
+
+        # Devices
+        device_groups: dict[tuple[str, str], list[str]] = {}
+        for result in self._results.values():
+            for tag, device in result.device_registry.items():
+                key = (device.mpn, device.description)
+                device_groups.setdefault(key, []).append(tag)
+
+        rows: list[tuple[str, str, str, int]] = []
+        for (mpn, desc), tags in sorted(device_groups.items()):
+            unique_tags = sorted(set(tags), key=natural_sort_key)
+            rows.append(("/".join(unique_tags), mpn, desc, len(unique_tags)))
+
+        # Terminals
+        terminal_groups: dict[tuple[str, str], list[tuple[str, int]]] = {}
+        for tid, t in self._terminals.items():
+            if not t.reference and t.mpn:
+                key = (t.mpn, t.description)
+                pin_count = terminal_pin_counts.get(tid, 0)
+                terminal_groups.setdefault(key, []).append((tid, pin_count))
+
+        for (mpn, desc), entries in sorted(terminal_groups.items()):
+            tags = sorted([e[0] for e in entries], key=natural_sort_key)
+            total_pins = sum(e[1] for e in entries)
+            rows.append(("/".join(tags), mpn, desc, total_pins))
+
+        # PLC modules
+        if self._plc_rack:
+            plc_groups: dict[str, list[str]] = {}
+            plc_desc: dict[str, str] = {}
+            for slot_name, module in self._plc_rack:
+                plc_groups.setdefault(module.mpn, []).append(slot_name)
+                plc_desc[module.mpn] = (
+                    f"PLC {module.signal_type} module ({module.channels}ch)"
+                )
+            for mpn, slots in sorted(plc_groups.items()):
+                sorted_slots = sorted(slots, key=natural_sort_key)
+                rows.append(
+                    ("/".join(sorted_slots), mpn, plc_desc[mpn], len(sorted_slots))
+                )
+
+        return rows
+
+    def _generate_bom_typst(self, bom_rows: list[tuple[str, str, str, int]]) -> str:
+        """Generate Typst markup for BOM table."""
+        lines = [
+            "#place(bottom + center, dy: -title_offset)[",
+            '  #text(size: 18pt, weight: "bold")[Bill of Materials]',
+            "]",
+            "#pad(left: 25mm, right: 25mm, top: 40mm, bottom: 40mm)[",
+            "  #columns(2, gutter: 30em)[",
+            "    #block(breakable: true)[",
+            "      #table(",
+            "        columns: (4.5cm, 3.5cm, 1fr, 1cm),",
+            "        align: (left, left, left, right),",
+            "        fill: (x, y) => if y == 0 { gray.lighten(85%) } else { none },",
+            "        inset: 4pt,",
+            "        stroke: 0.25pt + gray,",
+            "        table.header(",
+            '          text(size: 9pt, weight: "bold")[Tags],',
+            '          text(size: 9pt, weight: "bold")[MPN],',
+            '          text(size: 9pt, weight: "bold")[Description],',
+            '          text(size: 9pt, weight: "bold")[Qty],',
+            "        ),",
+        ]
+        for tags, mpn, desc, qty in bom_rows:
+            tags_esc = tags.replace("#", "\\#")
+            mpn_esc = mpn.replace("#", "\\#")
+            desc_esc = desc.replace("#", "\\#")
+            lines.append(
+                f"        text(size: 9pt)[{tags_esc}], "
+                f"text(size: 9pt)[{mpn_esc}], "
+                f"text(size: 9pt)[{desc_esc}], "
+                f"text(size: 9pt)[{qty}],"
+            )
+        lines.append("      )")
+        lines.append("    ]")
+        lines.append("  ]")
+        lines.append("]")
+        return "\n".join(lines)
+
+    # ------------------------------------------------------------------
     # Internal: page compilation
     # ------------------------------------------------------------------
 
@@ -1110,6 +1216,10 @@ class Project:
                 compiler.add_plc_report(csv_path)
         elif page_def.page_type == "custom":
             compiler.add_custom_page(page_def.title, page_def.typst_content)
+        elif page_def.page_type == "bom_report":
+            bom_rows = self._aggregate_bom()
+            typst_content = self._generate_bom_typst(bom_rows)
+            compiler.add_custom_page("Bill of Materials", typst_content)
 
     # ------------------------------------------------------------------
     # Internal: PLC CSV generation
