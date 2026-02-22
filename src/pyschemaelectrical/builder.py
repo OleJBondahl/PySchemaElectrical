@@ -11,14 +11,14 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from pyschemaelectrical.layout.layout import create_horizontal_layout
+from pyschemaelectrical.layout.layout import auto_connect, create_horizontal_layout
 from pyschemaelectrical.model.core import Symbol, SymbolFactory
 from pyschemaelectrical.symbols.terminals import (
     multi_pole_terminal_symbol,
     terminal_symbol,
 )
 from pyschemaelectrical.system.connection_registry import register_connection
-from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from pyschemaelectrical.system.system import Circuit, add_symbol
 from pyschemaelectrical.utils.autonumbering import next_tag, next_terminal_pins
 from pyschemaelectrical.utils.utils import set_tag_counter, set_terminal_counter
 
@@ -1919,33 +1919,39 @@ def _phase4_render_graphics(  # noqa: C901
                 line = Line(port_a.position, port_b.position, style)
                 c.elements.append(line)
 
-    # 3. Auto Connections (with optional per-connection wire labels)
-    if has_per_connection_labels:
-        # Inline auto-connect with wire label support
-        from pyschemaelectrical.layout.layout import auto_connect
+    # 3. Planned Chain Connections (replaces auto_connect_circuit)
+    for pc in spec.planned_connections:
+        if pc.kind != "chain":
+            continue
 
-        sym_id_to_spec = {
-            id(rc["symbol"]): rc["spec"] for rc in realized_components if "symbol" in rc
-        }
-        connectable = [s for s in c.symbols if not s.skip_auto_connect]
-        for i in range(len(connectable) - 1):
-            s1 = connectable[i]
-            s2 = connectable[i + 1]
-            lines = auto_connect(s1, s2)
-            c.elements.extend(lines)
+        if pc.source_idx >= len(realized_components) or pc.target_idx >= len(
+            realized_components
+        ):
+            continue
 
-            s2_spec = sym_id_to_spec.get(id(s2))
-            if s2_spec and s2_spec.wire_labels_above:
+        src_rc = realized_components[pc.source_idx]
+        tgt_rc = realized_components[pc.target_idx]
+
+        if "symbol" not in src_rc or "symbol" not in tgt_rc:
+            continue
+
+        sym1 = src_rc["symbol"]
+        sym2 = tgt_rc["symbol"]
+
+        lines = auto_connect(sym1, sym2)
+        c.elements.extend(lines)
+
+        if has_per_connection_labels:
+            tgt_spec = tgt_rc["spec"]
+            if tgt_spec.wire_labels_above:
                 for j, wire_line in enumerate(lines):
-                    if j < len(s2_spec.wire_labels_above):
-                        wl = s2_spec.wire_labels_above[j]
+                    if j < len(tgt_spec.wire_labels_above):
+                        wl = tgt_spec.wire_labels_above[j]
                         if wl:
                             pos = calculate_wire_label_position(
                                 wire_line.start, wire_line.end
                             )
                             c.elements.append(create_wire_label_text(wl, pos))
-    else:
-        auto_connect_circuit(c)
 
 
 def _create_single_circuit_from_spec(
