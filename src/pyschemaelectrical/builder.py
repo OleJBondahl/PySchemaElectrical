@@ -381,6 +381,7 @@ class CircuitBuilder:
         auto_connect_next: bool = True,
         connection_side: str | None = None,
         bridge: bool | str = False,
+        wire_label: str | None = None,
         **kwargs,
     ) -> "ComponentRef":
         """Add a terminal block to the circuit chain.
@@ -512,6 +513,7 @@ class CircuitBuilder:
                     relative_to,  # type: ignore[arg-type]
                     side_a="bottom",
                     side_b="top",
+                    wire_label=wire_label,
                 )
             elif position == "below":
                 # below: ref pin bottom → new terminal top (same as place_below)
@@ -520,6 +522,7 @@ class CircuitBuilder:
                     new_ref.pole(0),
                     side_a="bottom",
                     side_b="top",
+                    wire_label=wire_label,
                 )
             else:
                 self._spec.planned_connections.append(
