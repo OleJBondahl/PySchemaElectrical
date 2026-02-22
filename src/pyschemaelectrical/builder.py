@@ -80,6 +80,14 @@ class ComponentSpec:
     # Per-connection wire labels for the wires directly above this component
     wire_labels_above: list[str] | tuple[str, ...] | None = None
 
+    # New unified placement fields
+    relative_to_idx: int | tuple[int, str] | None = (
+        None  # comp_idx, or (comp_idx, pin_name)
+    )
+    position: str = "below"  # "below", "above", "left", "right"
+    autoconnect: bool = True
+    spacing_override: float | None = None
+
     def get_y_increment(self, default: float) -> float:
         return self.y_increment if self.y_increment is not None else default
 
@@ -451,12 +459,69 @@ class CircuitBuilder:
 
         return ComponentRef(self, idx, str(tm_id))
 
-    def add_symbol(
+    def _resolve_placement(
+        self,
+        relative_to: "ComponentRef | PortRef | None",
+        position: str,
+        spacing: float | None,
+        x_offset: float,
+        auto_connect_next: bool,
+        resolved_relative_to: "int | tuple[int, str] | None",
+    ) -> (
+        "tuple[int | None, tuple[int, str] | None, tuple[int, str] | None, float, bool]"
+    ):
+        """Resolve new-style placement params to old-style placement fields.
+
+        Returns: (placed_right_of, placed_above_of, placed_below_of,
+                  effective_x_offset, effective_auto_connect_next)
+        """
+        placed_right_of: int | None = None
+        placed_above_of: tuple[int, str] | None = None
+        placed_below_of: tuple[int, str] | None = None
+        effective_auto_connect_next = auto_connect_next
+        effective_x_offset = x_offset
+
+        if relative_to is None:
+            return (
+                placed_right_of,
+                placed_above_of,
+                placed_below_of,
+                effective_x_offset,
+                effective_auto_connect_next,
+            )
+
+        if position == "right" and isinstance(resolved_relative_to, int):
+            placed_right_of = resolved_relative_to
+            effective_auto_connect_next = False
+        elif position == "above" and isinstance(resolved_relative_to, tuple):
+            placed_above_of = resolved_relative_to
+            effective_auto_connect_next = False
+        elif position == "below" and isinstance(resolved_relative_to, tuple):
+            placed_below_of = resolved_relative_to
+            effective_auto_connect_next = False
+        elif position == "left" and isinstance(resolved_relative_to, int):
+            placed_right_of = resolved_relative_to
+            effective_auto_connect_next = False
+            effective_x_offset = -(spacing or 40.0)
+
+        return (
+            placed_right_of,
+            placed_above_of,
+            placed_below_of,
+            effective_x_offset,
+            effective_auto_connect_next,
+        )
+
+    def add_symbol(  # noqa: C901
         self,
         symbol_func: SymbolFactory,
         tag_prefix: str,
         poles: int = 1,
         pins: list[str] | tuple[str, ...] | None = None,
+        relative_to: "ComponentRef | PortRef | None" = None,
+        position: str = "below",
+        autoconnect: bool = True,
+        spacing: float | None = None,
         x_offset: float = 0.0,
         y_increment: float | None = None,
         auto_connect_next: bool = True,
@@ -471,10 +536,19 @@ class CircuitBuilder:
             tag_prefix: Tag prefix for autonumbering (e.g. "F", "Q", "K").
             poles: Number of poles (default 1).
             pins: Explicit pin labels. If None, auto-numbered.
+            relative_to: ComponentRef or PortRef to place this component relative
+                to. If None, defaults to the last chain component.
+            position: Placement direction relative to ``relative_to``.
+                One of "below", "above", "left", "right" (default "below").
+            autoconnect: Whether to record an auto-connection from the reference
+                component to this one (default True).
+            spacing: Spacing override in mm. If None, uses ``y_increment`` or
+                ``symbol_spacing``.
             x_offset: Horizontal offset from the default X position in mm.
             y_increment: Vertical spacing override in mm. If None, uses
-                ``symbol_spacing``.
+                ``symbol_spacing``. Kept for backward compatibility.
             auto_connect_next: Auto-connect to next component (default True).
+                Kept for backward compatibility.
             device: Optional InternalDevice for BOM tracking.
             wire_labels_above: Wire labels for the wires above this component
                 (connecting it to the previous component). One label per pole.
@@ -484,31 +558,76 @@ class CircuitBuilder:
             ComponentRef for the added component.
         """
         self._check_not_frozen()
+
+        # Resolve relative_to to index/pin tuple
+        resolved_relative_to: int | tuple[int, str] | None = None
+        if relative_to is not None:
+            if isinstance(relative_to, PortRef):
+                resolved_relative_to = (
+                    relative_to.component._index,
+                    str(relative_to.port),
+                )
+            elif isinstance(relative_to, ComponentRef):
+                resolved_relative_to = relative_to._index
+        elif self._last_chain_idx is not None:
+            resolved_relative_to = self._last_chain_idx
+
+        # Use spacing if provided, fall back to y_increment for backward compat
+        effective_spacing = spacing if spacing is not None else y_increment
+
+        # Map new position param to old placement fields for backward compat
+        # during the transition (Phases 1 and 3 still read old fields)
+        (
+            placed_right_of,
+            placed_above_of,
+            placed_below_of,
+            effective_x_offset,
+            effective_auto_connect_next,
+        ) = self._resolve_placement(
+            relative_to,
+            position,
+            spacing,
+            x_offset,
+            auto_connect_next,
+            resolved_relative_to,
+        )
+
         spec = ComponentSpec(
             func=symbol_func,
             tag_prefix=tag_prefix,
             kind="symbol",
             poles=poles,
             pins=pins,
-            x_offset=x_offset,
-            y_increment=y_increment,
-            auto_connect_next=auto_connect_next,
+            x_offset=effective_x_offset,
+            y_increment=effective_spacing,
+            auto_connect_next=effective_auto_connect_next,
             device=device,
             wire_labels_above=wire_labels_above,
             kwargs=kwargs,
+            # Old placement fields (populated from new params during transition)
+            placed_right_of=placed_right_of,
+            placed_above_of=placed_above_of,
+            placed_below_of=placed_below_of,
+            # New fields
+            relative_to_idx=resolved_relative_to,
+            position=position,
+            autoconnect=autoconnect,
+            spacing_override=spacing,
         )
         self._spec.components.append(spec)
         idx = len(self._spec.components) - 1
 
+        # Determine whether this is a chain component (no explicit placement)
+        is_chain_component = (
+            placed_right_of is None
+            and placed_above_of is None
+            and placed_below_of is None
+        )
+
         # Record chain connection from previous chain component
-        if (
-            self._last_chain_idx is not None
-            and spec.placed_right_of is None
-            and spec.placed_above_of is None
-            and spec.placed_below_of is None
-        ):
+        if is_chain_component and self._last_chain_idx is not None:
             prev_spec = self._spec.components[self._last_chain_idx]
-            if prev_spec.auto_connect_next:
+            if prev_spec.auto_connect_next and autoconnect:
                 self._spec.planned_connections.append(
                     PlannedConnection(
                         source_idx=self._last_chain_idx,
@@ -517,12 +636,22 @@ class CircuitBuilder:
                     )
                 )
 
+        # For non-chain placements with autoconnect, record a pin_placement connection
+        if not is_chain_component and autoconnect and resolved_relative_to is not None:
+            self._spec.planned_connections.append(
+                PlannedConnection(
+                    source_idx=(
+                        resolved_relative_to
+                        if isinstance(resolved_relative_to, int)
+                        else resolved_relative_to[0]
+                    ),
+                    target_idx=idx,
+                    kind="pin_placement",
+                )
+            )
+
         # Update last chain index for normally-placed components
-        if (
-            spec.placed_right_of is None
-            and spec.placed_above_of is None
-            and spec.placed_below_of is None
-        ):
+        if is_chain_component:
             self._last_chain_idx = idx
 
         return ComponentRef(self, idx, tag_prefix)
