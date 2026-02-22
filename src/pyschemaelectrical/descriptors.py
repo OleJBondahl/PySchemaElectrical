@@ -89,7 +89,7 @@ def build_from_descriptors(
     """
     Build a circuit from a list of descriptors.
 
-    Creates a CircuitBuilder internally, calls add_reference/add_component/add_terminal
+    Creates a CircuitBuilder internally, calls add_reference/add_symbol/add_terminal
     for each descriptor, and builds with the given parameters.
 
     Args:
@@ -120,7 +120,7 @@ def build_from_descriptors(
             builder.add_reference(desc.terminal_id)
         elif isinstance(desc, CompDescriptor):
             pins = desc.pins if desc.pins else None
-            builder.add_component(desc.symbol_fn, desc.tag_prefix, pins=pins)
+            builder.add_symbol(desc.symbol_fn, desc.tag_prefix, pins=pins)
         elif isinstance(desc, TermDescriptor):
             builder.add_terminal(desc.terminal_id, poles=desc.poles, pins=desc.pins)
 

@@ -300,8 +300,8 @@ class CircuitBuilder:
 
         builder = CircuitBuilder(state)
         tm_top = builder.add_terminal("X1", poles=3)
-        cb = builder.add_component(circuit_breaker_symbol, "Q", poles=3,
-                                   pins=("1","2","3","4","5","6"))
+        cb = builder.add_symbol(circuit_breaker_symbol, "Q", poles=3,
+                                pins=("1","2","3","4","5","6"))
         builder.build(count=2, wire_labels=["BK", "BK", "BK"])
 
     Warning:
@@ -451,7 +451,7 @@ class CircuitBuilder:
 
         return ComponentRef(self, idx, str(tm_id))
 
-    def add_component(
+    def add_symbol(
         self,
         symbol_func: SymbolFactory,
         tag_prefix: str,
@@ -526,6 +526,9 @@ class CircuitBuilder:
             self._last_chain_idx = idx
 
         return ComponentRef(self, idx, tag_prefix)
+
+    # Backward-compatibility alias — project files still use add_component
+    add_component = add_symbol
 
     def add_spdt(
         self,
@@ -708,7 +711,7 @@ class CircuitBuilder:
         """
         Place a component to the right of an existing one at the same Y position.
 
-        Does NOT advance the vertical stack pointer. The next add_component()
+        Does NOT advance the vertical stack pointer. The next add_symbol()
         will be placed below the last vertically-added component, not below this one.
 
         Args:
@@ -2024,7 +2027,7 @@ def _distribute_pins(
 
     Args:
         func: The symbol factory function.
-        pins: Flat tuple of pin labels from add_component.
+        pins: Flat tuple of pin labels from add_symbol.
         existing_kwargs: Already-provided kwargs (won't be overridden).
 
     Returns:
