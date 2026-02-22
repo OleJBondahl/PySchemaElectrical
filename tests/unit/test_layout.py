@@ -17,13 +17,9 @@ from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_c
 # ---------------------------------------------------------------------------
 
 
-def _make_symbol(
-    ports: dict[str, Port], label: str | None = None, skip_auto_connect: bool = False
-) -> Symbol:
+def _make_symbol(ports: dict[str, Port], label: str | None = None) -> Symbol:
     """Create a minimal Symbol with given ports."""
-    return Symbol(
-        elements=[], ports=ports, label=label, skip_auto_connect=skip_auto_connect
-    )
+    return Symbol(elements=[], ports=ports, label=label)
 
 
 def _port(pid: str, x: float, y: float, dx: float, dy: float) -> Port:
@@ -567,32 +563,6 @@ class TestAutoConnectCircuit:
         lines = [e for e in circuit.elements if isinstance(e, Line)]
         assert len(lines) == 2
 
-    def test_skip_auto_connect_flag(self):
-        """Symbols with skip_auto_connect=True should be skipped."""
-        sym1 = _sym_with_down_up(down_x=[10], up_x=[], label="S1")
-        # Middle symbol is skipped
-        sym_skip = Symbol(
-            elements=[],
-            ports={
-                "u": _port("u", 10, 0, 0, -1),
-                "d": _port("d", 10, 20, 0, 1),
-            },
-            label="SKIP",
-            skip_auto_connect=True,
-        )
-        sym3 = _sym_with_down_up(down_x=[], up_x=[10], y_up=0, label="S3")
-
-        circuit = Circuit()
-        add_symbol(circuit, sym1, 0, 0)
-        add_symbol(circuit, sym_skip, 0, 60)
-        add_symbol(circuit, sym3, 0, 120)
-
-        auto_connect_circuit(circuit)
-
-        # Only S1 and S3 are connectable; they connect if their ports align
-        lines = [e for e in circuit.elements if isinstance(e, Line)]
-        assert len(lines) == 1
-
     def test_empty_circuit(self):
         """An empty circuit should not raise errors."""
         circuit = Circuit()
@@ -606,29 +576,6 @@ class TestAutoConnectCircuit:
         add_symbol(circuit, sym, 0, 0)
         auto_connect_circuit(circuit)
         # No connections should be made (only one symbol)
-        lines = [e for e in circuit.elements if isinstance(e, Line)]
-        assert len(lines) == 0
-
-    def test_all_symbols_skipped(self):
-        """A circuit where all symbols have skip_auto_connect should produce no lines."""
-        sym1 = Symbol(
-            elements=[],
-            ports={"d": _port("d", 10, 20, 0, 1)},
-            label="S1",
-            skip_auto_connect=True,
-        )
-        sym2 = Symbol(
-            elements=[],
-            ports={"u": _port("u", 10, 0, 0, -1)},
-            label="S2",
-            skip_auto_connect=True,
-        )
-        circuit = Circuit()
-        add_symbol(circuit, sym1, 0, 0)
-        add_symbol(circuit, sym2, 0, 60)
-
-        auto_connect_circuit(circuit)
-
         lines = [e for e in circuit.elements if isinstance(e, Line)]
         assert len(lines) == 0
 

@@ -134,7 +134,6 @@ class Symbol(Element):
     elements: list[Element]
     ports: dict[str, Port]
     label: str | None = None
-    skip_auto_connect: bool = False
 
 
 # Type alias for symbol factory functions.

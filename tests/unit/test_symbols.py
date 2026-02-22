@@ -883,11 +883,6 @@ class TestCurrentTransducerAssemblySymbol:
         assert "1" in sym.ports
         assert "2" in sym.ports
 
-    def test_skip_auto_connect(self):
-        """Assembly should have skip_auto_connect=True."""
-        sym = current_transducer_assembly_symbol()
-        assert sym.skip_auto_connect is True
-
     def test_combined_elements(self):
         """Assembly should have elements from both transducer and terminal box."""
         ct = current_transducer_symbol()

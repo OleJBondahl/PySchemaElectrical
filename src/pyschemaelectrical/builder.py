@@ -1867,8 +1867,6 @@ def _phase3_instantiate_symbols(  # noqa: C901
     (including placed_above_of and placed_right_of), and mutates both
     realized_components (adding 'symbol' key) and circuit c (via add_symbol).
     """
-    from dataclasses import replace
-
     for rc in realized_components:
         component_spec = rc["spec"]
         tag = rc["tag"]
@@ -1944,11 +1942,6 @@ def _phase3_instantiate_symbols(  # noqa: C901
             sym = component_spec.func(tag, **kwargs)
 
         if sym:
-            # Respect auto_connect configuration
-            if not component_spec.auto_connect_next:
-                # Since Symbol is frozen, use replace
-                sym = replace(sym, skip_auto_connect=True)
-
             placed_sym = add_symbol(c, sym, final_x, rc["y"])
             rc["symbol"] = placed_sym  # Store placed symbol for manual connection phase
 
