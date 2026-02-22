@@ -5,7 +5,6 @@ Contains library-level defaults including spacing, tags, and pin configurations.
 Project-specific constants (terminal IDs, paths) should be defined in user projects.
 """
 
-
 # Grid System
 GRID_SIZE = 5.0  # mm, Base grid unit
 GRID_SUBDIVISION = GRID_SIZE / 2  # 2.5mm, Half grid for smaller alignments
@@ -150,5 +149,3 @@ class WireLabels:
     BL_2_5 = _wire("BL", "2.5")
     GR_YE_2_5 = _wire("GR/YE", "2.5")
     EMPTY = _wire.EMPTY
-
-

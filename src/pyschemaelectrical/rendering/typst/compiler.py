@@ -319,9 +319,7 @@ class TypstCompiler:
             safe_title = title.replace('"', '\\"')
             title_items.append(f'"{tag}": "{safe_title}"')
 
-        typst_title_map = (
-            "#let terminal_titles = (\n" + ",\n".join(title_items) + "\n)"
-        )
+        typst_title_map = "#let terminal_titles = (\n" + ",\n".join(title_items) + "\n)"
 
         return _TERMINAL_REPORT_TYPST.replace("__TITLE_MAP__", typst_title_map).replace(
             "__CSV_PATH__", csv_rel

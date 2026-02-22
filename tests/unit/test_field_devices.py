@@ -23,6 +23,7 @@ def _fd(tag, template, terminal=None):
     """Shorthand for FieldDevice in tests."""
     return FieldDevice(tag, template, terminal=terminal)
 
+
 # ---------------------------------------------------------------------------
 # Fixtures: reusable terminals and templates
 # ---------------------------------------------------------------------------
