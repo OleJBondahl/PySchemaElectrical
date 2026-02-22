@@ -60,6 +60,7 @@ class _PageDef:
     page_type: str  # "schematic", "front", "terminal_report", "plc_report", "custom"
     title: str = ""
     circuit_key: str = ""
+    circuit_keys: list[str] | None = None
     md_path: str = ""
     notice: str | None = None
     csv_path: str = ""
@@ -479,16 +480,22 @@ class Project:
     # Page management
     # ------------------------------------------------------------------
 
-    def page(self, title: str, circuit_key: str):
+    def page(self, title: str, circuit_key: str | list[str]):
         """Add a schematic page to the PDF output.
 
         Args:
             title: Page title displayed in the title block.
-            circuit_key: Key of a registered circuit to render.
+            circuit_key: Key of a registered circuit to render, or a list of
+                keys to merge onto a single page.
         """
-        self._pages.append(
-            _PageDef(page_type="schematic", title=title, circuit_key=circuit_key)
-        )
+        if isinstance(circuit_key, list):
+            self._pages.append(
+                _PageDef(page_type="schematic", title=title, circuit_keys=circuit_key)
+            )
+        else:
+            self._pages.append(
+                _PageDef(page_type="schematic", title=title, circuit_key=circuit_key)
+            )
 
     def front_page(self, md_path: str, notice: str | None = None):
         """Add a front page rendered from a Markdown file.
@@ -588,6 +595,8 @@ class Project:
                 export_terminal_list(csv_path, result.used_terminals)
                 csv_paths[key] = csv_path
 
+        self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
+
         # 3. Generate system terminal CSV with bridge info
         system_csv_path = self._generate_system_csv(temp_dir)
 
@@ -643,13 +652,20 @@ class Project:
         os.makedirs(output_dir, exist_ok=True)
         self._build_all_circuits()
 
+        svg_paths: dict[str, str] = {}
+        csv_paths: dict[str, str] = {}
+
         for key, result in self._results.items():
             svg_path = os.path.join(output_dir, f"{key}.svg")
             render_system(result.circuit, svg_path)
+            svg_paths[key] = svg_path
 
             if result.used_terminals:
                 csv_path = os.path.join(output_dir, f"{key}_terminals.csv")
                 export_terminal_list(csv_path, result.used_terminals)
+                csv_paths[key] = csv_path
+
+        self._render_multi_circuit_pages(svg_paths, csv_paths, output_dir)
 
         # System terminal CSV
         self._generate_system_csv(output_dir)
@@ -740,6 +756,8 @@ class Project:
                 csv_path = os.path.join(temp_dir, f"{key}_terminals.csv")
                 export_terminal_list(csv_path, result.used_terminals)
                 csv_paths[key] = csv_path
+
+        self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
 
         # System terminal CSV with bridge info
         system_csv_path = self._generate_system_csv(temp_dir)
@@ -854,6 +872,32 @@ class Project:
             circuit=circuit,
             used_terminals=used_terminals,
         )
+
+    def _render_multi_circuit_pages(self, svg_paths, csv_paths, output_dir):
+        """Render merged SVGs for multi-circuit pages."""
+        from pyschemaelectrical.builder import merge_build_results
+
+        for page_def in self._pages:
+            if page_def.circuit_keys:
+                results_to_merge = [
+                    self._results[k]
+                    for k in page_def.circuit_keys
+                    if k in self._results
+                ]
+                if results_to_merge:
+                    merged = merge_build_results(results_to_merge)
+                    merged_key = "_".join(page_def.circuit_keys)
+                    svg_path = os.path.join(output_dir, f"{merged_key}.svg")
+                    render_system(merged.circuit, svg_path)
+                    svg_paths[merged_key] = svg_path
+                    if merged.used_terminals:
+                        csv_path_m = os.path.join(
+                            output_dir, f"{merged_key}_terminals.csv"
+                        )
+                        export_terminal_list(csv_path_m, merged.used_terminals)
+                        csv_paths[merged_key] = csv_path_m
+                    # Point page_def to merged key for compiler
+                    page_def.circuit_key = merged_key
 
     # ------------------------------------------------------------------
     # Internal: system CSV generation

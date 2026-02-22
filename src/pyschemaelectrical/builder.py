@@ -1282,7 +1282,7 @@ class CircuitBuilder:
                 raise RuntimeError("All builders must be frozen (built) before merging")
 
         results = [b._result for b in builders]
-        merged_result = _merge_build_results(results)
+        merged_result = merge_build_results(results)
 
         # Create a new frozen builder with the merged result
         new_builder = CircuitBuilder.__new__(CircuitBuilder)
@@ -1294,7 +1294,7 @@ class CircuitBuilder:
         return new_builder
 
 
-def _merge_build_results(results: list[BuildResult]) -> BuildResult:
+def merge_build_results(results: list[BuildResult]) -> BuildResult:
     """Merge a list of BuildResult instances into a single BuildResult."""
     from pyschemaelectrical.system.system import merge_circuits
     from pyschemaelectrical.utils.utils import merge_terminals

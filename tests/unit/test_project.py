@@ -1393,3 +1393,39 @@ class TestReservePins:
 
         # After reserve_pins, counter should be at 3 (pin 1 used + 2 reserved)
         assert get_terminal_counter(p._state, "X13") == 3
+
+
+class TestMultiCircuitPage:
+    def test_page_accepts_list_of_keys(self):
+        p = Project()
+        p.page("Combined", ["a", "b"])
+        assert len(p._pages) == 1
+        assert p._pages[0].circuit_keys == ["a", "b"]
+
+    def test_multi_circuit_page_renders_merged_svg(self):
+        def builder_a(state, **_kw):
+            c = Circuit()
+            return BuildResult(state=state, circuit=c, used_terminals=["X1"])
+
+        def builder_b(state, **_kw):
+            c = Circuit()
+            return BuildResult(state=state, circuit=c, used_terminals=["X2"])
+
+        p = Project()
+        p.custom("a", builder_a)
+        p.custom("b", builder_b)
+        p.page("Combined", ["a", "b"])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p.build_svgs(tmpdir)
+            # Individual SVGs should exist
+            assert os.path.exists(os.path.join(tmpdir, "a.svg"))
+            assert os.path.exists(os.path.join(tmpdir, "b.svg"))
+            # Merged SVG should also exist
+            assert os.path.exists(os.path.join(tmpdir, "a_b.svg"))
+
+    def test_single_key_still_works(self):
+        p = Project()
+        p.page("Single", "my_circuit")
+        assert p._pages[0].circuit_key == "my_circuit"
+        assert p._pages[0].circuit_keys is None
