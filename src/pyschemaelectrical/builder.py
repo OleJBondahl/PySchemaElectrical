@@ -84,12 +84,27 @@ class ComponentSpec:
         return self.y_increment if self.y_increment is not None else default
 
 
+@dataclass(frozen=True)
+class PlannedConnection:
+    """A connection recorded at add-time, rendered in Phase 4."""
+
+    source_idx: int  # Component index of source symbol
+    target_idx: int  # Component index of target symbol
+    kind: str  # "chain", "manual", "pin_placement"
+    source_pole: int | None = None  # For manual: specific pole on source
+    target_pole: int | None = None  # For manual: specific pole on target
+    side_a: str = "bottom"  # Connection side on source
+    side_b: str = "top"  # Connection side on target
+    wire_label: str | None = None
+
+
 @dataclass
 class CircuitSpec:
     """Complete specification for a circuit definition."""
 
     components: list[ComponentSpec] = field(default_factory=list)
     layout: LayoutConfig = field(default_factory=lambda: LayoutConfig(0, 0))
+    planned_connections: list[PlannedConnection] = field(default_factory=list)
     manual_connections: list[tuple[int, int, int, int, str, str]] = field(
         default_factory=list
     )
@@ -308,6 +323,7 @@ class CircuitBuilder:
         self._fixed_tag_generators: dict[str, Callable] = {}
         self._frozen = False
         self._result: BuildResult | None = None
+        self._last_chain_idx: int | None = None
 
     def _check_not_frozen(self) -> None:
         if self._frozen:
@@ -407,6 +423,32 @@ class CircuitBuilder:
         )
         self._spec.components.append(spec)
         idx = len(self._spec.components) - 1
+
+        # Record chain connection from previous chain component
+        if (
+            self._last_chain_idx is not None
+            and spec.placed_right_of is None
+            and spec.placed_above_of is None
+            and spec.placed_below_of is None
+        ):
+            prev_spec = self._spec.components[self._last_chain_idx]
+            if prev_spec.auto_connect_next:
+                self._spec.planned_connections.append(
+                    PlannedConnection(
+                        source_idx=self._last_chain_idx,
+                        target_idx=idx,
+                        kind="chain",
+                    )
+                )
+
+        # Update last chain index for normally-placed components
+        if (
+            spec.placed_right_of is None
+            and spec.placed_above_of is None
+            and spec.placed_below_of is None
+        ):
+            self._last_chain_idx = idx
+
         return ComponentRef(self, idx, str(tm_id))
 
     def add_component(
@@ -457,6 +499,32 @@ class CircuitBuilder:
         )
         self._spec.components.append(spec)
         idx = len(self._spec.components) - 1
+
+        # Record chain connection from previous chain component
+        if (
+            self._last_chain_idx is not None
+            and spec.placed_right_of is None
+            and spec.placed_above_of is None
+            and spec.placed_below_of is None
+        ):
+            prev_spec = self._spec.components[self._last_chain_idx]
+            if prev_spec.auto_connect_next:
+                self._spec.planned_connections.append(
+                    PlannedConnection(
+                        source_idx=self._last_chain_idx,
+                        target_idx=idx,
+                        kind="chain",
+                    )
+                )
+
+        # Update last chain index for normally-placed components
+        if (
+            spec.placed_right_of is None
+            and spec.placed_above_of is None
+            and spec.placed_below_of is None
+        ):
+            self._last_chain_idx = idx
+
         return ComponentRef(self, idx, tag_prefix)
 
     def add_spdt(
@@ -537,6 +605,23 @@ class CircuitBuilder:
         )
         self._spec.components.append(spec)
         idx = len(self._spec.components) - 1
+
+        # Record chain connection from previous chain component
+        if self._last_chain_idx is not None:
+            prev_spec = self._spec.components[self._last_chain_idx]
+            if prev_spec.auto_connect_next:
+                self._spec.planned_connections.append(
+                    PlannedConnection(
+                        source_idx=self._last_chain_idx,
+                        target_idx=idx,
+                        kind="chain",
+                    )
+                )
+
+        # Update last chain index (add_spdt always has auto_connect_next=False,
+        # so _last_chain_idx advances here but won't emit a connection forward)
+        self._last_chain_idx = idx
+
         return ComponentRef(self, idx, tag_prefix)
 
     def add_reference(
@@ -581,6 +666,32 @@ class CircuitBuilder:
         )
         self._spec.components.append(spec)
         idx = len(self._spec.components) - 1
+
+        # Record chain connection from previous chain component
+        if (
+            self._last_chain_idx is not None
+            and spec.placed_right_of is None
+            and spec.placed_above_of is None
+            and spec.placed_below_of is None
+        ):
+            prev_spec = self._spec.components[self._last_chain_idx]
+            if prev_spec.auto_connect_next:
+                self._spec.planned_connections.append(
+                    PlannedConnection(
+                        source_idx=self._last_chain_idx,
+                        target_idx=idx,
+                        kind="chain",
+                    )
+                )
+
+        # Update last chain index for normally-placed components
+        if (
+            spec.placed_right_of is None
+            and spec.placed_above_of is None
+            and spec.placed_below_of is None
+        ):
+            self._last_chain_idx = idx
+
         return ComponentRef(self, idx, ref_id)
 
     def place_right(
