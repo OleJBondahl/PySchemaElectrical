@@ -1,14 +1,14 @@
 {
   "tests": {
-    "collected": 967,
-    "passing": 967,
+    "collected": 987,
+    "passing": 987,
     "coverage_pct": 90
   },
   "ty": {
-    "diagnostics": 63
+    "diagnostics": 0
   },
   "ruff": {
-    "errors": 32
+    "errors": 0
   },
   "updated": "2026-02-22"
 }
