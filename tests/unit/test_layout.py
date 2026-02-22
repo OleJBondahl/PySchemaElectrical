@@ -88,6 +88,9 @@ class TestLayoutUnit:
         p2 = elements[1]
         p3 = elements[2]
 
+        assert isinstance(p1, Point)
+        assert isinstance(p2, Point)
+        assert isinstance(p3, Point)
         assert p1.x == 0
         assert p2.x == 10
         assert p3.x == 20
@@ -419,13 +422,13 @@ class TestGetWireLabelSpec:
         """If a dict value is not a tuple, return ("", "")."""
         dp = _port("L1", 10, 20, 0, 1)
         specs = {"L1": "not_a_tuple"}
-        assert _get_wire_label_spec(dp, 0, specs) == ("", "")
+        assert _get_wire_label_spec(dp, 0, specs) == ("", "")  # type: ignore[invalid-argument-type]
 
     def test_non_tuple_in_list_returns_empty(self):
         """If a list entry is not a tuple, return ("", "")."""
         dp = _port("d1", 10, 20, 0, 1)
         specs = ["not_a_tuple"]
-        assert _get_wire_label_spec(dp, 0, specs) == ("", "")
+        assert _get_wire_label_spec(dp, 0, specs) == ("", "")  # type: ignore[invalid-argument-type]
 
 
 # ===================================================================
@@ -759,6 +762,7 @@ class TestLayoutHorizontalAdditional:
             generate_func=gen,
         )
         for p in elements:
+            assert isinstance(p, Point)
             assert p.y == 42
 
     def test_state_threading(self):
@@ -788,6 +792,7 @@ class TestLayoutHorizontalAdditional:
         )
         assert final_state["count"] == 1
         assert len(elements) == 1
+        assert isinstance(elements[0], Point)
         assert elements[0].x == 100
         assert elements[0].y == 200
 

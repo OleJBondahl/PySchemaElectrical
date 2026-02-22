@@ -13,8 +13,12 @@ from pyschemaelectrical.system.system import (
 
 def test_merge_circuits_returns_new_circuit():
     """merge_circuits should return a new Circuit, not mutate."""
-    c1 = Circuit(symbols=[], elements=["a", "b"])
-    c2 = Circuit(symbols=[], elements=["c", "d"])
+    e1 = Line(start=Point(0, 0), end=Point(1, 0))
+    e2 = Line(start=Point(2, 0), end=Point(3, 0))
+    e3 = Line(start=Point(4, 0), end=Point(5, 0))
+    e4 = Line(start=Point(6, 0), end=Point(7, 0))
+    c1 = Circuit(symbols=[], elements=[e1, e2])
+    c2 = Circuit(symbols=[], elements=[e3, e4])
 
     result = merge_circuits(c1, c2)
 
@@ -23,11 +27,11 @@ def test_merge_circuits_returns_new_circuit():
     assert result is not c2
 
     # Original circuits unchanged
-    assert c1.elements == ["a", "b"]
-    assert c2.elements == ["c", "d"]
+    assert c1.elements == [e1, e2]
+    assert c2.elements == [e3, e4]
 
     # Merged result correct
-    assert result.elements == ["a", "b", "c", "d"]
+    assert result.elements == [e1, e2, e3, e4]
 
 
 def _make_symbol(label: str, y_top: float = 0.0, y_bot: float = 10.0) -> Symbol:

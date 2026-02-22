@@ -7,7 +7,7 @@ from pyschemaelectrical.layout.wire_labels import (
     format_wire_specification,
 )
 from pyschemaelectrical.model.core import Point
-from pyschemaelectrical.model.primitives import Line
+from pyschemaelectrical.model.primitives import Line, Text
 from pyschemaelectrical.system.system import Circuit
 
 
@@ -49,6 +49,7 @@ class TestWireLabels:
         assert line.start == start
         assert line.end == end
 
+        assert isinstance(text, Text)
         assert text.content == "RD 1mm"
         assert text.position.x == -2.5
 
@@ -77,7 +78,9 @@ class TestWireLabels:
 
         # New circuit has 2 text elements added
         assert len(c_new.elements) == 4
+        assert isinstance(c_new.elements[2], Text)
         assert c_new.elements[2].content == "L1"
+        assert isinstance(c_new.elements[3], Text)
         assert c_new.elements[3].content == "L2"
 
     def test_add_wire_labels_insufficient(self):
@@ -92,7 +95,9 @@ class TestWireLabels:
 
         # It should cycle
         assert len(c_new.elements) == 4
+        assert isinstance(c_new.elements[2], Text)
         assert c_new.elements[2].content == "L1"
+        assert isinstance(c_new.elements[3], Text)
         assert c_new.elements[3].content == "L1"  # Repetition
 
     def test_add_wire_labels_returns_new_circuit(self):

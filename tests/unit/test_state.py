@@ -35,7 +35,7 @@ def test_generation_state_is_frozen():
     """GenerationState should be immutable (frozen dataclass)."""
     gs = GenerationState()
     try:
-        gs.tags = {"K": 1}
+        gs.tags = {"K": 1}  # type: ignore[invalid-assignment]
         raise AssertionError("Should have raised FrozenInstanceError")
     except AttributeError:
         pass  # Expected for frozen dataclass

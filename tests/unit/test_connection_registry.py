@@ -99,7 +99,7 @@ class TestTerminalRegistry:
         """TerminalRegistry is a frozen dataclass."""
         reg = TerminalRegistry()
         try:
-            reg.connections = ()
+            reg.connections = ()  # type: ignore[invalid-assignment]
             raise AssertionError("Should have raised FrozenInstanceError")
         except AttributeError:
             pass  # Expected
@@ -108,7 +108,7 @@ class TestTerminalRegistry:
         """Connection is a frozen dataclass."""
         conn = Connection("X1", "1", "F1", "1", "bottom")
         try:
-            conn.terminal_tag = "X2"
+            conn.terminal_tag = "X2"  # type: ignore[invalid-assignment]
             raise AssertionError("Should have raised FrozenInstanceError")
         except AttributeError:
             pass  # Expected

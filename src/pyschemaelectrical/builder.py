@@ -966,9 +966,9 @@ class CircuitBuilder:
 
     def _build_effective_tag_generators(
         self,
-        reuse_tags: "dict[str, BuildResult | CircuitBuilder] | None",
+        reuse_tags: "dict[str, BuildResult | CircuitBuilder | Callable] | None",
         tag_generators: dict[str, Callable | str] | None,
-    ) -> dict[str, Callable] | None:
+    ) -> dict[str, Callable | str] | None:
         """
         Merge fixed generators, reuse_tags generators, and explicit tag_generators.
 
@@ -977,7 +977,7 @@ class CircuitBuilder:
 
         Returns the merged dict, or None if no generators were specified.
         """
-        effective: dict[str, Callable] = self._fixed_tag_generators.copy()
+        effective: dict[str, Callable | str] = {**self._fixed_tag_generators}
         if reuse_tags:
             for prefix, source_result in reuse_tags.items():
                 if isinstance(source_result, (BuildResult, CircuitBuilder)):
@@ -996,7 +996,7 @@ class CircuitBuilder:
 
     def _build_terminal_reuse_generators(
         self,
-        reuse_terminals: "dict[str, BuildResult | CircuitBuilder] | None",
+        reuse_terminals: "dict[str, BuildResult | CircuitBuilder | Callable] | None",
     ) -> dict[str, Callable]:
         """
         Convert reuse_terminals mapping to callable pin generators.
@@ -1058,8 +1058,10 @@ class CircuitBuilder:
         terminal_start_indices: dict[str, int] | None = None,
         tag_generators: dict[str, Callable | str] | None = None,
         terminal_maps: dict[str, Any] | None = None,
-        reuse_tags: dict[str, "BuildResult"] | None = None,
-        reuse_terminals: dict[str, "BuildResult"] | None = None,
+        reuse_tags: dict[str, "BuildResult | CircuitBuilder | Callable"] | None = None,
+        reuse_terminals: (
+            dict[str, "BuildResult | CircuitBuilder | Callable"] | None
+        ) = None,
         wire_labels: list[str] | None = None,
         state: "GenerationState | None" = None,
     ) -> BuildResult:
@@ -1281,7 +1283,7 @@ class CircuitBuilder:
             if not b._frozen:
                 raise RuntimeError("All builders must be frozen (built) before merging")
 
-        results = [b._result for b in builders]
+        results = [r for b in builders if (r := b._result) is not None]
         merged_result = merge_build_results(results)
 
         # Create a new frozen builder with the merged result

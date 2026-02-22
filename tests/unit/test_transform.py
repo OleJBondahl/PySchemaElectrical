@@ -34,7 +34,9 @@ class TestTransformUnit:
 
         sym2 = translate(sym, 10, 10)
 
-        assert sym2.elements[0].start == Point(10, 10)
+        elem0 = sym2.elements[0]
+        assert isinstance(elem0, Line)
+        assert elem0.start == Point(10, 10)
         assert sym2.ports["1"].position == Point(10, 10)
 
     def test_rotate_point(self):
@@ -118,9 +120,13 @@ class TestTransformUnit:
         )
         g2 = translate(g, 10, 10)
         assert isinstance(g2, Group)
-        assert g2.elements[0].start == Point(10, 10)
-        assert g2.elements[0].end == Point(11, 11)
-        assert g2.elements[1].center == Point(10, 10)
+        g2_elem0 = g2.elements[0]
+        assert isinstance(g2_elem0, Line)
+        assert g2_elem0.start == Point(10, 10)
+        assert g2_elem0.end == Point(11, 11)
+        g2_elem1 = g2.elements[1]
+        assert isinstance(g2_elem1, Circle)
+        assert g2_elem1.center == Point(10, 10)
 
     def test_translate_group_nested(self):
         """Nested groups are translated recursively."""
@@ -129,8 +135,10 @@ class TestTransformUnit:
         outer2 = translate(outer, 5, 5)
         inner_translated = outer2.elements[0]
         assert isinstance(inner_translated, Group)
-        assert inner_translated.elements[0].start == Point(5, 5)
-        assert inner_translated.elements[0].end == Point(6, 5)
+        inner_translated_elem0 = inner_translated.elements[0]
+        assert isinstance(inner_translated_elem0, Line)
+        assert inner_translated_elem0.start == Point(5, 5)
+        assert inner_translated_elem0.end == Point(6, 5)
 
     def test_translate_polygon(self):
         poly = Polygon(points=[Point(0, 0), Point(1, 0), Point(0.5, 1)])
@@ -155,7 +163,7 @@ class TestTransformUnit:
     def test_translate_unhandled_type_warns(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            result = translate(42, 1, 1)
+            result = translate(42, 1, 1)  # type: ignore[invalid-argument-type]
             assert result == 42
             assert len(w) == 1
             assert "no handler" in str(w[0].message).lower()
@@ -568,10 +576,16 @@ class TestTransformUnit:
         sym = Symbol(elements=[line, circle, text], ports={"1": port}, label="Q1")
         sym2 = translate(sym, 100, 200)
 
-        assert sym2.elements[0].start == Point(100, 200)
-        assert sym2.elements[0].end == Point(101, 200)
-        assert sym2.elements[1].center == Point(100.5, 200.5)
-        assert sym2.elements[2].position == Point(100, 201)
+        sym2_elem0 = sym2.elements[0]
+        assert isinstance(sym2_elem0, Line)
+        assert sym2_elem0.start == Point(100, 200)
+        assert sym2_elem0.end == Point(101, 200)
+        sym2_elem1 = sym2.elements[1]
+        assert isinstance(sym2_elem1, Circle)
+        assert sym2_elem1.center == Point(100.5, 200.5)
+        sym2_elem2 = sym2.elements[2]
+        assert isinstance(sym2_elem2, Text)
+        assert sym2_elem2.position == Point(100, 201)
         assert sym2.ports["1"].position == Point(100, 200)
 
     # ------------------------------------------------------------------ #

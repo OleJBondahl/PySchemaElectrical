@@ -57,15 +57,15 @@ def test_descriptors_are_frozen():
     """Descriptors should be immutable."""
     d = ref("PLC:DO")
     with pytest.raises(AttributeError):
-        d.terminal_id = "PLC:AI"
+        d.terminal_id = "PLC:AI"  # type: ignore[invalid-assignment]
 
     d2 = comp(coil_symbol, "K")
     with pytest.raises(AttributeError):
-        d2.tag_prefix = "Q"
+        d2.tag_prefix = "Q"  # type: ignore[invalid-assignment]
 
     d3 = term("X103")
     with pytest.raises(AttributeError):
-        d3.terminal_id = "X104"
+        d3.terminal_id = "X104"  # type: ignore[invalid-assignment]
 
 
 def test_build_from_descriptors_simple():

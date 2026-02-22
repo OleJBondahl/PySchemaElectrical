@@ -347,7 +347,9 @@ class Project:
             )
 
         # Resolve reuse_tags: name -> BuildResult
-        resolved_reuse_tags: dict[str, BuildResult] | None = None
+        resolved_reuse_tags: (
+            dict[str, BuildResult | CircuitBuilder | Callable] | None
+        ) = None
         if reuse_tags:
             resolved_reuse_tags = {}
             for prefix, source_name in reuse_tags.items():
@@ -360,7 +362,9 @@ class Project:
                 resolved_reuse_tags[prefix] = self._results[source_name]
 
         # Resolve reuse_terminals: name -> BuildResult
-        resolved_reuse_terminals: dict[str, BuildResult] | None = None
+        resolved_reuse_terminals: (
+            dict[str, BuildResult | CircuitBuilder | Callable] | None
+        ) = None
         if reuse_terminals:
             resolved_reuse_terminals = {}
             for key, source_name in reuse_terminals.items():

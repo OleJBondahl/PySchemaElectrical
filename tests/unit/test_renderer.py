@@ -29,7 +29,9 @@ class TestRendererUnit:
         sym = Symbol(elements=[line], ports={})
 
         root = to_xml_element([sym])
-        sym_g = root.find("g").find("g")
+        g1 = root.find("g")
+        assert g1 is not None
+        sym_g = g1.find("g")
 
         assert sym_g is not None
         assert sym_g.get("class") == "symbol"
@@ -40,8 +42,12 @@ class TestRendererUnit:
         line = Line(Point(0, 0), Point(10, 10), style=style)
 
         root = to_xml_element([line])
-        line_elem = root.find("g").find("line")
+        g1 = root.find("g")
+        assert g1 is not None
+        line_elem = g1.find("line")
+        assert line_elem is not None
         style_str = line_elem.get("style")
+        assert style_str is not None
 
         assert "stroke:red" in style_str
         assert "stroke-width:2" in style_str
@@ -85,7 +91,9 @@ class TestRendererExtended:
     def test_path_rendering(self):
         path = Path(d="M 0 0 L 10 10", style=Style(stroke="black"))
         root = to_xml_element([path])
-        path_elem = root.find("g").find("path")
+        g1 = root.find("g")
+        assert g1 is not None
+        path_elem = g1.find("path")
         assert path_elem is not None
         assert path_elem.get("d") == "M 0 0 L 10 10"
 
@@ -95,19 +103,27 @@ class TestRendererExtended:
             style=Style(stroke="black", fill="none"),
         )
         root = to_xml_element([polygon])
-        poly_elem = root.find("g").find("polygon")
+        g1 = root.find("g")
+        assert g1 is not None
+        poly_elem = g1.find("polygon")
         assert poly_elem is not None
-        assert "0,0" in poly_elem.get("points")
+        points_str = poly_elem.get("points")
+        assert points_str is not None
+        assert "0,0" in points_str
 
     def test_group_rendering(self):
         group = Group(
             elements=[Line(Point(0, 0), Point(10, 10))], style=Style(stroke="blue")
         )
         root = to_xml_element([group])
-        inner_g = root.find("g").find("g")
+        g1 = root.find("g")
+        assert g1 is not None
+        inner_g = g1.find("g")
         assert inner_g is not None
         assert inner_g.find("line") is not None
-        assert "blue" in inner_g.get("style")
+        style_str = inner_g.get("style")
+        assert style_str is not None
+        assert "blue" in style_str
 
     def test_calculate_bounds_empty_list(self):
         assert calculate_bounds([]) == (0, 0, 100, 100)

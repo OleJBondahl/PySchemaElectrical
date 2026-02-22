@@ -9,7 +9,7 @@ from pyschemaelectrical.model.parts import (
     three_pole_factory,
     two_pole_factory,
 )
-from pyschemaelectrical.model.primitives import Line, Polygon
+from pyschemaelectrical.model.primitives import Circle, Line, Polygon
 
 
 class TestPartsUnit:
@@ -21,10 +21,12 @@ class TestPartsUnit:
 
     def test_terminal_circle(self):
         c = terminal_circle(Point(10, 10), filled=True)
+        assert isinstance(c, Circle)
         assert c.center == Point(10, 10)
         assert c.style.fill == "black"
 
         c2 = terminal_circle(Point(10, 10), filled=False)
+        assert isinstance(c2, Circle)
         assert c2.style.fill == "none"
 
     def test_box(self):

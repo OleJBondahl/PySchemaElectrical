@@ -97,7 +97,9 @@ def test_circuit_descriptor_registration():
         count=3,
     )
     assert p._circuit_defs[0].factory == "descriptors"
-    assert len(p._circuit_defs[0].components) == 3
+    components = p._circuit_defs[0].components
+    assert components is not None
+    assert len(components) == 3
 
 
 def test_build_svgs():
