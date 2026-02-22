@@ -1498,3 +1498,49 @@ class TestExportTaglist:
             assert "F2" in content
             assert "Q1" in content
             assert "X1" in content
+
+
+class TestFieldDevices:
+    def test_deferred_resolution(self):
+        """field_devices() stores config; build_circuits() resolves it."""
+        from pyschemaelectrical.field_devices import (
+            DeviceTemplate,
+            FieldDevice,
+            PinDef,
+        )
+
+        t = Terminal("X03", "Motor Power")
+        template = DeviceTemplate(
+            mpn="Motor",
+            pins=(PinDef("U", terminal=t),),
+        )
+        device = FieldDevice(tag="M1", template=template)
+
+        p = Project()
+        p.terminals(t)
+        p.field_devices([device])
+        assert p._external_connections == []  # not resolved yet
+
+        # Need at least one circuit so build_circuits works
+        p.custom(
+            "dummy",
+            lambda s, **_kw: BuildResult(state=s, circuit=Circuit(), used_terminals=[]),
+        )
+        p.build_circuits()
+
+        assert len(p._external_connections) > 0  # now resolved
+
+    def test_external_connections_appends(self):
+        """external_connections() appends, not replaces."""
+        p = Project()
+        row1 = ("A", "1", "X1", "1", "B", "2")
+        row2 = ("C", "3", "X2", "3", "D", "4")
+        p.external_connections([row1])
+        p.external_connections([row2])
+        assert len(p._external_connections) == 2
+
+    def test_resolved_connections_property(self):
+        p = Project()
+        row = ("A", "1", "X1", "1", "B", "2")
+        p.external_connections([row])
+        assert p.resolved_connections == [row]

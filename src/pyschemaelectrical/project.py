@@ -139,6 +139,7 @@ class Project:
         self._results: dict[str, BuildResult] = {}
         self._plc_rack: "PlcRack | None" = None
         self._external_connections: "list[ConnectionRow]" = []
+        self._field_device_defs: list[tuple[list, dict | None]] = []
         self._wire_label_export: tuple[str, dict[str, str] | None] | None = None
         self._taglist_export: str | None = None
 
@@ -425,7 +426,7 @@ class Project:
         Returns:
             self (for method chaining).
         """
-        self._external_connections = list(connections)
+        self._external_connections.extend(connections)
         return self
 
     def add_field_devices(
@@ -445,7 +446,29 @@ class Project:
         Returns:
             self (for method chaining).
         """
-        self._external_connections = list(connections)
+        self._external_connections.extend(connections)
+        return self
+
+    def field_devices(
+        self,
+        devices: list,
+        reuse_terminals: dict | None = None,
+    ) -> "Project":
+        """Register field devices for deferred connection resolution.
+
+        After build_circuits(), resolves reuse_terminals from built circuit
+        results, generates connections via generate_field_connections(),
+        and resolves PLC references if a rack is registered.
+
+        Args:
+            devices: List of FieldDevice instances.
+            reuse_terminals: Maps Terminal -> circuit key string.
+                Pins from that circuit's terminal_pin_map are reused.
+
+        Returns:
+            self (for method chaining).
+        """
+        self._field_device_defs.append((devices, reuse_terminals))
         return self
 
     # ------------------------------------------------------------------
@@ -477,6 +500,11 @@ class Project:
             for key, result in self._results.items()
             if result.wire_connections
         }
+
+    @property
+    def resolved_connections(self) -> list:
+        """All resolved external connections (available after build_circuits())."""
+        return list(self._external_connections)
 
     # ------------------------------------------------------------------
     # Page management
@@ -561,8 +589,9 @@ class Project:
     # ------------------------------------------------------------------
 
     def build_circuits(self) -> None:
-        """Build all deferred circuits. State is advanced automatically."""
+        """Build all deferred circuits and resolve field devices."""
         self._build_all_circuits()
+        self._resolve_field_devices()
 
     def build(
         self,
@@ -594,6 +623,7 @@ class Project:
 
         # 1. Build all circuits
         self._build_all_circuits()
+        self._resolve_field_devices()
 
         # 2. Generate SVGs and terminal CSVs
         svg_paths = {}
@@ -813,6 +843,42 @@ class Project:
 
         if not keep_temp:
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+    # ------------------------------------------------------------------
+    # Internal: field device resolution
+    # ------------------------------------------------------------------
+
+    def _resolve_field_devices(self) -> None:
+        """Resolve deferred field device registrations."""
+        if not self._field_device_defs:
+            return
+
+        from pyschemaelectrical.field_devices import generate_field_connections
+
+        for devices, reuse_terminals in self._field_device_defs:
+            resolved_reuse = None
+            if reuse_terminals:
+                resolved_reuse = {}
+                for terminal, circuit_key in reuse_terminals.items():
+                    if circuit_key not in self._results:
+                        raise ValueError(
+                            f"field_devices() references circuit '{circuit_key}' "
+                            f"for terminal reuse, but it hasn't been built yet."
+                        )
+                    resolved_reuse[str(terminal)] = self._results[circuit_key]
+
+                connections = generate_field_connections(
+                    devices, reuse_terminals=resolved_reuse
+                )
+            else:
+                connections = generate_field_connections(devices)
+
+            if self._plc_rack:
+                from pyschemaelectrical.plc_resolver import resolve_plc_references
+
+                connections = resolve_plc_references(connections, self._plc_rack)
+
+            self._external_connections.extend(connections)
 
     # ------------------------------------------------------------------
     # Internal: circuit building
