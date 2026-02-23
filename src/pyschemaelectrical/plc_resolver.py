@@ -47,6 +47,7 @@ class PlcModuleType:
     signal_type: str
     channels: int
     pins_per_channel: tuple[str, ...]
+    label_format: str = "{suffix}{channel}"
 
 
 PlcRack = list[tuple[str, PlcModuleType]]
@@ -230,7 +231,7 @@ def _assign_connections_to_modules(
 
     rows: list[ConnectionRow] = []
     for conn, (des, mod, ch) in zip(conns, free_slots, strict=False):
-        pin_label = f"{mod.pins_per_channel[0]}{ch}"
+        pin_label = mod.label_format.format(suffix=mod.pins_per_channel[0], channel=ch)
         rows.append(
             (conn.component_tag, conn.component_pin, "", "", f"PLC:{des}", pin_label)
         )
@@ -299,7 +300,7 @@ def _assign_multi_pin_connections(
         slot_idx += 1
 
         for conn, suffix in by_component[comp_tag]:
-            pin_label = f"{suffix}{ch}"
+            pin_label = mod.label_format.format(suffix=suffix, channel=ch)
             rows.append(
                 (
                     conn.component_tag,
@@ -350,7 +351,7 @@ def _resolve_single_pin_external(
 
     rows: list[ConnectionRow] = []
     for (row, _), (des, mod, ch) in zip(entries, free_slots, strict=False):
-        pin_label = f"{mod.pins_per_channel[0]}{ch}"
+        pin_label = mod.label_format.format(suffix=mod.pins_per_channel[0], channel=ch)
         rows.append((row[0], row[1], row[2], row[3], f"PLC:{des}", pin_label))
 
     if len(entries) > len(free_slots):
@@ -416,7 +417,7 @@ def _resolve_multi_pin_external(
         slot_idx += 1
 
         for row, suffix in by_component[comp_tag]:
-            pin_label = f"{suffix}{ch}"
+            pin_label = mod.label_format.format(suffix=suffix, channel=ch)
             rows.append((row[0], row[1], row[2], row[3], f"PLC:{des}", pin_label))
 
     overflow = len(sorted_components) - slot_idx
@@ -595,7 +596,9 @@ def generate_plc_report_rows(
     for designation, module_type in rack:
         for ch in range(1, module_type.channels + 1):
             for pin_suffix in module_type.pins_per_channel:
-                pin_label = f"{pin_suffix}{ch}"
+                pin_label = module_type.label_format.format(
+                    suffix=pin_suffix, channel=ch
+                )
                 conn = plc_conns.get((designation, pin_label))
 
                 if conn:

@@ -148,4 +148,8 @@ class WireLabels:
     GY_2_5 = _wire("GY", "2.5")
     BL_2_5 = _wire("BL", "2.5")
     GR_YE_2_5 = _wire("GR/YE", "2.5")
+    BR_1_5 = _wire("BR", "1.5")
+    BK_1_5 = _wire("BK", "1.5")
+    GY_1_5 = _wire("GY", "1.5")
+    BL_1_5 = _wire("BL", "1.5")
     EMPTY = _wire.EMPTY
