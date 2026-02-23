@@ -4,6 +4,8 @@ from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
     GRID_SIZE,
+    MOTOR_1P_PINS,
+    MOTOR_3P_PINS,
     TEXT_FONT_FAMILY,
 )
 from pyschemaelectrical.model.core import Element, Point, Port, Style, Symbol, Vector
@@ -28,7 +30,7 @@ This module contains motor symbols following IEC 60617 standard:
 
 
 def three_pole_motor_symbol(  # noqa: C901
-    label: str = "", pins: tuple[str, ...] = ("U", "V", "W", "PE")
+    label: str = "", pins: tuple[str, ...] = MOTOR_3P_PINS
 ) -> Symbol:
     """
     Create an IEC 60617 Three-Phase AC Motor symbol.
@@ -193,7 +195,7 @@ def three_pole_motor_symbol(  # noqa: C901
     return Symbol(elements, ports, label=label)
 
 
-def motor_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
+def motor_symbol(label: str = "", pins: tuple[str, ...] = MOTOR_1P_PINS) -> Symbol:
     """
     Create an IEC 60617 generic single-phase Motor symbol.
 

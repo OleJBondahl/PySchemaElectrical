@@ -1,4 +1,4 @@
-from pyschemaelectrical.model.constants import GRID_SIZE
+from pyschemaelectrical.model.constants import CT_ASSEMBLY_PINS, GRID_SIZE
 from pyschemaelectrical.model.core import Point, Port, Symbol
 from pyschemaelectrical.model.parts import standard_style
 from pyschemaelectrical.model.primitives import Circle, Element, Line
@@ -46,7 +46,7 @@ def current_transducer_symbol() -> Symbol:
 
 
 def current_transducer_assembly_symbol(
-    label: str = "", pins: tuple[str, ...] = ("1", "2")
+    label: str = "", pins: tuple[str, ...] = CT_ASSEMBLY_PINS
 ) -> Symbol:
     """
     Create a Current Transducer Assembly.

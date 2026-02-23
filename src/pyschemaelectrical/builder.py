@@ -679,6 +679,9 @@ class CircuitBuilder:
             resolved_relative_to,
         )
 
+        if pins is None:
+            pins = _infer_default_pins(symbol_func)
+
         spec = ComponentSpec(
             func=symbol_func,
             tag_prefix=tag_prefix,
@@ -2207,6 +2210,47 @@ def _create_single_circuit_from_spec(
     _phase4_render_graphics(c, realized_components, spec)
 
     return state, c.elements, instance_tags, wire_connections
+
+
+def _infer_default_pins(
+    func: "SymbolFactory | None",
+) -> list[str] | None:
+    """Inspect a symbol factory's signature to extract its default pin list.
+
+    Used by ``add_symbol`` to auto-populate ``ComponentSpec.pins`` when the
+    caller omits an explicit ``pins`` argument.  This allows the builder to
+    resolve ``.pin("A1")`` references against the factory's declared defaults.
+
+    Returns ``None`` when the function has no usable pin defaults (empty tuple,
+    no ``pins`` parameter, etc.) so that auto-numbering behaviour is preserved
+    for terminals and anonymous components.
+    """
+    if func is None:
+        return None
+    sig = inspect.signature(func)
+    params = sig.parameters
+
+    # Case 1: function has a 'pins' parameter with a non-empty default
+    if "pins" in params:
+        default = params["pins"].default
+        if default is not inspect.Parameter.empty and default:
+            return list(default)
+        return None
+
+    # Case 2: *_pins parameters (e.g. coil_pins, contact_pins)
+    pin_params = [
+        (_name, param) for _name, param in params.items() if _name.endswith("_pins")
+    ]
+    if not pin_params:
+        return None
+    flat: list[str] = []
+    for _name, param in pin_params:
+        default = param.default
+        if default is None or default is inspect.Parameter.empty:
+            continue
+        if hasattr(default, "__iter__"):
+            flat.extend(default)
+    return flat if flat else None
 
 
 def _distribute_pins(

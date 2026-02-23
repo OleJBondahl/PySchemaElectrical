@@ -1,7 +1,11 @@
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
     GRID_SIZE,
+    NC_CONTACT_PINS,
+    NO_CONTACT_PINS,
     SPACING_NARROW,
+    SPDT_1P_PINS,
+    SPDT_3P_PINS,
     SPDT_PIN_LABEL_OFFSET,
     TEXT_FONT_FAMILY_AUX,
     TEXT_SIZE_PIN,
@@ -28,7 +32,9 @@ This module contains functions to generate contact symbols including:
 """
 
 
-def normally_open_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
+def normally_open_symbol(
+    label: str = "", pins: tuple[str, ...] = NO_CONTACT_PINS
+) -> Symbol:
     """
     Create an IEC 60617 Normally Open Contact.
 
@@ -87,7 +93,9 @@ def normally_open_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
 three_pole_normally_open_symbol = multipole(normally_open_symbol, poles=3)
 
 
-def normally_closed_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
+def normally_closed_symbol(
+    label: str = "", pins: tuple[str, ...] = NC_CONTACT_PINS
+) -> Symbol:
     """
     Create an IEC 60617 Normally Closed Contact.
 
@@ -145,7 +153,7 @@ three_pole_normally_closed_symbol = multipole(normally_closed_symbol, poles=3)
 
 
 def spdt_contact_symbol(
-    label: str = "", pins: tuple[str, ...] = ("11", "12", "14"), inverted: bool = False
+    label: str = "", pins: tuple[str, ...] = SPDT_1P_PINS, inverted: bool = False
 ) -> Symbol:
     r"""
     Create an IEC 60617 Single Pole Double Throw (SPDT) Contact (Changeover).
@@ -359,7 +367,7 @@ def multi_pole_spdt_symbol(
 
 def three_pole_spdt_symbol(
     label: str = "",
-    pins: tuple[str, ...] = ("11", "12", "14", "21", "22", "24", "31", "32", "34"),
+    pins: tuple[str, ...] = SPDT_3P_PINS,
 ) -> Symbol:
     """
     Create an IEC 60617 Three Pole SPDT Contact.

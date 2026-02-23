@@ -1,9 +1,12 @@
 from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
+    CONTACTOR_3P_PINS,
     DEFAULT_POLE_SPACING,
+    ESTOP_PINS,
     GRID_SIZE,
     LINE_WIDTH_THIN,
     LINKAGE_DASH_PATTERN,
+    TURN_SWITCH_PINS,
 )
 from pyschemaelectrical.model.core import Point, Style, Symbol, Vector
 from pyschemaelectrical.model.primitives import Line
@@ -21,7 +24,7 @@ from .contacts import (
 def contactor_symbol(
     label: str = "",
     coil_pins: tuple[str, str] | None = None,
-    contact_pins: tuple[str, str, str, str, str, str] = ("1", "2", "3", "4", "5", "6"),
+    contact_pins: tuple[str, str, str, str, str, str] = CONTACTOR_3P_PINS,
 ) -> Symbol:
     """
     High-level contactor symbol.
@@ -80,7 +83,7 @@ def contactor_symbol(
 
 
 def emergency_stop_assembly_symbol(
-    label: str = "", pins: tuple[str, str] = ("1", "2")
+    label: str = "", pins: tuple[str, str] = ESTOP_PINS
 ) -> Symbol:
     """
     Emergency Stop Assembly.
@@ -121,7 +124,7 @@ def emergency_stop_assembly_symbol(
 
 
 def turn_switch_assembly_symbol(
-    label: str = "", pins: tuple[str, str] = ("1", "2")
+    label: str = "", pins: tuple[str, str] = TURN_SWITCH_PINS
 ) -> Symbol:
     """
     Turn Switch Assembly.

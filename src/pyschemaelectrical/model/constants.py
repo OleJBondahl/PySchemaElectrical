@@ -80,6 +80,16 @@ CB_3P_PINS = ("1", "2", "3", "4", "5", "6")
 CB_2P_PINS = ("1", "2", "3", "4")
 CONTACTOR_3P_PINS = ("L1", "T1", "L2", "T2", "L3", "T3")
 THERMAL_OVERLOAD_PINS = ("", "T1", "", "T2", "", "T3")
+CB_1P_PINS = ("1", "2")
+FUSE_1P_PINS = ("1", "2")
+SPDT_1P_PINS = ("11", "12", "14")
+SPDT_3P_PINS = ("11", "12", "14", "21", "22", "24", "31", "32", "34")
+MOTOR_1P_PINS = ("1", "2")
+MOTOR_3P_PINS = ("U", "V", "W", "PE")
+ESTOP_PINS = ("1", "2")
+TURN_SWITCH_PINS = ("1", "2")
+CT_ASSEMBLY_PINS = ("1", "2")
+TERMINAL_3P_PINS = ("1", "2", "3")
 
 
 class PinPrefix:

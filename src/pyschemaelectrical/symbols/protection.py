@@ -1,4 +1,9 @@
-from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.constants import (
+    FUSE_1P_PINS,
+    GRID_SIZE,
+    GRID_SUBDIVISION,
+    THERMAL_OVERLOAD_PINS,
+)
 from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     box,
@@ -10,7 +15,9 @@ from pyschemaelectrical.model.parts import (
 from pyschemaelectrical.model.primitives import Line
 
 
-def thermal_overload_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
+def thermal_overload_symbol(
+    label: str = "", pins: tuple[str, ...] = THERMAL_OVERLOAD_PINS
+) -> Symbol:
     """IEC 60617 Thermal Overload Protection.
 
     Geometry: Pulse shape.
@@ -82,7 +89,7 @@ def thermal_overload_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symb
 three_pole_thermal_overload_symbol = multipole(thermal_overload_symbol, poles=3)
 
 
-def fuse_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
+def fuse_symbol(label: str = "", pins: tuple[str, ...] = FUSE_1P_PINS) -> Symbol:
     """IEC 60617 Fuse."""
     # Box 5mm x 12.5mm ?
     w = 2 * GRID_SIZE

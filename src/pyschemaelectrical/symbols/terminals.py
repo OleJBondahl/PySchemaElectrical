@@ -4,6 +4,7 @@ from pyschemaelectrical.model.constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
     PIN_LABEL_OFFSET_X,
+    TERMINAL_3P_PINS,
     TEXT_FONT_FAMILY_AUX,
     TEXT_SIZE_PIN,
 )
@@ -188,7 +189,7 @@ def multi_pole_terminal_symbol(
 
 def three_pole_terminal_symbol(
     label: str = "",
-    pins: tuple[str, ...] = ("1", "2", "3"),
+    pins: tuple[str, ...] = TERMINAL_3P_PINS,
     label_pos: str = "left",
     pin_label_pos: str | None = None,
 ) -> TerminalBlock:

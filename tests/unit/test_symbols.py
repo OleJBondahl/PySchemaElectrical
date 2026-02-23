@@ -69,6 +69,12 @@ class TestSymbolsUnit:
         c = coil_symbol("-K1", ("A1", "A2"))
         assert isinstance(c, Symbol)
         assert len(c.ports) == 2
+        assert list(c.ports.keys()) == ["A1", "A2"]
+
+    def test_coil_inverted_pins(self):
+        c = coil_symbol("-K1", ("A2", "A1"))
+        assert list(c.ports.keys()) == ["A2", "A1"]
+        assert c.ports["A2"].position.y < c.ports["A1"].position.y
 
     def test_protection(self):
         t = three_pole_thermal_overload_symbol("-F1", ("1", "2", "3", "4", "5", "6"))

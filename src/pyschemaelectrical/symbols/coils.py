@@ -1,4 +1,4 @@
-from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.constants import COIL_PINS, GRID_SIZE, GRID_SUBDIVISION
 from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     box,
@@ -14,7 +14,7 @@ IEC 60617 Coil Symbols.
 
 
 def coil_symbol(
-    label: str = "", pins: tuple[str, ...] = (), show_terminals: bool = True
+    label: str = "", pins: tuple[str, ...] = COIL_PINS, show_terminals: bool = True
 ) -> Symbol:
     """
     Create an IEC 60617 Coil symbol (Square).
@@ -59,9 +59,11 @@ def coil_symbol(
         l1 = Line(Point(0, top_y_box), Point(0, top_y_port), style)
         l2 = Line(Point(0, bot_y_box), Point(0, bot_y_port), style)
 
+        top_pin = pins[0]
+        bot_pin = pins[1]
         ports = {
-            "A1": Port("A1", Point(0, top_y_port), Vector(0, -1)),
-            "A2": Port("A2", Point(0, bot_y_port), Vector(0, 1)),
+            top_pin: Port(top_pin, Point(0, top_y_port), Vector(0, -1)),
+            bot_pin: Port(bot_pin, Point(0, bot_y_port), Vector(0, 1)),
         }
         elements.extend([l1, l2])
 

@@ -1,4 +1,4 @@
-from pyschemaelectrical.model.constants import GRID_SIZE, GRID_SUBDIVISION
+from pyschemaelectrical.model.constants import CB_1P_PINS, GRID_SIZE, GRID_SUBDIVISION
 from pyschemaelectrical.model.core import Element, Point, Port, Symbol, Vector
 from pyschemaelectrical.model.parts import (
     create_pin_labels,
@@ -9,7 +9,9 @@ from pyschemaelectrical.model.parts import (
 from pyschemaelectrical.model.primitives import Line
 
 
-def circuit_breaker_symbol(label: str = "", pins: tuple[str, ...] = ()) -> Symbol:
+def circuit_breaker_symbol(
+    label: str = "", pins: tuple[str, ...] = CB_1P_PINS
+) -> Symbol:
     """IEC 60617 Circuit Breaker (Single Pole).
 
     A circuit breaker is represented as a normally open contact with a cross (X)
