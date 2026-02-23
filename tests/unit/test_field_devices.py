@@ -623,3 +623,93 @@ class TestEmptyInput:
     def test_empty_device_list(self):
         rows = generate_field_connections([])
         assert rows == []
+
+
+# ---------------------------------------------------------------------------
+# Template-scoped terminal reuse
+# ---------------------------------------------------------------------------
+
+
+class TestTemplateReuse:
+    """Tests for the template_reuse parameter on generate_field_connections."""
+
+    def test_matched_devices_get_reused_pins(self):
+        """Devices whose template matches get pins from the reuse source."""
+        shared = Terminal("X13", "Shared I/O")
+        fan_tmpl = DeviceTemplate("Fan", pins=(PinDef("t1", shared), PinDef("t2", shared)))
+
+        rows = generate_field_connections(
+            [_fd("F-01", fan_tmpl), _fd("F-02", fan_tmpl)],
+            template_reuse={fan_tmpl: {"X13": ["5", "6", "7", "8"]}},
+        )
+
+        assert rows[0][3] == "5"  # F-01 t1
+        assert rows[1][3] == "6"  # F-01 t2
+        assert rows[2][3] == "7"  # F-02 t1
+        assert rows[3][3] == "8"  # F-02 t2
+
+    def test_non_matched_devices_skip_reserved_pins(self):
+        """Non-matching devices auto-number but skip reserved pin values."""
+        shared = Terminal("X13", "Shared I/O")
+        fan_tmpl = DeviceTemplate("Fan", pins=(PinDef("t1", shared),))
+        switch_tmpl = DeviceTemplate("Switch", pins=(PinDef("1", shared),))
+
+        rows = generate_field_connections(
+            [
+                _fd("S-01", switch_tmpl),  # auto: 1
+                _fd("S-02", switch_tmpl),  # auto: 2 (3 reserved → skip)
+                _fd("F-01", fan_tmpl),  # reused: 3
+                _fd("S-03", switch_tmpl),  # auto: 4 (3 reserved → next is 4)
+            ],
+            template_reuse={fan_tmpl: {"X13": ["3"]}},
+        )
+
+        assert rows[0][3] == "1"  # S-01: auto, no skip
+        assert rows[1][3] == "2"  # S-02: auto, no skip
+        assert rows[2][3] == "3"  # F-01: reused
+        assert rows[3][3] == "4"  # S-03: auto, skipped 3
+
+    def test_template_reuse_with_global_reuse(self):
+        """Template reuse and global reuse can coexist on different terminals."""
+        io = Terminal("X13", "I/O")
+        power = Terminal("X09", "Power")
+        fan_tmpl = DeviceTemplate("Fan", pins=(PinDef("t1", io),))
+        valve_tmpl = DeviceTemplate("Valve", pins=(PinDef("A1", power),))
+
+        rows = generate_field_connections(
+            [_fd("V-01", valve_tmpl), _fd("F-01", fan_tmpl)],
+            reuse_terminals={"X09": ["42"]},
+            template_reuse={fan_tmpl: {"X13": ["7"]}},
+        )
+
+        assert rows[0][3] == "42"  # V-01: global reuse on X09
+        assert rows[1][3] == "7"  # F-01: template reuse on X13
+
+    def test_template_reuse_does_not_affect_other_terminals(self):
+        """Template reuse only applies to the specified terminal."""
+        io = Terminal("X13", "I/O")
+        other = Terminal("X14", "Other")
+        tmpl = DeviceTemplate(
+            "Fan",
+            pins=(PinDef("t1", io), PinDef("s1", other)),
+        )
+
+        rows = generate_field_connections(
+            [_fd("F-01", tmpl)],
+            template_reuse={tmpl: {"X13": ["5"]}},
+        )
+
+        assert rows[0][3] == "5"  # X13: reused
+        assert rows[1][3] == "1"  # X14: normal sequential
+
+    def test_empty_template_reuse(self):
+        """Empty template_reuse behaves like None."""
+        shared = Terminal("X13", "I/O")
+        tmpl = DeviceTemplate("Switch", pins=(PinDef("1", shared),))
+
+        rows = generate_field_connections(
+            [_fd("S-01", tmpl)],
+            template_reuse={},
+        )
+
+        assert rows[0][3] == "1"

@@ -267,6 +267,7 @@ def _resolve_terminal_pin(
     prefix_counters: dict[str, dict[str, int]],
     sequential_counters: dict[str, int],
     reuse_iters: dict[str, Any],
+    reserved_pins: dict[str, set[str]] | None = None,
 ) -> str:
     """Resolve the terminal pin string for a single pin definition.
 
@@ -303,8 +304,13 @@ def _resolve_terminal_pin(
     if terminal_key in reuse_iters:
         return next(reuse_iters[terminal_key])
 
-    sequential_counters[terminal_key] = sequential_counters.get(terminal_key, 0) + 1
-    return str(sequential_counters[terminal_key])
+    seq = sequential_counters.get(terminal_key, 0) + 1
+    if reserved_pins:
+        skip = reserved_pins.get(terminal_key, set())
+        while str(seq) in skip:
+            seq += 1
+    sequential_counters[terminal_key] = seq
+    return str(seq)
 
 
 def _build_reuse_iters(
@@ -331,6 +337,40 @@ def _build_reuse_iters(
     return reuse_iters
 
 
+def _build_template_reuse(
+    template_reuse: dict[DeviceTemplate, dict[str, list[str] | BuildResult]] | None,
+) -> tuple[dict[DeviceTemplate, dict[str, Any]], dict[str, set[str]]]:
+    """Build template-scoped reuse iterators and reserved pin sets.
+
+    Returns:
+        A tuple ``(template_iters, reserved_pins)`` where:
+
+        - *template_iters* maps each ``DeviceTemplate`` to a dict of
+          ``{terminal_key: iterator}`` — used when the current device's
+          template matches.
+        - *reserved_pins* maps ``{terminal_key: set_of_pin_strings}`` —
+          the sequential counter skips these to avoid collisions with
+          template-reused pins.
+    """
+    template_iters: dict[DeviceTemplate, dict[str, Any]] = {}
+    reserved_pins: dict[str, set[str]] = {}
+    if not template_reuse:
+        return template_iters, reserved_pins
+
+    for template, terminal_map in template_reuse.items():
+        template_iters[template] = {}
+        for terminal_key, source in terminal_map.items():
+            str_key = str(terminal_key)
+            if isinstance(source, list):
+                pins = source
+            else:
+                pins = source.terminal_pin_map.get(str_key, [])
+            template_iters[template][str_key] = iter(pins)
+            reserved_pins.setdefault(str_key, set()).update(str(p) for p in pins)
+
+    return template_iters, reserved_pins
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -339,6 +379,7 @@ def _build_reuse_iters(
 def generate_field_connections(
     devices: list[FieldDevice],
     reuse_terminals: dict[str, list[str] | BuildResult] | None = None,
+    template_reuse: dict[DeviceTemplate, dict[str, list[str] | BuildResult]] | None = None,
 ) -> list[ConnectionRow]:
     """
     Expand device declarations into connection row tuples.
@@ -353,6 +394,11 @@ def generate_field_connections(
             pin strings or a ``BuildResult``.  When a terminal key
             matches, pins are consumed from the reuse source instead of
             being auto-numbered.
+        template_reuse: Optional dict mapping ``DeviceTemplate`` to a
+            dict of ``{terminal_key: BuildResult | list[str]}``.  Only
+            devices whose template matches will reuse those terminal
+            pins; other devices auto-number normally but skip the
+            reserved (reused) pin values to avoid collisions.
 
     Returns:
         List of :data:`ConnectionRow` tuples with auto-numbered terminal
@@ -364,7 +410,8 @@ def generate_field_connections(
     """
     sequential_counters: dict[str, int] = {}
     prefix_counters: dict[str, dict[str, int]] = {}
-    reuse_iters = _build_reuse_iters(reuse_terminals)
+    global_reuse_iters = _build_reuse_iters(reuse_terminals)
+    template_iters, reserved_pins = _build_template_reuse(template_reuse)
 
     connections: list[ConnectionRow] = []
 
@@ -372,6 +419,12 @@ def generate_field_connections(
         tag = device.tag
         template = device.template
         terminal_override = device.terminal
+
+        # Build effective reuse_iters for this device: start with global,
+        # then overlay template-scoped iterators if the template matches.
+        effective_reuse = dict(global_reuse_iters)
+        if template in template_iters:
+            effective_reuse.update(template_iters[template])
 
         device_prefix_indices: dict[str, int] = {}
 
@@ -403,7 +456,8 @@ def generate_field_connections(
                 device_prefixes_used,
                 prefix_counters,
                 sequential_counters,
-                reuse_iters,
+                effective_reuse,
+                reserved_pins if reserved_pins else None,
             )
             plc_tag = str(pin_def.plc) if pin_def.plc else ""
 

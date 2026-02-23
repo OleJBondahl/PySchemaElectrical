@@ -461,6 +461,7 @@ class Project:
         self,
         devices: list,
         reuse_terminals: dict | None = None,
+        template_reuse: dict | None = None,
     ) -> "Project":
         """Register field devices for deferred connection resolution.
 
@@ -472,11 +473,15 @@ class Project:
             devices: List of FieldDevice instances.
             reuse_terminals: Maps Terminal -> circuit key string.
                 Pins from that circuit's terminal_pin_map are reused.
+            template_reuse: Maps DeviceTemplate -> {Terminal: circuit key}.
+                Only devices whose template matches will reuse those
+                terminal pins; other devices auto-number normally but
+                skip the reserved pin values.
 
         Returns:
             self (for method chaining).
         """
-        self._field_device_defs.append((devices, reuse_terminals))
+        self._field_device_defs.append((devices, reuse_terminals, template_reuse))
         return self
 
     # ------------------------------------------------------------------
@@ -889,7 +894,7 @@ class Project:
 
         from pyschemaelectrical.field_devices import generate_field_connections
 
-        for devices, reuse_terminals in self._field_device_defs:
+        for devices, reuse_terminals, template_reuse in self._field_device_defs:
             resolved_reuse = None
             if reuse_terminals:
                 resolved_reuse = {}
@@ -901,11 +906,27 @@ class Project:
                         )
                     resolved_reuse[str(terminal)] = self._results[circuit_key]
 
-                connections = generate_field_connections(
-                    devices, reuse_terminals=resolved_reuse
-                )
-            else:
-                connections = generate_field_connections(devices)
+            resolved_template_reuse = None
+            if template_reuse:
+                resolved_template_reuse = {}
+                for tmpl, terminal_map in template_reuse.items():
+                    resolved_template_reuse[tmpl] = {}
+                    for terminal, circuit_key in terminal_map.items():
+                        if circuit_key not in self._results:
+                            raise ValueError(
+                                f"field_devices() template_reuse references "
+                                f"circuit '{circuit_key}', but it hasn't "
+                                f"been built yet."
+                            )
+                        resolved_template_reuse[tmpl][str(terminal)] = (
+                            self._results[circuit_key]
+                        )
+
+            connections = generate_field_connections(
+                devices,
+                reuse_terminals=resolved_reuse,
+                template_reuse=resolved_template_reuse,
+            )
 
             if self._plc_rack:
                 from pyschemaelectrical.plc_resolver import resolve_plc_references
