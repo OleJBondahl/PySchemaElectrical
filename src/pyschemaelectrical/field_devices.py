@@ -357,16 +357,28 @@ def _build_template_reuse(
     if not template_reuse:
         return template_iters, reserved_pins
 
+    # Share one iterator when multiple templates reference the same
+    # source object for the same terminal (e.g. FAN_1P, TURN_SWITCH_FAN,
+    # and GAS_SENSOR_FAN all mapping to the same fan_controll BuildResult).
+    shared_iters: dict[tuple[str, int], Any] = {}
+
     for template, terminal_map in template_reuse.items():
         template_iters[template] = {}
         for terminal_key, source in terminal_map.items():
             str_key = str(terminal_key)
-            if isinstance(source, list):
-                pins = source
-            else:
-                pins = source.terminal_pin_map.get(str_key, [])
-            template_iters[template][str_key] = iter(pins)
-            reserved_pins.setdefault(str_key, set()).update(str(p) for p in pins)
+            cache_key = (str_key, id(source))
+
+            if cache_key not in shared_iters:
+                if isinstance(source, list):
+                    pins = source
+                else:
+                    pins = source.terminal_pin_map.get(str_key, [])
+                shared_iters[cache_key] = iter(pins)
+                reserved_pins.setdefault(str_key, set()).update(
+                    str(p) for p in pins
+                )
+
+            template_iters[template][str_key] = shared_iters[cache_key]
 
     return template_iters, reserved_pins
 

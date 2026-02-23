@@ -713,3 +713,32 @@ class TestTemplateReuse:
         )
 
         assert rows[0][3] == "1"
+
+    def test_shared_iterator_across_templates(self):
+        """Multiple templates referencing the same source share one iterator."""
+        shared = Terminal("X13", "I/O")
+        # Simulate fan_controll's 12 X13 pins
+        reuse_pins = ["7", "8", "9", "10", "11", "12", "13", "14"]
+
+        fan_tmpl = DeviceTemplate("Fan", pins=(PinDef("t1", shared), PinDef("t2", shared)))
+        switch_tmpl = DeviceTemplate("Switch (Fan)", pins=(PinDef("3", shared),))
+        sensor_tmpl = DeviceTemplate("Sensor (Fan)", pins=(PinDef("10", shared),))
+
+        rows = generate_field_connections(
+            [
+                _fd("F-01", fan_tmpl),  # t1→7, t2→8
+                _fd("F-02", fan_tmpl),  # t1→9, t2→10
+                _fd("S7", switch_tmpl),  # 3→11
+                _fd("S8", switch_tmpl),  # 3→12
+                _fd("G-01", sensor_tmpl),  # 10→13
+                _fd("G-02", sensor_tmpl),  # 10→14
+            ],
+            template_reuse={
+                fan_tmpl: {"X13": reuse_pins},
+                switch_tmpl: {"X13": reuse_pins},
+                sensor_tmpl: {"X13": reuse_pins},
+            },
+        )
+
+        x13_pins = [r[3] for r in rows if str(r[2]) == "X13"]
+        assert x13_pins == ["7", "8", "9", "10", "11", "12", "13", "14"]
