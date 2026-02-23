@@ -1533,6 +1533,10 @@ class CircuitBuilder:
         return self._result
 
     @property
+    def result(self) -> BuildResult:
+        return self._check_built()
+
+    @property
     def state(self) -> "GenerationState":
         return self._check_built().state
 
