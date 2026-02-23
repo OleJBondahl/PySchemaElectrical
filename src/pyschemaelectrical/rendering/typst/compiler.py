@@ -494,7 +494,7 @@ __TITLE_MAP__
                             text(size: 9pt, weight: "bold")[#tag],
                             text(size: 9pt, weight: "bold")[To],
                             text(size: 9pt, weight: "bold")[Pin],
-                            text(size: 9pt, weight: "bold")[Int],
+                            text(size: 9pt, weight: "bold")[Bridge],
                         ),
                         ..group_rows.enumerate().map(((idx, r)) => {
                             let bridge = get_bridge_indicator(idx, bridge_groups)
