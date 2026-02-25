@@ -142,6 +142,7 @@ class Project:
         self._field_device_defs: list[tuple[list, dict | None]] = []
         self._wire_label_export: tuple[str, dict[str, str] | None] | None = None
         self._taglist_export: str | None = None
+        self._bom_excel_export: str | None = None
 
     # ------------------------------------------------------------------
     # Terminal registration
@@ -602,6 +603,11 @@ class Project:
         self._taglist_export = path
         return self
 
+    def export_bom_excel(self, path: str) -> "Project":
+        """Register a BOM Excel export. Written during build()."""
+        self._bom_excel_export = path
+        return self
+
     def export_cable_csv(
         self, output_path: str
     ) -> "tuple[str, int, dict[str, str], dict[str, dict]]":
@@ -681,6 +687,7 @@ class Project:
         self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
         self._export_wire_labels()
         self._export_taglist()
+        self._export_bom_excel()
 
         # 3. Generate system terminal CSV with bridge info
         system_csv_path = self._generate_system_csv(temp_dir)
@@ -1088,6 +1095,41 @@ class Project:
             writer.writerow(["Tag"])
             for tag in sorted(tags, key=natural_sort_key):
                 writer.writerow([tag])
+
+    def _export_bom_excel(self) -> None:
+        if self._bom_excel_export is None:
+            return
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font, PatternFill
+
+        rows = self._aggregate_bom()
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "BOM"
+
+        headers = ["Tags", "MPN", "Description", "Qty"]
+        header_font = Font(bold=True)
+        header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="left")
+
+        for row_idx, (tags, mpn, desc, qty) in enumerate(rows, 2):
+            ws.cell(row=row_idx, column=1, value=tags)
+            ws.cell(row=row_idx, column=2, value=mpn)
+            ws.cell(row=row_idx, column=3, value=desc)
+            ws.cell(row=row_idx, column=4, value=qty).alignment = Alignment(horizontal="right")
+
+        ws.column_dimensions["A"].width = 30
+        ws.column_dimensions["B"].width = 20
+        ws.column_dimensions["C"].width = 40
+        ws.column_dimensions["D"].width = 8
+
+        path = self._bom_excel_export
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        wb.save(path)
 
     # ------------------------------------------------------------------
     # Internal: system CSV generation
