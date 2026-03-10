@@ -7,6 +7,7 @@ on first use if it is not installed.
 from __future__ import annotations
 
 import logging
+import math
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -330,9 +331,9 @@ class KicadParser:
 
             for root, seg_indices in networks.items():
                 for pt in all_endpoints(seg_indices):
-                    import math  # noqa: PLC0415
-
-                    d = math.sqrt((pt.x - label_pos.x) ** 2 + (pt.y - label_pos.y) ** 2)
+                    d = math.sqrt(
+                        (pt.x - label_pos.x) ** 2 + (pt.y - label_pos.y) ** 2
+                    )
                     if d < best_dist:
                         best_dist = d
                         best_root = root
