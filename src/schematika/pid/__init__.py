@@ -28,6 +28,13 @@ from schematika.pid.diagram import (  # noqa: F401
     merge_diagrams,
     render_pid,
 )
+from schematika.pid.builder import (  # noqa: F401
+    EquipmentSpec,
+    InstrumentSpec,
+    PIDBuildResult,
+    PIDBuilder,
+    PipeSpec,
+)
 from schematika.pid.layout import Placement, resolve_placements  # noqa: F401
 from schematika.pid.symbols import (  # noqa: F401
     ball_valve,
