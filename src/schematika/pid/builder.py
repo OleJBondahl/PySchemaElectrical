@@ -9,7 +9,10 @@ explicit pipe declarations.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from schematika.catalog.registry import DeviceCatalog
 
 from schematika.core.autonumbering import next_tag
 from schematika.core.geometry import Element, Point, Vector
@@ -229,9 +232,7 @@ class PIDBuilder:
             )
             entry = _EquipmentEntry(spec=spec, placement=placement, abs_position=None)
         else:
-            entry = _EquipmentEntry(
-                spec=spec, placement=None, abs_position=Point(x, y)
-            )
+            entry = _EquipmentEntry(spec=spec, placement=None, abs_position=Point(x, y))
 
         self._entries[name] = entry
         self._equipment_order.append(name)
@@ -290,6 +291,48 @@ class PIDBuilder:
         )
         self._instrument_order.append(name)
         return self
+
+    def add_instrument_from_catalog(
+        self,
+        name: str,
+        catalog: "DeviceCatalog",
+        device_tag: str,
+        *,
+        on_equipment: str,
+        on_port: str = "outlet",
+        offset: tuple[float, float] = (0, -30),
+    ) -> "PIDBuilder":
+        """Add instrument from device catalog. Uses the catalog device's process spec.
+
+        Args:
+            name: Unique name key for this instrument.
+            catalog: :class:`~schematika.catalog.registry.DeviceCatalog` to look up
+                the device.
+            device_tag: Tag of the device in the catalog (e.g. ``"TT-101"``).
+            on_equipment: Name of the equipment to attach to.
+            on_port: Port ID on the equipment used as placement anchor.
+            offset: ``(dx, dy)`` offset from the anchor port in mm.
+
+        Returns:
+            ``self`` for method chaining.
+
+        Raises:
+            KeyError: If *device_tag* is not found in *catalog*.
+            ValueError: If the device has no
+                :class:`~schematika.catalog.device.ProcessSpec`.
+        """
+        device = catalog.get(device_tag)
+        if device.process is None:
+            raise ValueError(f"Device '{device_tag}' has no ProcessSpec")
+        spec = device.process.instrument
+        return self.add_instrument(
+            name,
+            spec.letters,
+            on_equipment=on_equipment,
+            on_port=on_port,
+            location=spec.location,
+            offset=offset,
+        )
 
     def pipe(
         self,
