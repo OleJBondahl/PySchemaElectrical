@@ -5,10 +5,10 @@ from dataclasses import replace
 from functools import singledispatch
 from typing import Any, TypeVar, cast
 
+from pyschemaelectrical.core.constants import TEXT_OFFSET_X
 from pyschemaelectrical.core.geometry import Element, Point, Style, Vector  # noqa: F401
 from pyschemaelectrical.core.primitives import Circle, Group, Line, Path, Polygon, Text
 from pyschemaelectrical.core.symbol import Port, Symbol
-from pyschemaelectrical.model.constants import TEXT_OFFSET_X
 
 T = TypeVar("T", bound=Element | Point | Port | Vector)
 

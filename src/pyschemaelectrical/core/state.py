@@ -8,8 +8,7 @@ related generation functions.
 from dataclasses import dataclass, field
 from typing import Any
 
-# Avoid direct import if circular dependency is feared, but verified safe here.
-from pyschemaelectrical.system.connection_registry import TerminalRegistry
+from pyschemaelectrical.core.connection_registry import TerminalRegistry
 
 
 @dataclass(frozen=True)

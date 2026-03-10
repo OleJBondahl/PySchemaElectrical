@@ -17,11 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable
 if TYPE_CHECKING:
     from pyschemaelectrical.core.primitives import Line
 
-from pyschemaelectrical.core.geometry import Point, Style
-from pyschemaelectrical.core.primitives import Circle, Element, Polygon, Text
-from pyschemaelectrical.core.symbol import Symbol
-from pyschemaelectrical.core.transform import translate
-from pyschemaelectrical.model.constants import (
+from pyschemaelectrical.core.constants import (
     COLOR_BLACK,
     DEFAULT_POLE_SPACING,
     GRID_SIZE,
@@ -38,6 +34,10 @@ from pyschemaelectrical.model.constants import (
     TEXT_SIZE_MAIN,
     TEXT_SIZE_PIN,
 )
+from pyschemaelectrical.core.geometry import Point, Style
+from pyschemaelectrical.core.primitives import Circle, Element, Polygon, Text
+from pyschemaelectrical.core.symbol import Symbol
+from pyschemaelectrical.core.transform import translate
 
 
 def standard_style(filled: bool = False) -> Style:

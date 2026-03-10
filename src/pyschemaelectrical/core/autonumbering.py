@@ -18,12 +18,6 @@ Example:
 from dataclasses import replace
 
 from pyschemaelectrical.core.state import GenerationState, create_initial_state
-from pyschemaelectrical.utils.utils import (
-    get_terminal_counter as get_terminal_counter,
-)
-from pyschemaelectrical.utils.utils import (
-    set_terminal_counter as set_terminal_counter,
-)
 
 
 def create_autonumberer() -> GenerationState:

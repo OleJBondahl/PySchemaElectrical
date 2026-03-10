@@ -5,13 +5,33 @@ Contains library-level defaults including spacing, tags, and pin configurations.
 Project-specific constants (terminal IDs, paths) should be defined in user projects.
 """
 
-# Grid System
-GRID_SIZE = 5.0  # mm, Base grid unit
+# Geometric/visual constants live in core/constants.py and are re-exported here
+# so that all existing imports from model.constants continue to work unchanged.
+from pyschemaelectrical.core.constants import (  # noqa: E402, F401
+    COLOR_BLACK,
+    COLOR_WHITE,
+    DEFAULT_DOC_HEIGHT,
+    DEFAULT_DOC_WIDTH,
+    DEFAULT_POLE_SPACING,
+    GRID_SIZE,
+    LINE_WIDTH_THIN,
+    PIN_LABEL_OFFSET_X,
+    PIN_LABEL_OFFSET_Y_ADJUST,
+    TERMINAL_RADIUS,
+    TERMINAL_TEXT_OFFSET_X,
+    TERMINAL_TEXT_OFFSET_X_CLOSE,
+    TERMINAL_TEXT_SIZE,
+    TEXT_FONT_FAMILY,
+    TEXT_FONT_FAMILY_AUX,
+    TEXT_OFFSET_X,
+    TEXT_SIZE_MAIN,
+    TEXT_SIZE_PIN,
+)
+
+# Electrical-specific constants (not in core/)
 GRID_SUBDIVISION = GRID_SIZE / 2  # 2.5mm, Half grid for smaller alignments
 
-# Geometry
-TERMINAL_RADIUS = 0.25 * GRID_SIZE  # 1.25mm
-LINE_WIDTH_THIN = 0.05 * GRID_SIZE  # 0.25mm
+# Geometry (electrical-specific)
 LINE_WIDTH_THICK = 0.1 * GRID_SIZE  # 0.5mm
 LINKAGE_DASH_PATTERN = (
     f"{0.4 * GRID_SIZE}, {0.4 * GRID_SIZE}"  # "2.0, 2.0" Stippled/Dashed pattern
@@ -22,35 +42,10 @@ REF_ARROW_LENGTH = 2 * GRID_SIZE  # 10.0mm
 REF_ARROW_HEAD_LENGTH = 0.6 * GRID_SIZE  # 3.0mm
 REF_ARROW_HEAD_WIDTH = 0.5 * GRID_SIZE  # 2.5mm
 
-# Text & Fonts
-TEXT_FONT_FAMILY = "Times New Roman"
-TEXT_SIZE_MAIN = GRID_SIZE  # 5.0mm
-TEXT_OFFSET_X = -GRID_SIZE  # -5.0mm
-
-TERMINAL_TEXT_SIZE = (
-    0.85 * GRID_SIZE
-)  # 4.25mm (smaller to avoid collision with pin numbers)
-TERMINAL_TEXT_OFFSET_X = -1.7 * GRID_SIZE  # -8.5mm (same side as pin number)
-TERMINAL_TEXT_OFFSET_X_CLOSE = -0.6 * GRID_SIZE  # -3.0mm (when pin is on opposite side)
-
-TEXT_FONT_FAMILY_AUX = "Times New Roman"
-TEXT_SIZE_PIN = 0.7 * GRID_SIZE  # 3.5mm
-PIN_LABEL_OFFSET_X = 0.3 * GRID_SIZE  # 1.5mm
-PIN_LABEL_OFFSET_Y_ADJUST = 0.0  # mm, adjustment for up/down ports
-
-# Layout
-DEFAULT_POLE_SPACING = 2 * GRID_SIZE  # 10.0mm
+# Layout (electrical-specific)
 SPDT_PIN_LABEL_OFFSET = 2.0  # 2.0mm, pin label offset for SPDT contacts
 DEFAULT_WIRE_ALIGNMENT_TOLERANCE = 0.1  # 0.1mm strict tolerance for port matching
 WIRE_LABEL_OFFSET_X = -GRID_SIZE / 2  # -2.5mm, horizontal offset for wire labels
-
-# Colors
-COLOR_BLACK = "black"
-COLOR_WHITE = "white"
-
-# Document Defaults
-DEFAULT_DOC_WIDTH = "210mm"
-DEFAULT_DOC_HEIGHT = "297mm"
 
 
 class StandardTags:

@@ -1,50 +1,16 @@
 import csv
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
 from typing import TYPE_CHECKING
+
+# Connection and TerminalRegistry now live in core/; re-exported here for
+# backward compatibility so that all existing imports from this module work.
+from pyschemaelectrical.core.connection_registry import (  # noqa: F401
+    Connection,
+    TerminalRegistry,
+)
 
 if TYPE_CHECKING:
     from pyschemaelectrical.model.state import GenerationState
-
-
-@dataclass(frozen=True)
-class Connection:
-    """
-    Represents a connection between a terminal pin and a component pin.
-    """
-
-    terminal_tag: str
-    terminal_pin: str
-    component_tag: str
-    component_pin: str
-    side: str  # 'top' or 'bottom'
-
-
-@dataclass(frozen=True)
-class TerminalRegistry:
-    """
-    Immutable registry for terminal connections.
-    """
-
-    connections: tuple[Connection, ...] = field(default_factory=tuple)
-
-    def add_connection(
-        self,
-        terminal_tag: str,
-        terminal_pin: str,
-        component_tag: str,
-        component_pin: str,
-        side: str,
-    ) -> "TerminalRegistry":
-        """
-        Returns a new TerminalRegistry with the added connection.
-        """
-        new_conn = Connection(
-            terminal_tag, terminal_pin, component_tag, component_pin, side
-        )
-        return TerminalRegistry(self.connections + (new_conn,))
-
-    def add_connections(self, conns: list[Connection]) -> "TerminalRegistry":
-        return TerminalRegistry(self.connections + tuple(conns))
 
 
 def get_registry(state: "GenerationState") -> TerminalRegistry:

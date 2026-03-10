@@ -1,5 +1,10 @@
 import xml.etree.ElementTree as ET
 
+from pyschemaelectrical.core.constants import (
+    COLOR_WHITE,
+    DEFAULT_DOC_HEIGHT,
+    DEFAULT_DOC_WIDTH,
+)
 from pyschemaelectrical.core.geometry import Style
 from pyschemaelectrical.core.primitives import (
     Circle,
@@ -11,11 +16,6 @@ from pyschemaelectrical.core.primitives import (
     Text,
 )
 from pyschemaelectrical.core.symbol import Symbol
-from pyschemaelectrical.model.constants import (
-    COLOR_WHITE,
-    DEFAULT_DOC_HEIGHT,
-    DEFAULT_DOC_WIDTH,
-)
 
 
 def _style_to_str(style: Style) -> str:

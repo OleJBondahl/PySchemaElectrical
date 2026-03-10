@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from dataclasses import dataclass
 
 
@@ -103,5 +102,3 @@ class Element:
     pass
 
 
-# Re-exported here for completeness (used by symbol.py)
-__all__ = ["Vector", "Point", "Style", "Element", "Callable"]
