@@ -2,7 +2,17 @@
 ISO 14617 process equipment symbol factories.
 """
 
-from schematika.core import Circle, Line, Point, Polygon, Port, Style, Symbol, Text, Vector
+from schematika.core import (
+    Circle,
+    Line,
+    Point,
+    Polygon,
+    Port,
+    Style,
+    Symbol,
+    Text,
+    Vector,
+)
 from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
 from schematika.pid.constants import PID_LINE_WEIGHT
 
@@ -12,15 +22,14 @@ _FILL_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="black")
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 
 
-def centrifugal_pump(label: str = "", orientation: str = "horizontal") -> Symbol:
+def centrifugal_pump(label: str = "") -> Symbol:
     """ISO 14617 centrifugal pump symbol.
 
     A circle (~20mm diameter) with a tangential discharge.
-    The inlet is on the left (port 'inlet'), the outlet exits from the top (port 'outlet').
+    Inlet on the left (port 'inlet'), outlet exits from the top (port 'outlet').
 
     Args:
         label: Component label/tag (e.g., "P-001").
-        orientation: Currently only "horizontal" is implemented.
 
     Returns:
         Symbol with ports 'inlet' (left) and 'outlet' (top-right).
@@ -75,14 +84,13 @@ def centrifugal_pump(label: str = "", orientation: str = "horizontal") -> Symbol
     return Symbol(elements, ports, label=label)
 
 
-def positive_displacement_pump(label: str = "", orientation: str = "horizontal") -> Symbol:
+def positive_displacement_pump(label: str = "") -> Symbol:
     """ISO 14617 positive displacement pump.
 
-    Circle (~20mm diameter) with an internal triangular arrow pointing outward (rightward).
+    Circle (~20mm diameter) with an internal triangular arrow pointing rightward.
 
     Args:
         label: Component label/tag.
-        orientation: Currently only "horizontal" is implemented.
 
     Returns:
         Symbol with ports 'inlet' (left) and 'outlet' (right).

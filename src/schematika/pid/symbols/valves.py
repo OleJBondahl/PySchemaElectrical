@@ -5,7 +5,17 @@ Valve symbols use a bowtie (two triangles meeting at tips) as the base shape.
 Size: ~15mm x 15mm (VALVE_SIZE from constants).
 """
 
-from schematika.core import Circle, Line, Point, Polygon, Port, Style, Symbol, Text, Vector
+from schematika.core import (
+    Circle,
+    Line,
+    Point,
+    Polygon,
+    Port,
+    Style,
+    Symbol,
+    Text,
+    Vector,
+)
 from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
 from schematika.pid.constants import PID_LINE_WEIGHT, VALVE_SIZE
 
@@ -147,11 +157,26 @@ def control_valve(label: str = "") -> Symbol:
         style=_BODY_STYLE,
     )
 
-    elements = [left_tri, right_tri, left_stub, right_stub, center_circle, stem, actuator]
+    elements = [
+        left_tri,
+        right_tri,
+        left_stub,
+        right_stub,
+        center_circle,
+        stem,
+        actuator,
+    ]
     if label:
         elements.append(_label_text(label, y_offset=_H + 5.0))
 
-    return Symbol(elements, _valve_ports(), label=label)
+    ports = _valve_ports()
+    ports["actuator"] = Port(
+        "actuator",
+        Point(0.0, stem_top_y - act_h),
+        Vector(0, -1),
+    )
+
+    return Symbol(elements, ports, label=label)
 
 
 def check_valve(label: str = "") -> Symbol:

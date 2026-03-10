@@ -2,13 +2,12 @@
 ISO 14617 piping primitive symbol factories.
 """
 
-from schematika.core import Line, Point, Polygon, Port, Style, Symbol, Text, Vector
+from schematika.core import Line, Point, Port, Style, Symbol, Text, Vector
 from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
 from schematika.pid.constants import PID_LINE_WEIGHT
 
 _PIPE_STYLE = Style(stroke="black", stroke_width=PID_LINE_WEIGHT, fill="none")
 _BODY_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none")
-_FILL_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="black")
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 
 
@@ -84,9 +83,9 @@ def pipe_reducer(label: str = "") -> Symbol:
     Returns:
         Symbol with ports 'in' (left, wider) and 'out' (right, narrower).
     """
-    length = 10.0   # horizontal span
-    h_in = 5.0      # half-height at inlet side
-    h_out = 2.5     # half-height at outlet side
+    length = 10.0  # horizontal span
+    h_in = 5.0  # half-height at inlet side
+    h_out = 2.5  # half-height at outlet side
 
     # Trapezoid outline
     top_line = Line(Point(-length, -h_in), Point(length, -h_out), _BODY_STYLE)

@@ -311,6 +311,14 @@ def test_control_valve_has_actuator_triangle():
     assert len(polygons) >= 3
 
 
+def test_control_valve_has_actuator_port():
+    sym = control_valve()
+    assert "actuator" in sym.ports
+    assert sym.ports["actuator"].direction == Vector(0, -1)
+    # Actuator port should be above the valve body (negative y)
+    assert sym.ports["actuator"].position.y < 0
+
+
 # ---------------------------------------------------------------------------
 # Check valve
 # ---------------------------------------------------------------------------

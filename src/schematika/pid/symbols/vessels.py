@@ -8,7 +8,9 @@ from schematika.pid.constants import PID_LINE_WEIGHT
 
 _PIPE_STYLE = Style(stroke="black", stroke_width=PID_LINE_WEIGHT, fill="none")
 _BODY_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none")
-_DASH_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none", stroke_dasharray="3,2")
+_DASH_STYLE = Style(
+    stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none", stroke_dasharray="3,2"
+)
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 
 
@@ -27,8 +29,8 @@ def tank(label: str = "", kind: str = "open") -> Symbol:
         Symbol with ports 'inlet' (top-left), 'outlet' (bottom-right),
         'drain' (bottom-center), 'vent' (top-center).
     """
-    w = 15.0   # half-width = 15mm, total 30mm
-    h = 20.0   # half-height = 20mm, total 40mm
+    w = 15.0  # half-width = 15mm, total 30mm
+    h = 20.0  # half-height = 20mm, total 40mm
 
     # Body sides and bottom (always solid)
     left = Line(Point(-w, -h), Point(-w, h), _BODY_STYLE)
@@ -51,7 +53,16 @@ def tank(label: str = "", kind: str = "open") -> Symbol:
     # Vent stub at top-center
     vent_stub = Line(Point(0.0, -h), Point(0.0, -h - 5.0), _PIPE_STYLE)
 
-    elements = [left, right, bottom, top, inlet_stub, outlet_stub, drain_stub, vent_stub]
+    elements = [
+        left,
+        right,
+        bottom,
+        top,
+        inlet_stub,
+        outlet_stub,
+        drain_stub,
+        vent_stub,
+    ]
 
     if label:
         elements.append(

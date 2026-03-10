@@ -4,7 +4,11 @@ ISA 5.1 instrument bubble symbol factories.
 
 from schematika.core import Circle, Line, Point, Port, Style, Symbol, Text, Vector
 from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
-from schematika.pid.constants import INSTRUMENT_BUBBLE_RADIUS, PID_SIGNAL_LINE_WEIGHT
+from schematika.pid.constants import (
+    INSTRUMENT_BUBBLE_RADIUS,
+    PID_SIGNAL_DASH,
+    PID_SIGNAL_LINE_WEIGHT,
+)
 
 _SIGNAL_STYLE = Style(stroke="black", stroke_width=PID_SIGNAL_LINE_WEIGHT, fill="none")
 _BUBBLE_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="white")
@@ -45,7 +49,12 @@ def instrument_bubble(
     if location in ("panel", "dcs"):
         # Horizontal dividing line through center
         line_style = (
-            Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none", stroke_dasharray="2,2")
+            Style(
+                stroke="black",
+                stroke_width=LINE_WIDTH_THIN,
+                fill="none",
+                stroke_dasharray=PID_SIGNAL_DASH,
+            )
             if location == "dcs"
             else _SIGNAL_STYLE
         )
