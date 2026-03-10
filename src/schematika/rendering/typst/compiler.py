@@ -134,7 +134,7 @@ class TypstCompiler:
         except ImportError as err:
             raise ImportError(
                 "The 'typst' package is required for PDF compilation. "
-                "Install it with: pip install pyschemaelectrical[pdf]"
+                "Install it with: pip install schematika[pdf]"
             ) from err
 
         config = self.config

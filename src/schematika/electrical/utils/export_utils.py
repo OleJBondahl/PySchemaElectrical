@@ -132,7 +132,7 @@ def merge_terminal_csv(csv_path: str) -> None:
     """Merge duplicate terminal rows and sort by terminal tag then pin number.
 
     Reads a terminal-connection CSV (as produced by
-    :func:`~pyschemaelectrical.system.connection_registry.export_registry_to_csv`,
+    :func:`~schematika.electrical.system.connection_registry.export_registry_to_csv`,
     optionally with rows appended from other sources), merges rows that
     share the same ``(Terminal Tag, Terminal Pin)`` key, and writes the
     result back to the same file, sorted by terminal tag and pin in natural
@@ -281,7 +281,7 @@ def _apply_prefix_bridges(csv_path: str, terminal_tags: set[str]) -> None:
     Each prefix gets a unique group number within its terminal.
 
     The bridge column must already exist in the CSV (added by
-    :func:`~pyschemaelectrical.update_csv_with_internal_connections`).
+    :func:`~schematika.electrical.update_csv_with_internal_connections`).
 
     Args:
         csv_path: Path to the CSV file to update **in place**.
@@ -331,7 +331,7 @@ def finalize_terminal_csv(
 
     Args:
         csv_path: Path to the terminal CSV (already written by
-            :func:`~pyschemaelectrical.export_registry_to_csv`).
+            :func:`~schematika.electrical.export_registry_to_csv`).
         bridge_defs: Mapping of terminal tag -> bridge mode for
             non-prefix terminals (e.g. ``{"X102": "all"}``).
             Passed to :func:`update_csv_with_internal_connections`.
@@ -340,7 +340,7 @@ def finalize_terminal_csv(
             These are handled by :func:`_apply_prefix_bridges` after
             sorting so that prefixes appear in consistent order.
         external_connections: Optional list of
-            :data:`~pyschemaelectrical.field_devices.ConnectionRow`
+            :data:`~schematika.electrical.field_devices.ConnectionRow`
             tuples to append before processing. These are the field
             wiring rows not captured in the registry.
     """

@@ -143,7 +143,7 @@ def fixed_tag(tag: str) -> Callable[[GenerationState], tuple[GenerationState, st
     Returns:
         A callable ``(state) -> (state, tag)`` suitable for use as a
         ``tag_generators`` value in
-        :meth:`~pyschemaelectrical.builder.CircuitBuilder.build`.
+        :meth:`~schematika.electrical.builder.CircuitBuilder.build`.
 
     Example::
 
