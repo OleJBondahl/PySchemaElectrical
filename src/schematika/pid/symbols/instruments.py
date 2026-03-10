@@ -1,0 +1,93 @@
+"""
+ISA 5.1 instrument bubble symbol factories.
+"""
+
+from schematika.core import Circle, Line, Point, Port, Style, Symbol, Text, Vector
+from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
+from schematika.pid.constants import INSTRUMENT_BUBBLE_RADIUS, PID_SIGNAL_LINE_WEIGHT
+
+_SIGNAL_STYLE = Style(stroke="black", stroke_width=PID_SIGNAL_LINE_WEIGHT, fill="none")
+_BUBBLE_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="white")
+_TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
+_LABEL_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
+
+_R = INSTRUMENT_BUBBLE_RADIUS  # 10mm
+
+
+def instrument_bubble(
+    label: str = "",
+    letters: str = "TT",
+    location: str = "field",
+    tag_number: str = "",
+) -> Symbol:
+    """ISA 5.1 instrument bubble.
+
+    A circle whose interior displays the ISA tag letters.
+    Location variants:
+      - "field":  plain circle (field-mounted instrument)
+      - "panel":  circle with horizontal dividing line (panel-mounted)
+      - "dcs":    circle with dashed horizontal line (DCS/shared-display)
+
+    Args:
+        label: Overall symbol label (if any).
+        letters: ISA letter codes displayed inside the bubble (e.g. "TT", "FIC").
+        location: One of "field", "panel", or "dcs".
+        tag_number: Tag suffix displayed below the bubble (e.g. "101").
+
+    Returns:
+        Symbol with ports 'process' (bottom) and 'signal_out' (top).
+    """
+    # Bubble circle
+    bubble = Circle(center=Point(0.0, 0.0), radius=_R, style=_BUBBLE_STYLE)
+
+    elements = [bubble]
+
+    if location in ("panel", "dcs"):
+        # Horizontal dividing line through center
+        line_style = (
+            Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none", stroke_dasharray="2,2")
+            if location == "dcs"
+            else _SIGNAL_STYLE
+        )
+        divider = Line(Point(-_R, 0.0), Point(_R, 0.0), line_style)
+        elements.append(divider)
+
+    # Letters inside bubble
+    if letters:
+        # If panel/dcs, letters go above the line; field they're centered
+        letter_y = -_R * 0.25 if location in ("panel", "dcs") else 0.0
+        letter_text = Text(
+            content=letters,
+            position=Point(0.0, letter_y),
+            style=_TEXT_STYLE,
+            anchor="middle",
+            dominant_baseline="middle",
+            font_size=_R * 0.7,
+        )
+        elements.append(letter_text)
+
+    # Tag number below the bubble
+    display_tag = f"{letters}-{tag_number}" if letters and tag_number else tag_number
+    if display_tag:
+        tag_text = Text(
+            content=display_tag,
+            position=Point(0.0, _R + 4.0),
+            style=_LABEL_STYLE,
+            anchor="middle",
+            dominant_baseline="auto",
+            font_size=TEXT_SIZE_MAIN,
+        )
+        elements.append(tag_text)
+
+    # Signal line stubs
+    process_stub = Line(Point(0.0, _R), Point(0.0, _R + 5.0), _SIGNAL_STYLE)
+    signal_stub = Line(Point(0.0, -_R), Point(0.0, -_R - 5.0), _SIGNAL_STYLE)
+    elements.extend([process_stub, signal_stub])
+
+    ports = {
+        "process": Port("process", Point(0.0, _R + 5.0), Vector(0, 1)),
+        "signal_out": Port("signal_out", Point(0.0, -_R - 5.0), Vector(0, -1)),
+    }
+
+    effective_label = label or (f"{letters}-{tag_number}" if tag_number else letters)
+    return Symbol(elements, ports, label=effective_label)
