@@ -59,4 +59,7 @@ def parse_file(path: str | Path) -> SchematicData:
 
         return SvgParser().parse(p)
     else:
-        raise ValueError(f"Unsupported file extension: {ext!r}. Supported: .dxf, .kicad_sch, .pdf, .svg")
+        raise ValueError(
+            f"Unsupported file extension: {ext!r}. "
+            "Supported: .dxf, .kicad_sch, .pdf, .svg"
+        )

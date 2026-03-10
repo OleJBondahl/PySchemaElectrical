@@ -11,7 +11,7 @@ FAMILY_TYPE_MAP: dict[str, str] = {
     "CB": "circuit_breaker",
     "OL": "overload_relay",
     "PB": "pushbutton",
-    "LT": "pilot_light",
+    "LT": "pilot_light",  # synonym: also mapped as "PL" below
     "FU": "fuse",
     "TR": "transformer",
     "TS": "terminal_strip",

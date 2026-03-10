@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 
+# Mutable by design: parsers build these incrementally (appending to lists, etc.)
+# Returned SchematicData should be treated as finalized output by consumers.
+
 
 @dataclass
 class Position:
