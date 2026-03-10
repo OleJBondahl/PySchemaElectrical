@@ -4,6 +4,15 @@ P&ID (Piping and Instrumentation Diagram) package for Schematika.
 Implements ISO 14617 process equipment and ISA 5.1 instrumentation symbols.
 """
 
+from schematika.pid.connections import (  # noqa: F401
+    PNEUMATIC_LINE,
+    PROCESS_PIPE,
+    SIGNAL_LINE,
+    PipeStyle,
+    create_flow_arrow,
+    manhattan_route,
+    render_pipe,
+)
 from schematika.pid.constants import (  # noqa: F401
     INSTRUMENT_BUBBLE_RADIUS,
     ISA_FIRST_LETTER,
@@ -13,6 +22,13 @@ from schematika.pid.constants import (  # noqa: F401
     PID_SIGNAL_LINE_WEIGHT,
     VALVE_SIZE,
 )
+from schematika.pid.diagram import (  # noqa: F401
+    PIDDiagram,
+    add_equipment,
+    merge_diagrams,
+    render_pid,
+)
+from schematika.pid.layout import Placement, resolve_placements  # noqa: F401
 from schematika.pid.symbols import (  # noqa: F401
     ball_valve,
     centrifugal_pump,
