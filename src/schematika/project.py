@@ -16,8 +16,10 @@ from typing import TYPE_CHECKING, Any
 from schematika.electrical.builder import BuildResult, CircuitBuilder
 
 if TYPE_CHECKING:
+    from schematika.catalog.registry import DeviceCatalog
     from schematika.electrical.field_devices import ConnectionRow
     from schematika.electrical.plc_resolver import PlcRack
+    from schematika.pid.builder import PIDBuildResult
 
 from schematika.electrical.descriptors import Descriptor, build_from_descriptors
 from schematika.electrical.system.connection_registry import (
@@ -57,7 +59,9 @@ class _CircuitDef:
 class _PageDef:
     """Internal page definition."""
 
-    page_type: str  # "schematic", "front", "terminal_report", "plc_report", "custom"
+    # page_type values: "schematic", "front", "terminal_report", "plc_report",
+    # "custom", "bom_report", "pid"
+    page_type: str
     title: str = ""
     circuit_key: str = ""
     circuit_keys: list[str] | None = None
@@ -65,6 +69,14 @@ class _PageDef:
     notice: str | None = None
     csv_path: str = ""
     typst_content: str = ""
+
+
+@dataclass
+class _PIDDef:
+    """Internal deferred P&ID diagram definition."""
+
+    key: str
+    builder_or_factory: Any  # PIDBuilder instance or callable(state) -> PIDBuildResult
 
 
 # ---------------------------------------------------------------------------
@@ -143,6 +155,9 @@ class Project:
         self._wire_label_export: tuple[str, dict[str, str] | None] | None = None
         self._taglist_export: str | None = None
         self._bom_excel_export: str | None = None
+        self._catalog: "DeviceCatalog | None" = None
+        self._pid_defs: list[_PIDDef] = []
+        self._pid_results: dict[str, "PIDBuildResult"] = {}
 
     # ------------------------------------------------------------------
     # Terminal registration
@@ -398,6 +413,68 @@ class Project:
         self._results[name] = result
         self._state = builder.state
         return builder
+
+    # ------------------------------------------------------------------
+    # Catalog and P&ID registration
+    # ------------------------------------------------------------------
+
+    def set_catalog(self, catalog: "DeviceCatalog") -> "Project":
+        """Store a device catalog for cross-referencing between P&ID and electrical.
+
+        Args:
+            catalog: A :class:`~schematika.catalog.registry.DeviceCatalog` instance.
+
+        Returns:
+            self (for method chaining).
+        """
+        self._catalog = catalog
+        return self
+
+    @property
+    def catalog(self) -> "DeviceCatalog | None":
+        """The registered device catalog, or None if not set."""
+        return self._catalog
+
+    def add_pid(self, key: str, builder_or_factory: Any) -> "Project":
+        """Register a P&ID diagram definition (deferred, like ``add_circuit()``).
+
+        The diagram is built lazily when ``build()`` is called.  State is
+        shared with electrical circuits so tag counters are consistent
+        across the whole drawing set.
+
+        Args:
+            key: Unique diagram identifier (used as key in results and for
+                SVG filenames).
+            builder_or_factory: Either:
+
+                - A :class:`~schematika.pid.builder.PIDBuilder` instance
+                  (already configured but not yet built), **or**
+                - A callable ``(state: GenerationState) -> PIDBuildResult``.
+
+        Returns:
+            self (for method chaining).
+        """
+        self._pid_defs.append(_PIDDef(key=key, builder_or_factory=builder_or_factory))
+        return self
+
+    def pid_page(self, title: str, diagram_key: str) -> "Project":
+        """Add a P&ID diagram page to the drawing set.
+
+        Works alongside :meth:`page` for electrical schematic pages.
+        The diagram must have been registered via :meth:`add_pid` using
+        the same *diagram_key*.
+
+        Args:
+            title: Page title displayed in the title block.
+            diagram_key: Key of the registered P&ID diagram to render.
+
+        Returns:
+            self (for method chaining).
+        """
+        self._pages.append(
+            _PageDef(page_type="pid", title=title, circuit_key=diagram_key)
+        )
+        return self
 
     # ------------------------------------------------------------------
     # PLC rack and external connections
@@ -681,8 +758,13 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(temp_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
+                export_terminal_list(
+                    csv_path, result.used_terminals, self._terminal_descriptions
+                )
                 csv_paths[key] = csv_path
+
+        # 2b. Render P&ID SVGs
+        pid_svg_paths = self._render_pid_svgs(temp_dir)
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
         self._export_wire_labels()
@@ -717,7 +799,13 @@ class Project:
         # Add pages
         for page_def in self._pages:
             self._add_page_to_compiler(
-                compiler, page_def, svg_paths, csv_paths, system_csv_path, plc_csv_path
+                compiler,
+                page_def,
+                svg_paths,
+                csv_paths,
+                system_csv_path,
+                plc_csv_path,
+                pid_svg_paths=pid_svg_paths,
             )
 
         # 5. Compile
@@ -754,8 +842,13 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(output_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
+                export_terminal_list(
+                    csv_path, result.used_terminals, self._terminal_descriptions
+                )
                 csv_paths[key] = csv_path
+
+        # Render P&ID SVGs
+        self._render_pid_svgs(output_dir)
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, output_dir)
         self._export_wire_labels()
@@ -789,7 +882,9 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(output_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
+                export_terminal_list(
+                    csv_path, result.used_terminals, self._terminal_descriptions
+                )
 
     def export_csvs(self, output_dir: str) -> None:
         """Export system terminal CSV with bridge info to *output_dir*.
@@ -848,8 +943,13 @@ class Project:
 
             if result.used_terminals:
                 csv_path = os.path.join(temp_dir, f"{key}_terminals.csv")
-                export_terminal_list(csv_path, result.used_terminals, self._terminal_descriptions)
+                export_terminal_list(
+                    csv_path, result.used_terminals, self._terminal_descriptions
+                )
                 csv_paths[key] = csv_path
+
+        # Render P&ID SVGs
+        pid_svg_paths = self._render_pid_svgs(temp_dir)
 
         self._render_multi_circuit_pages(svg_paths, csv_paths, temp_dir)
         self._export_wire_labels()
@@ -881,7 +981,13 @@ class Project:
 
         for page_def in self._pages:
             self._add_page_to_compiler(
-                compiler, page_def, svg_paths, csv_paths, system_csv_path, plc_csv_path
+                compiler,
+                page_def,
+                svg_paths,
+                csv_paths,
+                system_csv_path,
+                plc_csv_path,
+                pid_svg_paths=pid_svg_paths,
             )
 
         compiler.compile(output)
@@ -925,9 +1031,9 @@ class Project:
                                 f"circuit '{circuit_key}', but it hasn't "
                                 f"been built yet."
                             )
-                        resolved_template_reuse[tmpl][str(terminal)] = (
-                            self._results[circuit_key]
-                        )
+                        resolved_template_reuse[tmpl][str(terminal)] = self._results[
+                            circuit_key
+                        ]
 
             connections = generate_field_connections(
                 devices,
@@ -947,12 +1053,47 @@ class Project:
     # ------------------------------------------------------------------
 
     def _build_all_circuits(self):
-        """Build all registered circuits in order."""
+        """Build all registered circuits and P&ID diagrams in order."""
         self._results = {}
         for cdef in self._circuit_defs:
             result = self._build_one_circuit(cdef)
             self._results[cdef.key] = result
             self._state = result.state
+        self._build_all_pids()
+
+    def _build_all_pids(self) -> None:
+        """Build all registered P&ID diagram definitions in order."""
+        from schematika.pid.builder import PIDBuilder
+
+        self._pid_results = {}
+        for pdef in self._pid_defs:
+            builder_or_factory = pdef.builder_or_factory
+            if isinstance(builder_or_factory, PIDBuilder):
+                result = builder_or_factory.build(state=self._state)
+            elif callable(builder_or_factory):
+                result = builder_or_factory(self._state)
+            else:
+                raise TypeError(
+                    f"add_pid('{pdef.key}'): builder_or_factory must be a "
+                    f"PIDBuilder instance or a callable, got "
+                    f"{type(builder_or_factory).__name__}"
+                )
+            self._pid_results[pdef.key] = result
+            self._state = result.state
+
+    def _render_pid_svgs(self, output_dir: str) -> dict[str, str]:
+        """Render all built P&ID diagrams to SVG files.
+
+        Returns a mapping of diagram key -> SVG file path.
+        """
+        from schematika.pid.diagram import render_pid
+
+        pid_svg_paths: dict[str, str] = {}
+        for key, result in self._pid_results.items():
+            svg_path = os.path.join(output_dir, f"pid_{key}.svg")
+            render_pid(result.diagram, svg_path)
+            pid_svg_paths[key] = svg_path
+        return pid_svg_paths
 
     def _build_one_circuit(self, cdef: _CircuitDef) -> BuildResult:
         """Build a single circuit definition."""
@@ -1042,7 +1183,11 @@ class Project:
                         csv_path_m = os.path.join(
                             output_dir, f"{merged_key}_terminals.csv"
                         )
-                        export_terminal_list(csv_path_m, merged.used_terminals, self._terminal_descriptions)
+                        export_terminal_list(
+                            csv_path_m,
+                            merged.used_terminals,
+                            self._terminal_descriptions,
+                        )
                         csv_paths[merged_key] = csv_path_m
                     # Point page_def to merged key for compiler
                     page_def.circuit_key = merged_key
@@ -1109,7 +1254,9 @@ class Project:
 
         headers = ["Tags", "MPN", "Description", "Qty"]
         header_font = Font(bold=True)
-        header_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+        header_fill = PatternFill(
+            start_color="D9D9D9", end_color="D9D9D9", fill_type="solid"
+        )
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
             cell.font = header_font
@@ -1120,7 +1267,9 @@ class Project:
             ws.cell(row=row_idx, column=1, value=tags)
             ws.cell(row=row_idx, column=2, value=mpn)
             ws.cell(row=row_idx, column=3, value=desc)
-            ws.cell(row=row_idx, column=4, value=qty).alignment = Alignment(horizontal="right")
+            ws.cell(row=row_idx, column=4, value=qty).alignment = Alignment(
+                horizontal="right"
+            )
 
         ws.column_dimensions["A"].width = 30
         ws.column_dimensions["B"].width = 20
@@ -1287,12 +1436,17 @@ class Project:
         csv_paths: dict[str, str],
         system_csv_path: str,
         plc_csv_path: str = "",
+        pid_svg_paths: dict[str, str] | None = None,
     ):
         """Add a page definition to the TypstCompiler."""
-        if page_def.page_type == "schematic":
+        if page_def.page_type in ("schematic", "pid"):
             key = page_def.circuit_key
-            svg_path = svg_paths.get(key, "")
-            csv_path = csv_paths.get(key)
+            if page_def.page_type == "pid":
+                svg_path = (pid_svg_paths or {}).get(key, "")
+                csv_path = None
+            else:
+                svg_path = svg_paths.get(key, "")
+                csv_path = csv_paths.get(key)
             if svg_path:
                 compiler.add_schematic_page(page_def.title, svg_path, csv_path)
         elif page_def.page_type == "front":
