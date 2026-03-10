@@ -2,7 +2,7 @@
 
 import pytest
 
-from pyschemaelectrical.exceptions import (
+from schematika.electrical.exceptions import (
     CircuitValidationError,
     ComponentNotFoundError,
     PortNotFoundError,

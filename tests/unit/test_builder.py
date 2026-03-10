@@ -1,6 +1,6 @@
 import pytest
 
-from pyschemaelectrical.builder import (
+from schematika.electrical.builder import (
     BuildResult,
     CircuitBuilder,
     ComponentRef,
@@ -12,15 +12,15 @@ from pyschemaelectrical.builder import (
     _resolve_pin,
     _resolve_registry_pin,
 )
-from pyschemaelectrical.exceptions import (
+from schematika.electrical.exceptions import (
     ComponentNotFoundError,
     PortNotFoundError,
     TagReuseError,
     TerminalReuseError,
 )
-from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
-from pyschemaelectrical.system.system import Circuit
-from pyschemaelectrical.utils.autonumbering import create_autonumberer
+from schematika.electrical.model.core import Point, Port, Symbol, Vector
+from schematika.electrical.system.system import Circuit
+from schematika.electrical.utils.autonumbering import create_autonumberer
 
 # ---------------------------------------------------------------------------
 # Mock symbol factories
@@ -130,7 +130,7 @@ class TestBuilderUnit:
 
     def test_build_validates_connection_indices(self):
         """Invalid connection indices should raise ComponentNotFoundError."""
-        from pyschemaelectrical.exceptions import ComponentNotFoundError
+        from schematika.electrical.exceptions import ComponentNotFoundError
 
         state = create_autonumberer()
 
@@ -148,7 +148,7 @@ class TestResolvePinEdgeCases:
 
     def test_terminal_pin_resolution_1_pole(self):
         """1-pole terminal should resolve to ports '1' (in) and '2' (out)."""
-        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
+        from schematika.electrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=None, kind="terminal", poles=1),
@@ -160,7 +160,7 @@ class TestResolvePinEdgeCases:
 
     def test_terminal_pin_resolution_3_pole(self):
         """3-pole terminal poles should map to correct port IDs."""
-        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
+        from schematika.electrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=None, kind="terminal", poles=3),
@@ -179,7 +179,7 @@ class TestResolvePinEdgeCases:
 
     def test_symbol_with_2x_pins(self):
         """Symbol with poles*2 pins should use interleaved indexing."""
-        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
+        from schematika.electrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=lambda: None, kind="symbol", poles=2),
@@ -195,7 +195,7 @@ class TestResolvePinEdgeCases:
 
     def test_symbol_with_custom_named_ports(self):
         """Symbol with non-standard pin count should use direct indexing."""
-        from pyschemaelectrical.builder import ComponentSpec, _resolve_pin
+        from schematika.electrical.builder import ComponentSpec, _resolve_pin
 
         component_data = {
             "spec": ComponentSpec(func=lambda: None, kind="symbol", poles=1),
@@ -1448,7 +1448,7 @@ class TestBuildIntegration:
 
     def test_build_with_pin_prefixes(self):
         """Terminals with pin_prefixes should use them for pin generation."""
-        from pyschemaelectrical.terminal import Terminal
+        from schematika.electrical.terminal import Terminal
 
         state = create_autonumberer()
         builder = CircuitBuilder(state)
@@ -1467,7 +1467,7 @@ class TestBuildIntegration:
 
     def test_build_terminal_with_pin_prefixes_override(self):
         """add_terminal with explicit pin_prefixes should override Terminal's own."""
-        from pyschemaelectrical.terminal import Terminal
+        from schematika.electrical.terminal import Terminal
 
         state = create_autonumberer()
         builder = CircuitBuilder(state)
@@ -1759,7 +1759,7 @@ class TestFixedTag:
     """Tests for the fixed_tag() tag generator factory."""
 
     def test_fixed_tag_always_returns_same_tag(self):
-        from pyschemaelectrical import create_autonumberer, fixed_tag
+        from schematika.electrical import create_autonumberer, fixed_tag
 
         state = create_autonumberer()
         gen = fixed_tag("K1")
@@ -1770,7 +1770,7 @@ class TestFixedTag:
         assert s1 is state
 
     def test_fixed_tag_works_as_tag_generator_in_build(self):
-        from pyschemaelectrical import CircuitBuilder, create_autonumberer, fixed_tag
+        from schematika.electrical import CircuitBuilder, create_autonumberer, fixed_tag
 
         builder = CircuitBuilder(create_autonumberer())
         builder.set_layout(0, 0)
@@ -1782,7 +1782,7 @@ class TestFixedTag:
 
 
 def test_build_result_has_device_registry():
-    from pyschemaelectrical.internal_device import InternalDevice
+    from schematika.electrical.internal_device import InternalDevice
 
     state = create_autonumberer()
     c = Circuit()

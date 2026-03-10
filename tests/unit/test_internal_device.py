@@ -1,4 +1,4 @@
-from pyschemaelectrical import InternalDevice
+from schematika.electrical import InternalDevice
 
 
 def test_internal_device_creation():

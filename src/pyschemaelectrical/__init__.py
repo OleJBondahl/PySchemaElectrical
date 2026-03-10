@@ -1,102 +1,12 @@
-"""
-PySchemaElectrical Library.
-"""
+"""Backward compatibility shim — pyschemaelectrical is now schematika."""
 
-# system.system must be imported first — pre-loads layout.layout, breaking the
-# circular import chain that would otherwise form via builder.py → layout.layout.
-from .system.system import Circuit, add_symbol, merge_circuits, render_system  # noqa: E402
-from .layout.layout import auto_connect
-from .builder import BuildResult, CircuitBuilder, ComponentRef, PortRef
-from .descriptors import build_from_descriptors, comp, ref, term
-from .exceptions import (
-    CircuitValidationError,
-    ComponentNotFoundError,
-    PortNotFoundError,
-    TagReuseError,
-    # Backward-compatible aliases (deprecated)
-    TagReuseExhausted,
-    TerminalReuseError,
-    TerminalReuseExhausted,
-    WireLabelCountMismatch,
-    WireLabelMismatchError,
+import warnings
+
+warnings.warn(
+    "pyschemaelectrical is renamed to schematika. "
+    "Update imports to 'from schematika import ...' or 'from schematika.electrical import ...'",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
-# Internal device metadata
-from .internal_device import InternalDevice
-from .field_devices import (
-    CableData,
-    ConnectionRow,
-    ConnectorData,
-    DeviceCable,
-    DeviceEntry,
-    DeviceTemplate,
-    FieldDevice,
-    FixedPin,
-    PinDef,
-    PrefixedPin,
-    SequentialPin,
-    generate_field_connections,
-)
-from .model.constants import (
-    CB_2P_PINS,
-    CB_3P_PINS,
-    CIRCUIT_SPACING,
-    CIRCUIT_SPACING_NARROW,
-    CIRCUIT_SPACING_WIDE,
-    COIL_PINS,
-    CONTACTOR_3P_PINS,
-    NC_CONTACT_PINS,
-    NO_CONTACT_PINS,
-    PinPrefix,
-    SPACING_COMPACT,
-    SPACING_DEFAULT,
-    SPACING_NARROW,
-    SPACING_STANDARD,
-    StandardCircuitKeys,
-    StandardTags,
-    THERMAL_OVERLOAD_PINS,
-    WireLabels,
-)
-from .model.core import SymbolFactory
-from .model.state import GenerationState, create_initial_state
-from .plc_resolver import (
-    PlcDesignation,
-    PlcModuleType,
-    PlcRack,
-    extract_plc_connections_from_registry,
-    generate_plc_report_rows,
-    resolve_plc_references,
-)
-from .project import Project
-from .system.connection_registry import export_registry_to_csv, get_registry
-from .terminal import Terminal
-from .utils.autonumbering import (
-    create_autonumberer,
-    get_tag_number,
-    next_tag,
-    next_terminal_pins,
-)
-from .utils.export_utils import (
-    export_terminal_list,
-    finalize_terminal_csv,
-    merge_terminal_csv,
-)
-from .utils.terminal_bridges import (
-    BridgeRange,
-    ConnectionDef,
-    expand_range_to_pins,
-    generate_internal_connections_data,
-    get_connection_groups_for_terminal,
-    parse_terminal_pins_from_csv,
-    update_csv_with_internal_connections,
-)
-from .utils.utils import (
-    apply_start_indices,
-    fixed_tag,
-    get_terminal_counter,
-    merge_terminals,
-    natural_sort_key,
-    set_tag_counter,
-    set_terminal_counter,
-)
-from .wire import wire
+from schematika.electrical import *  # noqa: F401, F403

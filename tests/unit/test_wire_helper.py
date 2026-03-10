@@ -1,7 +1,7 @@
 """Tests for the wire() helper function."""
 
-from pyschemaelectrical.layout.wire_labels import format_wire_specification
-from pyschemaelectrical.wire import wire
+from schematika.electrical.layout.wire_labels import format_wire_specification
+from schematika.electrical.wire import wire
 
 
 def test_wire_returns_formatted_string():
@@ -35,6 +35,6 @@ def test_wire_size_only():
 
 def test_wire_importable_from_package():
     """wire should be importable from the top-level package."""
-    from pyschemaelectrical import wire as w
+    from schematika.electrical import wire as w
 
     assert w("RD", "2.5mm2") == "RD 2.5mm2"

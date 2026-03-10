@@ -6,13 +6,13 @@ from unittest.mock import patch
 
 import pytest
 
-from pyschemaelectrical.model.primitives import Line, Text
-from pyschemaelectrical.rendering.typst.compiler import (
+from schematika.electrical.model.primitives import Line, Text
+from schematika.rendering.typst.compiler import (
     TypstCompiler,
     TypstCompilerConfig,
     _Page,
 )
-from pyschemaelectrical.rendering.typst.frame_generator import (
+from schematika.rendering.typst.frame_generator import (
     A3_HEIGHT,
     A3_WIDTH,
     CONTENT_HEIGHT,
@@ -23,7 +23,7 @@ from pyschemaelectrical.rendering.typst.frame_generator import (
     INNER_FRAME_Y2,
     generate_frame,
 )
-from pyschemaelectrical.rendering.typst.markdown_converter import (
+from schematika.rendering.typst.markdown_converter import (
     _convert_lines,
     _flush_table,
     _notice_block,
@@ -935,7 +935,7 @@ class TestFrameGeneratorConstants:
 class TestGenerateFrame:
     def test_returns_circuit(self):
         """generate_frame should return a Circuit."""
-        from pyschemaelectrical.system.system import Circuit
+        from schematika.electrical.system.system import Circuit
 
         frame = generate_frame()
         assert isinstance(frame, Circuit)

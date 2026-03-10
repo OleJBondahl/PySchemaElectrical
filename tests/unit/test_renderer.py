@@ -1,6 +1,6 @@
-from pyschemaelectrical.model.core import Point, Style, Symbol
-from pyschemaelectrical.model.primitives import Circle, Group, Line, Path, Polygon, Text
-from pyschemaelectrical.utils.renderer import (
+from schematika.electrical.model.core import Point, Style, Symbol
+from schematika.electrical.model.primitives import Circle, Group, Line, Path, Polygon, Text
+from schematika.electrical.utils.renderer import (
     calculate_bounds,
     render_to_svg,
     save_svg,

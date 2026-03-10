@@ -2,10 +2,10 @@
 
 import csv
 
-from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
-from pyschemaelectrical.model.primitives import Line
-from pyschemaelectrical.symbols.terminals import TerminalBlock, TerminalSymbol
-from pyschemaelectrical.system.system_analysis import (
+from schematika.electrical.model.core import Point, Port, Symbol, Vector
+from schematika.electrical.model.primitives import Line
+from schematika.electrical.symbols.terminals import TerminalBlock, TerminalSymbol
+from schematika.electrical.system.system_analysis import (
     ConnectionNode,
     _create_terminal_row,
     _find_connected_symbol,
@@ -179,7 +179,7 @@ class TestBuildConnectivityGraph:
 
     def test_non_element_types_ignored(self):
         """Non-Line, non-Symbol Element subclasses are silently ignored."""
-        from pyschemaelectrical.model.primitives import Circle
+        from schematika.electrical.model.primitives import Circle
 
         circle = Circle(center=Point(0, 0), radius=5)
         graph = build_connectivity_graph([circle])

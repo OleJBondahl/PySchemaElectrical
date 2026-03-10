@@ -12,7 +12,7 @@ import dataclasses
 
 import pytest
 
-from pyschemaelectrical.plc_resolver import (
+from schematika.electrical.plc_resolver import (
     PlcDesignation,
     PlcModuleType,
     PlcRack,
@@ -20,7 +20,7 @@ from pyschemaelectrical.plc_resolver import (
     generate_plc_report_rows,
     resolve_plc_references,
 )
-from pyschemaelectrical.utils.utils import natural_sort_key
+from schematika.electrical.utils.utils import natural_sort_key
 
 # ---------------------------------------------------------------------------
 # Sample module types shared across tests
@@ -76,13 +76,13 @@ class TestNaturalSortKey:
 
     def test_exported_from_utils(self):
         """natural_sort_key is importable from utils.utils."""
-        from pyschemaelectrical.utils.utils import natural_sort_key as nsk
+        from schematika.electrical.utils.utils import natural_sort_key as nsk
 
         assert nsk("K10") == natural_sort_key("K10")
 
     def test_exported_from_package(self):
         """natural_sort_key is importable from the top-level package."""
-        from pyschemaelectrical import natural_sort_key as pkg_nsk
+        from schematika.electrical import natural_sort_key as pkg_nsk
 
         assert pkg_nsk("K10") == natural_sort_key("K10")
 
@@ -350,8 +350,8 @@ class TestResolvePlcReferences:
 class TestExtractPlcConnectionsFromRegistry:
     def _make_state_with_connections(self, connections):
         """Build a GenerationState whose registry contains the given connections."""
-        from pyschemaelectrical import create_initial_state
-        from pyschemaelectrical.system.connection_registry import (
+        from schematika.electrical import create_initial_state
+        from schematika.electrical.system.connection_registry import (
             Connection,
             TerminalRegistry,
             update_registry,
@@ -547,7 +547,7 @@ class TestGeneratePlcReportRows:
 
     def test_public_api_import(self):
         """generate_plc_report_rows is importable from top-level package."""
-        from pyschemaelectrical import generate_plc_report_rows as fn
+        from schematika.electrical import generate_plc_report_rows as fn
 
         assert callable(fn)
 
@@ -559,27 +559,27 @@ class TestGeneratePlcReportRows:
 
 class TestPublicApiImports:
     def test_plc_designation_importable_from_package(self):
-        from pyschemaelectrical import PlcDesignation as PD  # noqa: F401
+        from schematika.electrical import PlcDesignation as PD  # noqa: F401
 
         assert PD is PlcDesignation
 
     def test_plc_module_type_importable_from_package(self):
-        from pyschemaelectrical import PlcModuleType as PMT  # noqa: F401
+        from schematika.electrical import PlcModuleType as PMT  # noqa: F401
 
         assert PMT is PlcModuleType
 
     def test_plc_rack_importable_from_package(self):
-        from pyschemaelectrical import PlcRack as PR  # noqa: F401
+        from schematika.electrical import PlcRack as PR  # noqa: F401
 
         assert PR is PlcRack
 
     def test_resolve_plc_references_importable_from_package(self):
-        from pyschemaelectrical import resolve_plc_references as fn  # noqa: F401
+        from schematika.electrical import resolve_plc_references as fn  # noqa: F401
 
         assert fn is resolve_plc_references
 
     def test_extract_plc_connections_importable_from_package(self):
-        from pyschemaelectrical import (
+        from schematika.electrical import (
             extract_plc_connections_from_registry as fn,  # noqa: F401
         )
 
@@ -587,6 +587,6 @@ class TestPublicApiImports:
 
     def test_plc_mapper_removed(self):
         """PlcMapper is no longer exported from the package."""
-        import pyschemaelectrical
+        import schematika.electrical
 
-        assert not hasattr(pyschemaelectrical, "PlcMapper")
+        assert not hasattr(schematika.electrical, "PlcMapper")

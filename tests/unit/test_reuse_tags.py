@@ -2,11 +2,11 @@
 
 import pytest
 
-from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.exceptions import TagReuseError
-from pyschemaelectrical.symbols.coils import coil_symbol
-from pyschemaelectrical.symbols.contacts import normally_open_symbol
-from pyschemaelectrical.utils.autonumbering import create_autonumberer
+from schematika.electrical.builder import CircuitBuilder
+from schematika.electrical.exceptions import TagReuseError
+from schematika.electrical.symbols.coils import coil_symbol
+from schematika.electrical.symbols.contacts import normally_open_symbol
+from schematika.electrical.utils.autonumbering import create_autonumberer
 
 
 def test_reuse_tags_yields_tags_from_source():

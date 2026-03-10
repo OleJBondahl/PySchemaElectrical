@@ -2,12 +2,12 @@
 
 import pytest
 
-from pyschemaelectrical import (
+from schematika.electrical import (
     CircuitBuilder,
     Terminal,
     create_autonumberer,
 )
-from pyschemaelectrical.exceptions import TerminalReuseError
+from schematika.electrical.exceptions import TerminalReuseError
 
 TM_A = Terminal("XA", "Terminal A")
 TM_B = Terminal("XB", "Terminal B")

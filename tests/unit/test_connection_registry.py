@@ -13,7 +13,7 @@ Covers:
 import csv
 from dataclasses import replace
 
-from pyschemaelectrical.system.connection_registry import (
+from schematika.electrical.system.connection_registry import (
     Connection,
     TerminalRegistry,
     _build_all_pin_keys,
@@ -26,7 +26,7 @@ from pyschemaelectrical.system.connection_registry import (
     register_connection,
     update_registry,
 )
-from pyschemaelectrical.utils.autonumbering import create_autonumberer
+from schematika.electrical.utils.autonumbering import create_autonumberer
 
 # ---------------------------------------------------------------------------
 # TerminalRegistry dataclass

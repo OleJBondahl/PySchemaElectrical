@@ -2,7 +2,7 @@
 
 import pytest
 
-from pyschemaelectrical.terminal import Terminal
+from schematika.electrical.terminal import Terminal
 
 
 def test_terminal_str_returns_id():
@@ -86,7 +86,7 @@ def test_terminal_title():
 
 def test_terminal_importable_from_package():
     """Terminal should be importable from the top-level package."""
-    from pyschemaelectrical import Terminal as T
+    from schematika.electrical import Terminal as T
 
     t = T("X001")
     assert str(t) == "X001"

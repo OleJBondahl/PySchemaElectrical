@@ -13,7 +13,7 @@ import tempfile
 
 import pytest
 
-from pyschemaelectrical.utils.export_utils import (
+from schematika.electrical.utils.export_utils import (
     _merge_terminal_rows,
     _terminal_pin_sort_key,
     merge_terminal_csv,
@@ -429,7 +429,7 @@ class TestMergeTerminalCsv:
 
 
 def test_fill_empty_pin_slots_inserts_missing_sequential_pins():
-    from pyschemaelectrical.utils.export_utils import _fill_empty_pin_slots
+    from schematika.electrical.utils.export_utils import _fill_empty_pin_slots
 
     rows = [["A", "1", "X1", "1", "", "", ""], ["A", "1", "X1", "3", "", "", ""]]
     result = _fill_empty_pin_slots(rows)
@@ -438,7 +438,7 @@ def test_fill_empty_pin_slots_inserts_missing_sequential_pins():
 
 
 def test_fill_empty_pin_slots_inserts_missing_prefixed_pins():
-    from pyschemaelectrical.utils.export_utils import _fill_empty_pin_slots
+    from schematika.electrical.utils.export_utils import _fill_empty_pin_slots
 
     rows = [["A", "1", "X1", "L1:1", "", "", ""], ["A", "1", "X1", "L1:3", "", "", ""]]
     result = _fill_empty_pin_slots(rows)
@@ -449,7 +449,7 @@ def test_fill_empty_pin_slots_inserts_missing_prefixed_pins():
 def test_apply_prefix_bridges_sets_group_numbers(tmp_path):
     import csv
 
-    from pyschemaelectrical.utils.export_utils import _apply_prefix_bridges
+    from schematika.electrical.utils.export_utils import _apply_prefix_bridges
 
     csv_path = tmp_path / "test.csv"
     with open(csv_path, "w", newline="") as f:
@@ -480,7 +480,7 @@ def test_apply_prefix_bridges_sets_group_numbers(tmp_path):
 def test_finalize_terminal_csv_round_trip(tmp_path):
     import csv
 
-    from pyschemaelectrical.utils.export_utils import finalize_terminal_csv
+    from schematika.electrical.utils.export_utils import finalize_terminal_csv
 
     csv_path = tmp_path / "terminals.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:

@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyschemaelectrical"
+name = "schematika"
 version = "0.1.7"
 description = "A Python library for creating electrical schematic diagrams programmatically"
 requires-python = ">=3.12"
@@ -40,10 +40,10 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["pyschemaelectrical*"]
+include = ["schematika*", "pyschemaelectrical*"]
 
 [tool.setuptools.package-data]
-pyschemaelectrical = ["rendering/typst/templates/*.typ"]
+schematika = ["rendering/typst/templates/*.typ"]
 
 
 [tool.pytest.ini_options]
@@ -82,7 +82,7 @@ ignore = []
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "I001"]  # isort disabled: system.system must be first to avoid circular imports
 # Inline Typst code in string literals has long lines
-"src/pyschemaelectrical/rendering/typst/compiler.py" = ["E501"]
+"src/schematika/rendering/typst/compiler.py" = ["E501"]
 "tests/**/*.py" = ["E501"]
 
 

@@ -2,7 +2,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from pyschemaelectrical.model.core import Point, Port, Style, Symbol, Vector
+from schematika.electrical.model.core import Point, Port, Style, Symbol, Vector
 
 
 class TestModelCore:
@@ -72,36 +72,36 @@ class TestStandardPins:
     """Tests for flat pin constant definitions."""
 
     def test_coil_pins(self):
-        from pyschemaelectrical.model.constants import COIL_PINS
+        from schematika.electrical.model.constants import COIL_PINS
 
         assert COIL_PINS == ("A1", "A2")
 
     def test_no_contact_pins(self):
-        from pyschemaelectrical.model.constants import NO_CONTACT_PINS
+        from schematika.electrical.model.constants import NO_CONTACT_PINS
 
         assert NO_CONTACT_PINS == ("13", "14")
 
     def test_nc_contact_pins(self):
-        from pyschemaelectrical.model.constants import NC_CONTACT_PINS
+        from schematika.electrical.model.constants import NC_CONTACT_PINS
 
         assert NC_CONTACT_PINS == ("11", "12")
 
     def test_cb_3p_pins(self):
-        from pyschemaelectrical.model.constants import CB_3P_PINS
+        from schematika.electrical.model.constants import CB_3P_PINS
 
         assert CB_3P_PINS == ("1", "2", "3", "4", "5", "6")
 
     def test_cb_2p_pins(self):
-        from pyschemaelectrical.model.constants import CB_2P_PINS
+        from schematika.electrical.model.constants import CB_2P_PINS
 
         assert CB_2P_PINS == ("1", "2", "3", "4")
 
     def test_contactor_3p_pins(self):
-        from pyschemaelectrical.model.constants import CONTACTOR_3P_PINS
+        from schematika.electrical.model.constants import CONTACTOR_3P_PINS
 
         assert CONTACTOR_3P_PINS == ("L1", "T1", "L2", "T2", "L3", "T3")
 
     def test_thermal_overload_pins(self):
-        from pyschemaelectrical.model.constants import THERMAL_OVERLOAD_PINS
+        from schematika.electrical.model.constants import THERMAL_OVERLOAD_PINS
 
         assert THERMAL_OVERLOAD_PINS == ("", "T1", "", "T2", "", "T3")

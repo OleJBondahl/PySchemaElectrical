@@ -1,7 +1,7 @@
 import pytest
 
-from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
-from pyschemaelectrical.model.parts import (
+from schematika.electrical.model.core import Point, Port, Symbol, Vector
+from schematika.electrical.model.parts import (
     box,
     create_pin_labels,
     standard_text,
@@ -9,7 +9,7 @@ from pyschemaelectrical.model.parts import (
     three_pole_factory,
     two_pole_factory,
 )
-from pyschemaelectrical.model.primitives import Circle, Line, Polygon
+from schematika.electrical.model.primitives import Circle, Line, Polygon
 
 
 class TestPartsUnit:

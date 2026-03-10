@@ -3,7 +3,7 @@
 import os
 import tempfile
 
-from pyschemaelectrical.rendering.typst.markdown_converter import (
+from schematika.rendering.typst.markdown_converter import (
     markdown_to_typst,
 )
 

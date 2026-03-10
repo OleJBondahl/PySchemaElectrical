@@ -4,15 +4,15 @@ import csv
 import os
 import tempfile
 
-from pyschemaelectrical.cable_export import generate_cable_csv
-from pyschemaelectrical.field_devices import (
+from schematika.electrical.cable_export import generate_cable_csv
+from schematika.electrical.field_devices import (
     CableData,
     DeviceCable,
     DeviceTemplate,
     FieldDevice,
     PinDef,
 )
-from pyschemaelectrical.terminal import Terminal
+from schematika.electrical.terminal import Terminal
 
 
 class TestGenerateCableCsv:

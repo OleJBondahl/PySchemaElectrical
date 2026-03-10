@@ -1,39 +1,39 @@
 import pytest
 
-from pyschemaelectrical.model.core import Symbol
-from pyschemaelectrical.symbols.actuators import turn_switch_symbol
-from pyschemaelectrical.symbols.assemblies import (
+from schematika.electrical.model.core import Symbol
+from schematika.electrical.symbols.actuators import turn_switch_symbol
+from schematika.electrical.symbols.assemblies import (
     contactor_symbol,
     turn_switch_assembly_symbol,
 )
-from pyschemaelectrical.symbols.blocks import dynamic_block_symbol, terminal_box_symbol
-from pyschemaelectrical.symbols.breakers import (
+from schematika.electrical.symbols.blocks import dynamic_block_symbol, terminal_box_symbol
+from schematika.electrical.symbols.breakers import (
     circuit_breaker_symbol,
     three_pole_circuit_breaker_symbol,
     two_pole_circuit_breaker_symbol,
 )
-from pyschemaelectrical.symbols.coils import coil_symbol
-from pyschemaelectrical.symbols.contacts import (
+from schematika.electrical.symbols.coils import coil_symbol
+from schematika.electrical.symbols.contacts import (
     multi_pole_spdt_symbol,
     normally_closed_symbol,
     normally_open_symbol,
     spdt_contact_symbol,
     three_pole_normally_open_symbol,
 )
-from pyschemaelectrical.symbols.motors import motor_symbol, three_pole_motor_symbol
-from pyschemaelectrical.symbols.protection import (
+from schematika.electrical.symbols.motors import motor_symbol, three_pole_motor_symbol
+from schematika.electrical.symbols.protection import (
     fuse_symbol,
     three_pole_thermal_overload_symbol,
 )
 
 # Imports from symbol library - assuming they are exposed correctly or via submodule
-from pyschemaelectrical.symbols.terminals import (
+from schematika.electrical.symbols.terminals import (
     TerminalBlock,
     multi_pole_terminal_symbol,
     terminal_symbol,
     three_pole_terminal_symbol,
 )
-from pyschemaelectrical.symbols.transducers import (
+from schematika.electrical.symbols.transducers import (
     current_transducer_assembly_symbol,
     current_transducer_symbol,
 )

@@ -1,6 +1,6 @@
-from pyschemaelectrical.model.constants import REF_ARROW_LENGTH
-from pyschemaelectrical.model.core import Symbol
-from pyschemaelectrical.symbols.references import ref_symbol
+from schematika.electrical.model.constants import REF_ARROW_LENGTH
+from schematika.electrical.model.core import Symbol
+from schematika.electrical.symbols.references import ref_symbol
 
 
 class TestReferenceSymbols:

@@ -1,7 +1,7 @@
 """Unit tests for GenerationState."""
 
-from pyschemaelectrical.model.state import GenerationState, create_initial_state
-from pyschemaelectrical.system.connection_registry import TerminalRegistry
+from schematika.electrical.model.state import GenerationState, create_initial_state
+from schematika.electrical.system.connection_registry import TerminalRegistry
 
 
 def test_create_initial_state():

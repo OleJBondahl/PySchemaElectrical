@@ -1,4 +1,4 @@
-from pyschemaelectrical.layout.wire_labels import (
+from schematika.electrical.layout.wire_labels import (
     add_wire_labels_to_circuit,
     calculate_wire_label_position,
     create_labeled_wire,
@@ -6,9 +6,9 @@ from pyschemaelectrical.layout.wire_labels import (
     find_vertical_wires,
     format_wire_specification,
 )
-from pyschemaelectrical.model.core import Point
-from pyschemaelectrical.model.primitives import Line, Text
-from pyschemaelectrical.system.system import Circuit
+from schematika.electrical.model.core import Point
+from schematika.electrical.model.primitives import Line, Text
+from schematika.electrical.system.system import Circuit
 
 
 class TestWireLabels:
@@ -102,8 +102,8 @@ class TestWireLabels:
 
     def test_add_wire_labels_returns_new_circuit(self):
         """add_wire_labels_to_circuit should return new Circuit, not mutate."""
-        from pyschemaelectrical.model.parts import standard_style
-        from pyschemaelectrical.system.system import Circuit
+        from schematika.electrical.model.parts import standard_style
+        from schematika.electrical.system.system import Circuit
 
         # Create circuit with vertical wire
         wire = Line(Point(0, 0), Point(0, 20), standard_style())

@@ -4,7 +4,7 @@ import csv
 import tempfile
 from pathlib import Path
 
-from pyschemaelectrical.utils.terminal_bridges import (
+from schematika.electrical.utils.terminal_bridges import (
     update_csv_with_internal_connections,
 )
 

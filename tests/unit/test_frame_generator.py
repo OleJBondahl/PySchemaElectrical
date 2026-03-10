@@ -1,6 +1,6 @@
 """Tests for the A3 frame generator."""
 
-from pyschemaelectrical.rendering.typst.frame_generator import (
+from schematika.rendering.typst.frame_generator import (
     A3_HEIGHT,
     A3_WIDTH,
     CONTENT_HEIGHT,
@@ -42,7 +42,7 @@ def test_generate_frame_returns_circuit():
 
 def test_generate_frame_has_grid_labels():
     """Frame should contain column (1-8) and row (A-F) labels."""
-    from pyschemaelectrical.model.primitives import Text
+    from schematika.electrical.model.primitives import Text
 
     circuit = generate_frame()
     texts = [e for e in circuit.elements if isinstance(e, Text)]
@@ -57,7 +57,7 @@ def test_generate_frame_has_grid_labels():
 
 def test_generate_frame_custom_font():
     """generate_frame should accept a custom font_family parameter."""
-    from pyschemaelectrical.model.primitives import Text
+    from schematika.electrical.model.primitives import Text
 
     circuit = generate_frame(font_family="Arial")
     texts = [e for e in circuit.elements if isinstance(e, Text)]
@@ -67,7 +67,7 @@ def test_generate_frame_custom_font():
 
 def test_generate_frame_has_lines():
     """Frame should contain border lines."""
-    from pyschemaelectrical.model.primitives import Line
+    from schematika.electrical.model.primitives import Line
 
     circuit = generate_frame()
     lines = [e for e in circuit.elements if isinstance(e, Line)]

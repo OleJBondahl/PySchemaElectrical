@@ -7,7 +7,7 @@ function with all three pin numbering modes: sequential, prefixed, and fixed.
 
 import pytest
 
-from pyschemaelectrical.field_devices import (
+from schematika.electrical.field_devices import (
     DeviceTemplate,
     FieldDevice,
     FixedPin,
@@ -16,7 +16,7 @@ from pyschemaelectrical.field_devices import (
     SequentialPin,
     generate_field_connections,
 )
-from pyschemaelectrical.terminal import Terminal
+from schematika.electrical.terminal import Terminal
 
 
 def _fd(tag, template, terminal=None):

@@ -1,4 +1,4 @@
-from pyschemaelectrical.utils.autonumbering import (
+from schematika.electrical.utils.autonumbering import (
     create_autonumberer,
     get_tag_number,
     next_tag,

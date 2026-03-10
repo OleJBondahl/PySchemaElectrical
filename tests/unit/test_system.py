@@ -1,8 +1,8 @@
 """Unit tests for system module."""
 
-from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
-from pyschemaelectrical.model.primitives import Line
-from pyschemaelectrical.system.system import (
+from schematika.electrical.model.core import Point, Port, Symbol, Vector
+from schematika.electrical.model.primitives import Line
+from schematika.electrical.system.system import (
     Circuit,
     add_symbol,
     auto_connect_circuit,

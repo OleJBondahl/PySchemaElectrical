@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pyschemaelectrical import Project, Terminal
-from pyschemaelectrical.builder import BuildResult
-from pyschemaelectrical.system.system import Circuit
+from schematika.electrical import Project, Terminal
+from schematika.electrical.builder import BuildResult
+from schematika.electrical.system.system import Circuit
 
 
 def test_project_creation():
@@ -83,8 +83,8 @@ def test_front_page_registration():
 
 def test_circuit_descriptor_registration():
     """circuit() with descriptors should register correctly."""
-    from pyschemaelectrical import comp, ref, term
-    from pyschemaelectrical.symbols.coils import coil_symbol
+    from schematika.electrical import comp, ref, term
+    from schematika.electrical.symbols.coils import coil_symbol
 
     p = Project()
     p.circuit(
@@ -155,8 +155,8 @@ def test_build_multiple_circuits():
 
 def test_build_with_descriptors():
     """build_svgs should work with descriptor-based circuits."""
-    from pyschemaelectrical import comp, term
-    from pyschemaelectrical.symbols.coils import coil_symbol
+    from schematika.electrical import comp, term
+    from schematika.electrical.symbols.coils import coil_symbol
 
     with tempfile.TemporaryDirectory() as tmpdir:
         p = Project()
@@ -180,9 +180,9 @@ def test_build_with_descriptors():
 
 def test_reuse_tags_between_circuits():
     """reuse_tags should resolve circuit dependencies correctly."""
-    from pyschemaelectrical import comp, term
-    from pyschemaelectrical.symbols.coils import coil_symbol
-    from pyschemaelectrical.symbols.contacts import normally_open_symbol
+    from schematika.electrical import comp, term
+    from schematika.electrical.symbols.coils import coil_symbol
+    from schematika.electrical.symbols.contacts import normally_open_symbol
 
     with tempfile.TemporaryDirectory() as tmpdir:
         p = Project()
@@ -339,8 +339,8 @@ class TestCircuitRegistration:
 
     def test_circuit_with_wire_labels(self):
         """Circuit registration should store wire_labels correctly."""
-        from pyschemaelectrical import comp, term
-        from pyschemaelectrical.symbols.coils import coil_symbol
+        from schematika.electrical import comp, term
+        from schematika.electrical.symbols.coils import coil_symbol
 
         p = Project()
         p.circuit(
@@ -357,8 +357,8 @@ class TestCircuitRegistration:
 
     def test_circuit_with_reuse_tags(self):
         """Circuit registration should store reuse_tags correctly."""
-        from pyschemaelectrical import comp, term
-        from pyschemaelectrical.symbols.contacts import normally_open_symbol
+        from schematika.electrical import comp, term
+        from schematika.electrical.symbols.contacts import normally_open_symbol
 
         p = Project()
         p.circuit(
@@ -375,8 +375,8 @@ class TestCircuitRegistration:
 
     def test_circuit_descriptor_with_start_indices(self):
         """circuit() should accept start_indices and terminal_start_indices."""
-        from pyschemaelectrical import comp, term
-        from pyschemaelectrical.symbols.coils import coil_symbol
+        from schematika.electrical import comp, term
+        from schematika.electrical.symbols.coils import coil_symbol
 
         p = Project()
         p.circuit(
@@ -395,8 +395,8 @@ class TestCircuitRegistration:
 
     def test_multiple_circuits_registered_in_order(self):
         """Multiple circuits should be registered in order."""
-        from pyschemaelectrical import comp, term
-        from pyschemaelectrical.symbols.coils import coil_symbol
+        from schematika.electrical import comp, term
+        from schematika.electrical.symbols.coils import coil_symbol
 
         p = Project()
         for key in ("estop", "coils", "contacts"):
@@ -467,8 +467,8 @@ class TestBuildOneCircuit:
 
     def test_reuse_tags_missing_source_raises(self):
         """Referencing a non-existent circuit via reuse_tags should raise ValueError."""
-        from pyschemaelectrical import comp, term
-        from pyschemaelectrical.symbols.coils import coil_symbol
+        from schematika.electrical import comp, term
+        from schematika.electrical.symbols.coils import coil_symbol
 
         p = Project()
         p.terminals(Terminal("X3", "24V"), Terminal("X4", "GND"))
@@ -489,7 +489,7 @@ class TestBuildOneCircuit:
         """An unknown factory name should raise ValueError."""
         p = Project()
         # Manually inject an invalid factory name
-        from pyschemaelectrical.project import _CircuitDef
+        from schematika.project import _CircuitDef
 
         p._circuit_defs.append(
             _CircuitDef(key="bad", factory="nonexistent_factory", params={})
@@ -500,7 +500,7 @@ class TestBuildOneCircuit:
     def test_descriptor_circuit_without_components_raises(self):
         """Descriptor circuit with no components should raise ValueError."""
         p = Project()
-        from pyschemaelectrical.project import _CircuitDef
+        from schematika.project import _CircuitDef
 
         p._circuit_defs.append(
             _CircuitDef(key="bad", factory="descriptors", components=None)
@@ -511,7 +511,7 @@ class TestBuildOneCircuit:
     def test_custom_circuit_without_builder_fn_raises(self):
         """Custom circuit with no builder_fn should raise ValueError."""
         p = Project()
-        from pyschemaelectrical.project import _CircuitDef
+        from schematika.project import _CircuitDef
 
         p._circuit_defs.append(
             _CircuitDef(key="bad", factory="custom", builder_fn=None)
@@ -525,7 +525,7 @@ class TestBuildCustomCircuit:
 
     def test_custom_circuit_with_build_result(self):
         """Custom builder returning BuildResult should work."""
-        from pyschemaelectrical.utils.autonumbering import create_autonumberer
+        from schematika.electrical.utils.autonumbering import create_autonumberer
 
         create_autonumberer()
 
@@ -661,8 +661,8 @@ class TestBuildSvgs:
 
     def test_build_svgs_with_wire_labels(self):
         """build_svgs should work with wire_labels on std circuits."""
-        from pyschemaelectrical import comp, term
-        from pyschemaelectrical.symbols.coils import coil_symbol
+        from schematika.electrical import comp, term
+        from schematika.electrical.symbols.coils import coil_symbol
 
         with tempfile.TemporaryDirectory() as tmpdir:
             p = Project()
@@ -704,7 +704,7 @@ class TestAddPageToCompiler:
 
     def test_schematic_page(self):
         """Schematic page should call add_schematic_page on the compiler."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -722,7 +722,7 @@ class TestAddPageToCompiler:
 
     def test_schematic_page_without_csv(self):
         """Schematic page without CSV should pass None."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -740,7 +740,7 @@ class TestAddPageToCompiler:
 
     def test_schematic_page_missing_key(self):
         """Schematic page with missing circuit key should not call add_schematic_page."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -754,7 +754,7 @@ class TestAddPageToCompiler:
 
     def test_front_page(self):
         """Front page should call add_front_page on the compiler."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -770,7 +770,7 @@ class TestAddPageToCompiler:
 
     def test_terminal_report_page(self):
         """Terminal report should call add_terminal_report with descriptions, excluding references."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -789,7 +789,7 @@ class TestAddPageToCompiler:
 
     def test_plc_report_page_with_csv(self):
         """PLC report with a CSV path should call add_plc_report."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -801,7 +801,7 @@ class TestAddPageToCompiler:
 
     def test_plc_report_page_without_csv(self):
         """PLC report without CSV path should not call add_plc_report."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -813,7 +813,7 @@ class TestAddPageToCompiler:
 
     def test_custom_page(self):
         """Custom page should call add_custom_page on the compiler."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = self._make_project_with_results()
         compiler = MagicMock()
@@ -841,7 +841,7 @@ class TestBuildMethod:
         with patch.dict(
             "sys.modules",
             {
-                "pyschemaelectrical.rendering.typst.compiler": mock_typst_module,
+                "schematika.rendering.typst.compiler": mock_typst_module,
             },
         ):
             project.build(output_pdf, temp_dir=temp_dir, keep_temp=keep_temp)
@@ -984,8 +984,8 @@ class TestBuildAllCircuits:
 
     def test_state_threading_between_circuits(self):
         """State should be threaded from one circuit to the next."""
-        from pyschemaelectrical import comp, term
-        from pyschemaelectrical.symbols.coils import coil_symbol
+        from schematika.electrical import comp, term
+        from schematika.electrical.symbols.coils import coil_symbol
 
         with tempfile.TemporaryDirectory() as tmpdir:
             p = Project()
@@ -1052,7 +1052,7 @@ class TestEdgeCases:
 
     def test_circuit_def_dataclass_defaults(self):
         """_CircuitDef should have correct defaults."""
-        from pyschemaelectrical.project import _CircuitDef
+        from schematika.project import _CircuitDef
 
         cdef = _CircuitDef(key="test", factory="coil")
         assert cdef.count == 1
@@ -1066,7 +1066,7 @@ class TestEdgeCases:
 
     def test_page_def_dataclass_defaults(self):
         """_PageDef should have correct defaults."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         pdef = _PageDef(page_type="schematic")
         assert pdef.title == ""
@@ -1104,7 +1104,7 @@ class TestPlcRack:
 
     def _make_di_module(self):
         """Return a simple DI module for testing."""
-        from pyschemaelectrical.plc_resolver import PlcModuleType
+        from schematika.electrical.plc_resolver import PlcModuleType
 
         return PlcModuleType(
             mpn="750-1405",
@@ -1202,7 +1202,7 @@ class TestGeneratePlcCsv:
 
     def _make_rack(self):
         """Return a minimal DO rack for testing."""
-        from pyschemaelectrical.plc_resolver import PlcModuleType
+        from schematika.electrical.plc_resolver import PlcModuleType
 
         do_module = PlcModuleType(
             mpn="750-1504",
@@ -1266,7 +1266,7 @@ class TestGeneratePlcCsv:
 
             with patch.dict(
                 "sys.modules",
-                {"pyschemaelectrical.rendering.typst.compiler": mock_typst_module},
+                {"schematika.rendering.typst.compiler": mock_typst_module},
             ):
                 p.build(output_pdf, temp_dir=temp_dir, keep_temp=True)
 
@@ -1291,7 +1291,7 @@ class TestGeneratePlcCsv:
 
             with patch.dict(
                 "sys.modules",
-                {"pyschemaelectrical.rendering.typst.compiler": mock_typst_module},
+                {"schematika.rendering.typst.compiler": mock_typst_module},
             ):
                 p.build(output_pdf, temp_dir=temp_dir, keep_temp=True)
 
@@ -1323,7 +1323,7 @@ class TestGeneratePlcCsv:
 
             with patch.dict(
                 "sys.modules",
-                {"pyschemaelectrical.rendering.typst.compiler": mock_typst_module},
+                {"schematika.rendering.typst.compiler": mock_typst_module},
             ):
                 p.build(output_pdf, temp_dir=temp_dir, keep_temp=True)
 
@@ -1331,7 +1331,7 @@ class TestGeneratePlcCsv:
 
     def test_add_page_to_compiler_plc_report_uses_plc_csv_path(self):
         """_add_page_to_compiler should use plc_csv_path when page has no csv_path."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = Project()
         compiler = MagicMock()
@@ -1345,7 +1345,7 @@ class TestGeneratePlcCsv:
 
     def test_add_page_to_compiler_plc_report_page_csv_overrides_auto(self):
         """_add_page_to_compiler should prefer page's csv_path over plc_csv_path."""
-        from pyschemaelectrical.project import _PageDef
+        from schematika.project import _PageDef
 
         p = Project()
         compiler = MagicMock()
@@ -1376,7 +1376,7 @@ class TestReservePins:
         assert end - start == 1  # 2 pins reserved
 
     def test_advances_terminal_counter(self):
-        from pyschemaelectrical.utils.autonumbering import get_terminal_counter
+        from schematika.electrical.utils.autonumbering import get_terminal_counter
 
         t = Terminal("X13", "Test IO")
         p = Project()
@@ -1384,7 +1384,7 @@ class TestReservePins:
 
         # Build a dummy circuit that uses X13 pin 1
         def use_one_pin(state):
-            from pyschemaelectrical.utils.autonumbering import set_terminal_counter
+            from schematika.electrical.utils.autonumbering import set_terminal_counter
 
             state = set_terminal_counter(state, t, 1)
             return BuildResult(state=state, circuit=Circuit(), used_terminals=[])
@@ -1505,7 +1505,7 @@ class TestExportTaglist:
 class TestFieldDevices:
     def test_deferred_resolution(self):
         """field_devices() stores config; build_circuits() resolves it."""
-        from pyschemaelectrical.field_devices import (
+        from schematika.electrical.field_devices import (
             DeviceTemplate,
             FieldDevice,
             PinDef,

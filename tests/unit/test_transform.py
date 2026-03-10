@@ -1,9 +1,9 @@
 import math
 import warnings
 
-from pyschemaelectrical.model.core import Point, Port, Style, Symbol, Vector
-from pyschemaelectrical.model.primitives import Circle, Group, Line, Path, Polygon, Text
-from pyschemaelectrical.utils.transform import (
+from schematika.electrical.model.core import Point, Port, Style, Symbol, Vector
+from schematika.electrical.model.primitives import Circle, Group, Line, Path, Polygon, Text
+from schematika.electrical.utils.transform import (
     _rotate_path_d,
     _translate_path_d,
     rotate,
@@ -667,7 +667,7 @@ class TestTransformUnit:
     def test_rotate_symbol_label_text_forced_position(self):
         """When a Symbol's label matches a Text element's content,
         the text is forced to a fixed position during rotation."""
-        from pyschemaelectrical.model.constants import TEXT_OFFSET_X
+        from schematika.electrical.model.constants import TEXT_OFFSET_X
 
         label_text = Text(content="K1", position=Point(5, 0), anchor="start")
         line = Line(Point(0, 0), Point(0, 10))

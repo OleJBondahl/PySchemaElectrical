@@ -1,4 +1,4 @@
-from pyschemaelectrical.layout.layout import (
+from schematika.electrical.layout.layout import (
     _find_matching_ports,
     _get_wire_label_spec,
     auto_connect,
@@ -8,9 +8,9 @@ from pyschemaelectrical.layout.layout import (
     layout_horizontal,
     layout_vertical_chain,
 )
-from pyschemaelectrical.model.core import Point, Port, Symbol, Vector
-from pyschemaelectrical.model.primitives import Line, Text
-from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
+from schematika.electrical.model.core import Point, Port, Symbol, Vector
+from schematika.electrical.model.primitives import Line, Text
+from schematika.electrical.system.system import Circuit, add_symbol, auto_connect_circuit
 
 # ---------------------------------------------------------------------------
 # Helper factories

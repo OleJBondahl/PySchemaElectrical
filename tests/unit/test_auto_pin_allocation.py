@@ -1,13 +1,13 @@
 """Tests for auto terminal pin allocation (Task 8A)."""
 
-from pyschemaelectrical import Terminal
-from pyschemaelectrical.builder import CircuitBuilder
-from pyschemaelectrical.symbols.coils import coil_symbol
-from pyschemaelectrical.utils.autonumbering import (
+from schematika.electrical import Terminal
+from schematika.electrical.builder import CircuitBuilder
+from schematika.electrical.symbols.coils import coil_symbol
+from schematika.electrical.utils.autonumbering import (
     create_autonumberer,
     next_terminal_pins,
 )
-from pyschemaelectrical.utils.utils import set_terminal_counter
+from schematika.electrical.utils.utils import set_terminal_counter
 
 
 def test_auto_pin_sequential():
