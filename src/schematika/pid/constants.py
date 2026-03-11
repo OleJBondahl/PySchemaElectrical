@@ -1,8 +1,97 @@
 """
-P&ID-specific constants following ISO 14617 and ISA 5.1 standards.
+P&ID constants — ISO 14617, ISA 5.1, and ISO 3098 compliance.
 
-All dimensional constants are derived from the core grid system to stay
-consistent with electrical schematic proportions.
+All dimensional constants are derived from :data:`GRID_SIZE` (5 mm) so that
+proportions remain consistent with the electrical schematic module.
+
+Standards Reference
+-------------------
+
+**ISO 14617 — Graphical symbols for diagrams**
+
+*   *Line weight hierarchy* (Part 1, Clause 4):
+    - Process pipe lines are the heaviest weight (``PID_LINE_WEIGHT`` 0.7 mm).
+    - Equipment body outlines use a medium weight (``PID_EQUIPMENT_STROKE``
+      0.5 mm).
+    - Signal/instrument lines use the thinnest weight
+      (``PID_SIGNAL_LINE_WEIGHT`` 0.25 mm).
+    - Only these three weights should appear on a P&ID.  The validator
+      (:func:`~schematika.pid.validation.validate_pid`) warns on any line
+      that uses a non-standard weight.
+
+*   *Valve symbols* (Part 8):
+    - Gate valve: bowtie (two opposing triangles, tips touching).
+    - Globe valve: bowtie with a small circle at the center.
+    - Check valve: single triangle in flow direction with a perpendicular
+      seat bar at the downstream tip.
+    - Ball valve: bowtie with a filled circle at the center.
+    - Three-way valve: bowtie with a perpendicular branch port; small circle
+      at center.
+    - Control valve: globe valve body plus an actuator stem and diaphragm
+      triangle above.
+
+*   *Process equipment* (Part 6):
+    - Centrifugal pump: circle with an internal filled triangle pointing in
+      the flow direction.  Horizontal flow-through (inlet left, outlet
+      right).
+    - Positive displacement pump: same circle + triangle convention.
+    - Tank/vessel: rectangle; open-top tanks use a dashed top edge.
+    - Heat exchanger: circle with crossed internal tubes.
+
+*   *Piping elements*:
+    - Pipe segment: straight line between two ports.
+    - Pipe tee: horizontal line with a perpendicular branch.
+    - Pipe reducer: trapezoid tapering from inlet to outlet.
+    - Pipe cap: stub ending with a perpendicular bar.
+
+*   *Spacing & layout* (Part 1, Clause 5):
+    - Minimum gap between adjacent equipment symbols:
+      ``PID_MIN_EQUIPMENT_GAP`` (30 mm).
+    - Minimum vertical spacing between parallel pipe legs:
+      ``PID_MIN_LEG_SPACING`` (40 mm).
+
+**ISA 5.1 — Instrumentation Symbols and Identification**
+
+*   *Instrument bubble* (Clause 5.2):
+    - A circle of diameter 12 mm (``INSTRUMENT_BUBBLE_RADIUS`` = 6 mm).
+    - Interior divided by a horizontal line when a tag number is shown:
+      ISA letter codes in the upper half, tag number in the lower half.
+    - Location variants: *field* (plain circle), *panel* (solid dividing
+      line), *DCS/shared display* (dashed dividing line).
+
+*   *ISA letter codes* (Clause 4):
+    - First letter identifies the measured variable (e.g. T = Temperature,
+      P = Pressure, F = Flow).  See :data:`ISA_FIRST_LETTER`.
+    - Succeeding letters identify the function (e.g. T = Transmitter,
+      I = Indicator, C = Controller).  See :data:`ISA_SUCCEEDING_LETTERS`.
+    - The ``letters`` argument on :func:`instrument_bubble` must start with
+      a valid first letter and may contain valid succeeding letters.
+      :func:`validate_isa_letters` enforces this.
+
+*   *Signal line dash pattern* (Clause 5.4):
+    - Electrical signal: evenly dashed (``PID_SIGNAL_DASH``).
+    - Pneumatic signal: dash-dot (``PID_PNEUMATIC_DASH``).
+
+**ISO 3098 — Technical product documentation — Lettering**
+
+*   *Minimum text height* (Clause 4.1):
+    - 2.5 mm for A3/A4 drawing sizes.  All text constants
+      (``PID_TEXT_SIZE_BUBBLE``, ``PID_TEXT_SIZE_TAG``, ``PID_TEXT_SIZE_PIPE``)
+      default to 2.5 mm.
+
+Design Rules (enforced by validation and builder)
+--------------------------------------------------
+
+1. **Line weight rule** — every ``Line`` element must use one of the three
+   standard stroke widths.
+2. **No overlap rule** — equipment bounding boxes must not intersect.
+3. **Page boundary rule** — all equipment must fit within the page minus
+   a 10 mm margin.
+4. **ISA letter rule** — instrument bubble letter codes must be valid ISA 5.1
+   first + succeeding letters.
+5. **Port direction rule** — pipes leaving a port route in the port's
+   direction first (vertical ports route vertically first, horizontal
+   ports route horizontally first).
 """
 
 from schematika.core.constants import (
@@ -54,6 +143,7 @@ __all__ = [
     "PID_LABEL_OFFSET",
     "ISA_FIRST_LETTER",
     "ISA_SUCCEEDING_LETTERS",
+    "validate_isa_letters",
 ]
 
 # Line weights (mm)
@@ -165,3 +255,48 @@ ISA_SUCCEEDING_LETTERS = {
     "Y": "Relay/Compute",
     "Z": "Driver/Actuator",
 }
+
+
+def validate_isa_letters(letters: str) -> list[str]:
+    """Validate ISA 5.1 instrument letter codes.
+
+    The first character must be a valid ISA first letter (measured variable).
+    All subsequent characters must be valid ISA succeeding letters (function
+    modifiers).
+
+    Args:
+        letters: ISA letter code string (e.g. ``"TT"``, ``"FIC"``, ``"PT"``).
+
+    Returns:
+        List of error strings.  Empty list means the code is valid.
+
+    Examples:
+        >>> validate_isa_letters("TT")
+        []
+        >>> validate_isa_letters("FIC")
+        []
+        >>> validate_isa_letters("QQ")  # Q is not a succeeding letter
+        ["Succeeding letter 'Q' at position 2 is not a valid ISA 5.1 ..."]
+    """
+    errors: list[str] = []
+    if not letters:
+        errors.append("ISA letter code must not be empty")
+        return errors
+
+    first = letters[0].upper()
+    if first not in ISA_FIRST_LETTER:
+        errors.append(
+            f"First letter '{first}' is not a valid ISA 5.1 measured-variable "
+            f"code.  Valid: {sorted(ISA_FIRST_LETTER)}"
+        )
+
+    for i, ch in enumerate(letters[1:], start=2):
+        upper_ch = ch.upper()
+        if upper_ch not in ISA_SUCCEEDING_LETTERS:
+            errors.append(
+                f"Succeeding letter '{upper_ch}' at position {i} is not a "
+                f"valid ISA 5.1 function modifier.  "
+                f"Valid: {sorted(ISA_SUCCEEDING_LETTERS)}"
+            )
+
+    return errors

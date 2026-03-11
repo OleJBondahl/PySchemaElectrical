@@ -201,7 +201,7 @@ These are the highest-level imperative API classes. The rest of the library foll
 - SVG **snapshot testing** via the `snapshot_svg` fixture in `tests/conftest.py` — compares generated SVG strings against stored `.svg` files in `tests/snapshots/`.
 - Set `PYTEST_UPDATE_SNAPSHOTS=1` to update snapshots when rendering changes are intentional.
 - pytest config is in `pyproject.toml` with `--verbose --cov=src --cov-report=term-missing` as default options.
-- **Current baseline**: 948 tests, 97% line coverage, all passing.
+- **Current baseline**: 1233 tests, 90% line coverage, all passing.
 - When changing symbol rendering or layout, always run `pytest` and check snapshot diffs.
 
 ### Type Checking
@@ -253,13 +253,41 @@ See `todo.md` for the complete audit-driven task list. It contains:
 
 The `pid/` module generates ISO 14617 / ISA 5.1 compliant P&ID diagrams. Key files:
 
-- **`pid/constants.py`** — All P&ID constants derived from `core/constants.py` grid system. `PID_EQUIPMENT_STROKE` (0.5mm body), `PID_LINE_WEIGHT` (0.7mm pipe), `PID_SIGNAL_LINE_WEIGHT` (0.25mm signal), spacing constants (`PID_MIN_EQUIPMENT_GAP` 20mm, `PID_MIN_LEG_SPACING` 50mm).
-- **`pid/builder.py`** — `PIDBuilder` fluent builder. Equipment placed via port-to-port alignment. Instruments attached to equipment ports. Signal line route deduplication built-in.
-- **`pid/validation.py`** — `validate_pid(diagram)` returns `ValidationResult` with `errors` and `warnings`. Checks: equipment overlap, text overlap, page boundary, duplicate lines, stroke weight consistency.
+- **`pid/constants.py`** — All P&ID constants derived from `core/constants.py` grid system. Contains the **canonical standards reference** as a module docstring — all ISA 5.1, ISO 14617, and ISO 3098 rules that the library enforces are documented there. Also provides `validate_isa_letters()` for ISA 5.1 letter code validation.
+- **`pid/builder.py`** — `PIDBuilder` fluent builder. Equipment placed via port-to-port alignment. Instruments attached to equipment ports. **Enforces ISA 5.1 letter codes** on `add_instrument()` / `add_instrument_from_catalog()`. Port-direction-aware Manhattan routing (vertical ports route vertically first).
+- **`pid/validation.py`** — `validate_pid(diagram)` returns `ValidationResult` with `errors` and `warnings`. Checks: equipment overlap, text overlap, page boundary (10mm margin), duplicate lines, stroke weight consistency (only 3 allowed weights).
 - **`pid/symbols/`** — ISA/ISO symbol factories (valves, instruments, pumps, vessels, piping).
 - **`pid/diagram.py`** — `PIDDiagram` mutable container.
 - **`pid/connections.py`** — Pipe routing with `manhattan_route()` and `render_pipe()`.
 - **`pid/layout.py`** — BFS placement resolution via `resolve_placements()`.
+
+#### P&ID Standards Compliance
+
+The module enforces three international standards. The authoritative reference is the docstring of `pid/constants.py`.
+
+| Standard | Scope | Enforcement |
+| --- | --- | --- |
+| **ISO 14617** | Process equipment symbols, valve shapes, line weights, spacing | Symbol factories produce compliant geometry; `validate_pid()` checks line weight hierarchy and spacing |
+| **ISA 5.1** | Instrument identification, bubble dimensions, letter codes, signal lines | `validate_isa_letters()` validates letter codes; builder rejects invalid codes; bubble diameter 12mm, location variants (field/panel/dcs) |
+| **ISO 3098** | Technical lettering | All text sizes ≥ 2.5mm; grid-relative sizing |
+
+**Design rules enforced by code:**
+
+1. **Line weight hierarchy** — process pipe (0.7mm) > equipment body (0.5mm) > signal line (0.25mm). Validator warns on non-standard weights.
+2. **ISA letter codes** — First letter must be a valid measured variable (A–Z per ISA table). Succeeding letters must be valid function modifiers. Builder raises `ValueError` on invalid codes.
+3. **No equipment overlap** — bounding boxes must not intersect. Validator returns errors.
+4. **Page boundary** — all equipment within 10mm margin. Validator returns errors.
+5. **Port direction routing** — pipes leaving vertical ports route vertically first; horizontal ports route horizontally first. Prevents unnecessary corners.
+
+**Standards compliance tests:** `tests/unit/test_pid_standards.py` (44 tests covering ISA letter validation, bubble dimensions, line weight hierarchy, valve geometry, equipment conventions, text sizing, spacing rules, and builder enforcement).
+
+**Key layout constants** (current values):
+- `PID_MIN_EQUIPMENT_GAP` (30mm) — minimum between adjacent equipment
+- `PID_MIN_LEG_SPACING` (40mm) — minimum between parallel pipe legs
+- `INSTRUMENT_BUBBLE_RADIUS` (6mm radius → 12mm diameter) — ISA 5.1 compliant
+- `VALVE_SIZE` (10mm) — valve triangle size
+- `PID_PUMP_RADIUS` (10mm) — pump circle radius (20mm diameter)
+- All text sizes: 2.5mm (ISO 3098 minimum for A3/A4)
 
 #### P&ID Visual Iteration Workflow
 
@@ -277,12 +305,6 @@ Agents can autonomously iterate on P&ID drawing quality using this loop:
 **Prerequisites:** `uv sync --extra dev` then `uv run playwright install chromium` (one-time setup). The `scripts/pid_review.py` tool uses Playwright (Chromium) on Windows since native Cairo is unavailable.
 
 **Programmatic validation:** Run `validate_pid(diagram)` after `builder.build()` to check for overlaps, boundary violations, and stroke weight inconsistencies. The `ValidationResult` has `.errors` (blocking) and `.warnings` (non-blocking).
-
-**Key layout constants** for consumer projects:
-- `PID_MIN_EQUIPMENT_GAP` (20mm) — minimum between adjacent equipment
-- `PID_MIN_LEG_SPACING` (50mm) — minimum between parallel pipe legs
-- `INSTRUMENT_BUBBLE_RADIUS` (10mm) — use for staggering instruments: horizontal offset = `radius * 3`
-- Default instrument offset from port: `(0, -25)` (bubble diameter + label gap)
 
 ### Agent Git Workflow
 

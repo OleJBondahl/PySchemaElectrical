@@ -26,7 +26,11 @@ from schematika.pid.connections import (
     manhattan_route,
     render_pipe,
 )
-from schematika.pid.constants import INSTRUMENT_BUBBLE_RADIUS, PID_LABEL_OFFSET
+from schematika.pid.constants import (
+    INSTRUMENT_BUBBLE_RADIUS,
+    PID_LABEL_OFFSET,
+    validate_isa_letters,
+)
 from schematika.pid.diagram import PIDDiagram
 from schematika.pid.layout import Placement, resolve_placements
 from schematika.pid.symbols.instruments import instrument_bubble
@@ -277,14 +281,21 @@ class PIDBuilder:
             ``self`` for method chaining.
 
         Raises:
-            ValueError: If *name* is already registered or *on_equipment*
-                has not been registered.
+            ValueError: If *name* is already registered, *on_equipment*
+                has not been registered, or *letters* are not valid ISA 5.1
+                codes.
         """
         if name in self._entries or name in self._instruments:
             raise ValueError(f"Instrument '{name}' already registered")
         if on_equipment not in self._entries:
             raise ValueError(
                 f"Instrument '{name}' references unknown equipment '{on_equipment}'"
+            )
+        isa_errors = validate_isa_letters(letters)
+        if isa_errors:
+            raise ValueError(
+                f"Instrument '{name}' has invalid ISA 5.1 letter codes "
+                f"'{letters}': {'; '.join(isa_errors)}"
             )
 
         self._instruments[name] = _InstrumentEntry(
@@ -338,6 +349,12 @@ class PIDBuilder:
         if on_equipment not in self._entries:
             raise ValueError(
                 f"Instrument '{name}' references unknown equipment '{on_equipment}'"
+            )
+        isa_errors = validate_isa_letters(spec.letters)
+        if isa_errors:
+            raise ValueError(
+                f"Catalog device '{device_tag}' has invalid ISA 5.1 letter "
+                f"codes '{spec.letters}': {'; '.join(isa_errors)}"
             )
 
         self._instruments[name] = _InstrumentEntry(
@@ -712,11 +729,7 @@ def _route_pipes(
         # If the from_port direction is primarily vertical, route
         # vertically first; otherwise route horizontally first.
         from_dir = from_port.direction
-        prefer = (
-            "vertical"
-            if abs(from_dir.dy) > abs(from_dir.dx)
-            else "horizontal"
-        )
+        prefer = "vertical" if abs(from_dir.dy) > abs(from_dir.dx) else "horizontal"
         waypoints = manhattan_route(from_pos, to_pos, prefer=prefer)
         elements.extend(
             render_pipe(waypoints, pipe_spec.style, label=pipe_spec.line_spec)

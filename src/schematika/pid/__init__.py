@@ -34,6 +34,7 @@ from schematika.pid.constants import (  # noqa: F401
     PID_TEXT_SIZE_PIPE,
     PID_TEXT_SIZE_TAG,
     VALVE_SIZE,
+    validate_isa_letters,
 )
 from schematika.pid.diagram import (  # noqa: F401
     PIDDiagram,
