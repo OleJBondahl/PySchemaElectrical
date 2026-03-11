@@ -2,11 +2,11 @@
 
 **Date:** 2026-03-10
 **Status:** Approved
-**Scope:** Add P&ID (Piping & Instrumentation Diagram) support to PySchemaElectrical, rename library to Schematika
+**Scope:** Add P&ID (Piping & Instrumentation Diagram) support to Schematika
 
 ## Problem
 
-PySchemaElectrical generates electrical schematic diagrams but cannot produce P&ID drawings. Engineers working with industrial automation systems (e.g., cooling systems controlled by electrical cabinets) need both drawing types. Instruments like temperature transmitters appear on both the P&ID (connected to a pipe) and the electrical schematic (wired to a PLC input). Currently, there's no way to maintain cross-referencing between these drawings.
+Schematika generates electrical schematic diagrams but cannot produce P&ID drawings. Engineers working with industrial automation systems (e.g., cooling systems controlled by electrical cabinets) need both drawing types. Instruments like temperature transmitters appear on both the P&ID (connected to a pipe) and the electrical schematic (wired to a PLC input). Currently, there's no way to maintain cross-referencing between these drawings.
 
 ## Solution
 
@@ -152,7 +152,7 @@ A `compute_bounding_box()` utility in `core/` supports this across both domains.
 ## Implementation Phases
 
 1. **Core extraction** — Extract shared `core/` from `model/` + `utils/`
-2. **Package rename** — `pyschemaelectrical` → `schematika` with compat shim
+2. **Package rename** — renamed to `schematika`
 3. **P&ID symbols** — ISO 14617 factories for cooling/HVAC scope
 4. **PIDDiagram + pipe routing** — Container + Manhattan routing
 5. **PIDBuilder** — Named-graph fluent builder

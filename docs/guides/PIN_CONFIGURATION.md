@@ -1,6 +1,6 @@
 # Pin Configuration Patterns
 
-This document explains the three different ways to configure pin numbers when using standard circuits in PySchemaElectrical.
+This document explains the three different ways to configure pin numbers when using standard circuits in Schematika.
 
 ## Overview
 

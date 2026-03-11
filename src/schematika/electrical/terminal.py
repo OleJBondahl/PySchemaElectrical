@@ -1,5 +1,5 @@
 """
-Terminal type for PySchemaElectrical.
+Terminal type for Schematika.
 
 Provides a first-class `Terminal` type that replaces the string-based
 terminal ID hack. Terminals carry metadata (title, description, bridge info,

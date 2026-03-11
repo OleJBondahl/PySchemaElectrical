@@ -30,9 +30,9 @@ pdf = ["typst"]
 dev = ["cairosvg", "playwright"]
 
 [project.urls]
-Homepage = "https://github.com/OleJBondahl/PySchemaElectrical"
-Repository = "https://github.com/OleJBondahl/PySchemaElectrical"
-Issues = "https://github.com/OleJBondahl/PySchemaElectrical/issues"
+Homepage = "https://github.com/OleJBondahl/Schematika"
+Repository = "https://github.com/OleJBondahl/Schematika"
+Issues = "https://github.com/OleJBondahl/Schematika/issues"
 
 
 
@@ -41,7 +41,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["schematika*", "pyschemaelectrical*"]
+include = ["schematika*"]
 
 [tool.setuptools.package-data]
 schematika = ["rendering/typst/templates/*.typ"]

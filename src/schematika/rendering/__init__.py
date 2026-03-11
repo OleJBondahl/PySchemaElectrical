@@ -1,1 +1,1 @@
-"""Rendering backends for PySchemaElectrical."""
+"""Rendering backends for Schematika."""

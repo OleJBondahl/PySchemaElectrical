@@ -1,10 +1,10 @@
-# PySchemaElectrical API Guide
+# Schematika API Guide
 
 **Version**: 4.0 (Complete Reference)
 **Library Version**: 0.1.6 (Alpha)
 **Target Audience**: LLM Agents & Advanced Developers
 
-This guide provides a comprehensive understanding of the `PySchemaElectrical` library. It is organized from the highest-level, most commonly used APIs down to the low-level internals. It covers every public function, class, and constant available for building IEC 60617-compliant electrical schematic diagrams.
+This guide provides a comprehensive understanding of the `Schematika` library. It is organized from the highest-level, most commonly used APIs down to the low-level internals. It covers every public function, class, and constant available for building IEC 60617-compliant electrical schematic diagrams.
 
 ---
 
@@ -47,7 +47,7 @@ The `Project` class is the top-level entry point for creating complete multi-pag
 ### 2.1. Creating a Project
 
 ```python
-from pyschemaelectrical import Project, Terminal
+from schematika import Project, Terminal
 
 project = Project(
     title="Motor Control Panel",
@@ -111,8 +111,8 @@ project.emergency_stop("estop", tm_top="X3", tm_bot="X4")
 #### From Descriptors
 
 ```python
-from pyschemaelectrical import ref, comp, term
-from pyschemaelectrical.symbols import coil_symbol
+from schematika import ref, comp, term
+from schematika.symbols import coil_symbol
 
 project.circuit("custom_coils",
     components=[
@@ -132,8 +132,8 @@ project.circuit("custom_coils",
 
 ```python
 def my_circuit(state, **kwargs):
-    from pyschemaelectrical import CircuitBuilder
-    from pyschemaelectrical.symbols import normally_open_symbol, coil_symbol
+    from schematika import CircuitBuilder
+    from schematika.symbols import normally_open_symbol, coil_symbol
 
     builder = CircuitBuilder(state)
     builder.set_layout(x=0, y=0, spacing=100, symbol_spacing=50)
@@ -183,7 +183,7 @@ The `build()` pipeline: (1) Build all circuits → (2) Generate SVGs → (3) Gen
 
 ## 3. Standard Circuits Library
 
-The functions in `pyschemaelectrical.std_circuits` are pre-built circuit factories. They all share a common signature pattern:
+The functions in `schematika.std_circuits` are pre-built circuit factories. They all share a common signature pattern:
 
 ```python
 def factory(state, x, y, tm_..., ..., count=1, wire_labels=None, **kwargs) -> Tuple[state, Circuit, used_terminals]
@@ -418,7 +418,7 @@ std_circuits.dol_starter(..., tag_generators={"M": my_motor_gen})
 
 ## 4. Four Ways to Build Circuits
 
-PySchemaElectrical provides four API levels, from simplest to most flexible:
+Schematika provides four API levels, from simplest to most flexible:
 
 ### 4.1. Project (Simplest — Multi-Page)
 
@@ -429,7 +429,7 @@ See [Section 2](#2-project-api-highest-level). Best for complete drawing sets wi
 See [Section 3](#3-standard-circuits-library). Best for common industrial circuits.
 
 ```python
-from pyschemaelectrical import create_autonumberer, render_system, std_circuits
+from schematika import create_autonumberer, render_system, std_circuits
 
 state = create_autonumberer()
 state, circuit, used_terminals = std_circuits.dol_starter(
@@ -445,8 +445,8 @@ render_system(circuit, "output.svg")
 For linear circuits with default layout. No builder needed.
 
 ```python
-from pyschemaelectrical import ref, comp, term, build_from_descriptors, create_autonumberer
-from pyschemaelectrical.symbols import coil_symbol
+from schematika import ref, comp, term, build_from_descriptors, create_autonumberer
+from schematika.symbols import coil_symbol
 
 state = create_autonumberer()
 result = build_from_descriptors(state, [
@@ -485,8 +485,8 @@ build_from_descriptors(
 For custom circuits needing layout control, connections, and horizontal placement.
 
 ```python
-from pyschemaelectrical import CircuitBuilder, create_autonumberer
-from pyschemaelectrical.symbols import normally_open_symbol, coil_symbol
+from schematika import CircuitBuilder, create_autonumberer
+from schematika.symbols import normally_open_symbol, coil_symbol
 
 state = create_autonumberer()
 builder = CircuitBuilder(state)
@@ -704,7 +704,7 @@ result_b = builder_b.build(reuse_tags={"K": result_a})
 The `Terminal` class is an immutable `str` subclass with metadata. It remains backwards-compatible with strings everywhere terminal IDs are accepted.
 
 ```python
-from pyschemaelectrical import Terminal
+from schematika import Terminal
 
 # Basic terminal
 tm = Terminal("X001", description="Main 400V AC")
@@ -733,7 +733,7 @@ state, circuit, _ = std_circuits.dol_starter(state, x=0, y=0, tm_top=tm, ...)
 ### Wire Specification Helper
 
 ```python
-from pyschemaelectrical import wire
+from schematika import wire
 
 # Create wire labels
 labels = [wire("RD", "2.5mm2"), wire("BK", "2.5mm2"), wire("BU", "2.5mm2")]
@@ -755,7 +755,7 @@ wire.EMPTY  # ""
 Apply labels *after* the circuit is built but *before* rendering.
 
 ```python
-from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+from schematika.layout.wire_labels import add_wire_labels_to_circuit
 
 labels = ["L1", "L2", "L3", "N", "PE"]
 new_circuit = add_wire_labels_to_circuit(circuit, labels)
@@ -768,7 +768,7 @@ new_circuit = add_wire_labels_to_circuit(circuit, labels)
 The `PlcMapper` provides declarative PLC I/O allocation with automatic module bin-packing.
 
 ```python
-from pyschemaelectrical import PlcMapper
+from schematika import PlcMapper
 
 plc = PlcMapper()
 
@@ -807,7 +807,7 @@ plc.set_terminal_start("X007", 10)
 Every time `auto_connect` runs or you use `register_connection`, the `state` updates its internal `TerminalRegistry`.
 
 ```python
-from pyschemaelectrical import get_registry, export_registry_to_csv
+from schematika import get_registry, export_registry_to_csv
 
 registry = get_registry(state)
 export_registry_to_csv(registry, "terminal_connections.csv")
@@ -822,7 +822,7 @@ export_registry_to_csv(registry, "terminal_connections.csv")
 ### 9.2. Terminal List Export
 
 ```python
-from pyschemaelectrical import export_terminal_list
+from schematika import export_terminal_list
 
 used_terminals = ["X1", "X2", "X1"]  # can contain duplicates
 descriptions = {"X1": "Main Power", "X2": "Control 24V"}
@@ -832,7 +832,7 @@ export_terminal_list("terminals_bom.csv", used_terminals, descriptions)
 ### 9.3. Terminal Bridge Utilities
 
 ```python
-from pyschemaelectrical import (
+from schematika import (
     BridgeRange,
     expand_range_to_pins,
     get_connection_groups_for_terminal,
@@ -860,7 +860,7 @@ update_csv_with_internal_connections("connections.csv", {"X1": "all"})
 ## 10. State Management & Autonumbering
 
 ```python
-from pyschemaelectrical import (
+from schematika import (
     create_autonumberer,
     get_tag_number,
     next_terminal_pins,
@@ -885,7 +885,7 @@ state, pins = next_terminal_pins(state, "X1", poles=3)  # ("1","2","3")
 ### Additional Autonumbering Functions
 
 ```python
-from pyschemaelectrical.utils.autonumbering import (
+from schematika.utils.autonumbering import (
     next_tag,             # Get next tag and advance state: (state, "K1")
 )
 ```
@@ -893,7 +893,7 @@ from pyschemaelectrical.utils.autonumbering import (
 ### Utility Functions
 
 ```python
-from pyschemaelectrical.utils.utils import (
+from schematika.utils.utils import (
     apply_start_indices,     # Apply start indices to tag counters
     merge_terminals,         # Merge terminal lists (deduplicating)
 )
@@ -915,8 +915,8 @@ state, c2, _ = std_circuits.dol_starter(state, x=200, y=0, tm_top="X1", tm_bot="
 ### Circuit Container
 
 ```python
-from pyschemaelectrical import Circuit, add_symbol, render_system
-from pyschemaelectrical.system.system import merge_circuits, auto_connect_circuit
+from schematika import Circuit, add_symbol, render_system
+from schematika.system.system import merge_circuits, auto_connect_circuit
 
 # Create and populate
 c = Circuit()
@@ -936,7 +936,7 @@ render_system(main, "output.svg", width="210mm", height="297mm")  # A4
 ### Transform Utilities
 
 ```python
-from pyschemaelectrical.utils.transform import translate, rotate
+from schematika.utils.transform import translate, rotate
 
 new_symbol = translate(symbol, dx=50, dy=0)    # Pure, returns new instance
 new_symbol = rotate(symbol, angle=90, center=Point(0, 0))
@@ -945,7 +945,7 @@ new_symbol = rotate(symbol, angle=90, center=Point(0, 0))
 ### Connection Registry (Low-Level)
 
 ```python
-from pyschemaelectrical.system.connection_registry import (
+from schematika.system.connection_registry import (
     Connection,              # Frozen dataclass: terminal_tag, terminal_pin, component_tag, component_pin, side
     TerminalRegistry,        # Immutable registry with .add_connection() and .add_connections()
     get_registry,            # Get registry from state
@@ -962,7 +962,7 @@ from pyschemaelectrical.system.connection_registry import (
 
 ## 12. Complete Symbol Reference
 
-All symbol factories live in `pyschemaelectrical.symbols` and follow the pattern:
+All symbol factories live in `schematika.symbols` and follow the pattern:
 
 ```python
 symbol_func(label: str = "", pins: tuple = (...)) -> Symbol
@@ -1106,7 +1106,7 @@ symbol_func(label: str = "", pins: tuple = (...)) -> Symbol
 ### Core Geometric Types
 
 ```python
-from pyschemaelectrical.model.core import Point, Vector, Port, Style, Symbol, Element
+from schematika.model.core import Point, Vector, Port, Style, Symbol, Element
 
 Point(x: float, y: float)           # Immutable. Supports +Vector, -Point
 Vector(dx: float, dy: float)        # Immutable. Supports +Vector, *scalar
@@ -1120,7 +1120,7 @@ Symbol(elements: List[Element], ports: Dict[str, Port],
 ### Primitive Elements
 
 ```python
-from pyschemaelectrical.model.primitives import Line, Circle, Text, Path, Group, Polygon
+from schematika.model.primitives import Line, Circle, Text, Path, Group, Polygon
 
 Line(start: Point, end: Point, style: Style)
 Circle(center: Point, radius: float, style: Style)
@@ -1134,7 +1134,7 @@ Polygon(points: List[Point], style: Style)
 ### Component Part Factories
 
 ```python
-from pyschemaelectrical.model.parts import (
+from schematika.model.parts import (
     standard_style,        # Create standard symbol Style
     standard_text,         # Create component label Text element
     terminal_circle,       # Create standard connection terminal circle
@@ -1148,7 +1148,7 @@ from pyschemaelectrical.model.parts import (
 ### Constants
 
 ```python
-from pyschemaelectrical.model.constants import *
+from schematika.model.constants import *
 
 GRID_SIZE = 5.0                     # mm, base grid unit
 GRID_SUBDIVISION = 2.5              # mm, half grid
@@ -1173,7 +1173,7 @@ DEFAULT_DOC_HEIGHT = "297mm"        # A4 height
 ### StandardTags
 
 ```python
-from pyschemaelectrical import StandardTags
+from schematika import StandardTags
 
 StandardTags.BREAKER           # "F"
 StandardTags.CONTACTOR         # "Q"
@@ -1191,7 +1191,7 @@ StandardTags.TERMINAL          # "X"
 ### StandardPins
 
 ```python
-from pyschemaelectrical import StandardPins
+from schematika import StandardPins
 
 StandardPins.THREE_POLE.pins          # ("L1","T1","L2","T2","L3","T3")
 StandardPins.THERMAL_OVERLOAD.pins    # ("","T1","","T2","","T3")
@@ -1206,7 +1206,7 @@ StandardPins.GND  # "GND"
 ### StandardSpacing
 
 ```python
-from pyschemaelectrical import StandardSpacing
+from schematika import StandardSpacing
 
 StandardSpacing.MOTOR              # SpacingConfig(circuit=150, symbols_start=50, symbols=60)
 StandardSpacing.SINGLE_POLE        # SpacingConfig(circuit=100, symbols_start=50, symbols=60)
@@ -1216,7 +1216,7 @@ StandardSpacing.POWER_DISTRIBUTION # SpacingConfig(circuit=80, symbols_start=50,
 ### LayoutDefaults
 
 ```python
-from pyschemaelectrical import LayoutDefaults
+from schematika import LayoutDefaults
 
 LayoutDefaults.CIRCUIT_SPACING_MOTOR       # 150.0 mm
 LayoutDefaults.CIRCUIT_SPACING_POWER       # 150.0 mm
@@ -1234,7 +1234,7 @@ LayoutDefaults.PSU_LAYOUT_OFFSET           # 25.0 mm
 ### StandardCircuitKeys
 
 ```python
-from pyschemaelectrical import StandardCircuitKeys
+from schematika import StandardCircuitKeys
 
 StandardCircuitKeys.MAIN       # "MAIN"
 StandardCircuitKeys.SUPPLY     # "SUPPLY"
@@ -1251,7 +1251,7 @@ StandardCircuitKeys.OUTPUT_GND # "OUTPUT_GND"
 ### CircuitLayouts (Pre-Configured)
 
 ```python
-from pyschemaelectrical import CircuitLayouts
+from schematika import CircuitLayouts
 
 CircuitLayouts.PSU             # CircuitLayoutConfig(spacing=150, symbol=60, terminal_offset=15)
 CircuitLayouts.CHANGEOVER      # CircuitLayoutConfig(spacing=150, symbol=60, terminal_offset=20)
@@ -1264,7 +1264,7 @@ CircuitLayouts.EMERGENCY_STOP  # CircuitLayoutConfig(spacing=100, symbol=50)
 ### GenerationState
 
 ```python
-from pyschemaelectrical import GenerationState, create_initial_state
+from schematika import GenerationState, create_initial_state
 
 # GenerationState fields:
 # - tags: Dict[str, int]           — tag prefix counters
@@ -1286,7 +1286,7 @@ state = create_initial_state()
 ## 14. Exceptions
 
 ```python
-from pyschemaelectrical import (
+from schematika import (
     CircuitValidationError,    # Base class
     PortNotFoundError,         # Port 'X' not found on component 'Y'
     ComponentNotFoundError,    # Component index N is out of bounds
@@ -1302,7 +1302,7 @@ from pyschemaelectrical import (
 The rendering pipeline uses Typst for PDF compilation. This is used internally by `Project.build()` but can also be used directly.
 
 ```python
-from pyschemaelectrical.rendering.typst.compiler import TypstCompiler, TypstCompilerConfig
+from schematika.rendering.typst.compiler import TypstCompiler, TypstCompilerConfig
 
 config = TypstCompilerConfig(
     drawing_name="My Schematics",
@@ -1331,7 +1331,7 @@ compiler.compile("output.pdf")
 ### Frame Generation
 
 ```python
-from pyschemaelectrical.rendering.typst.frame_generator import generate_frame
+from schematika.rendering.typst.frame_generator import generate_frame
 
 # Generate an A3 drawing frame as a Circuit
 frame_circuit = generate_frame(font_family="Times New Roman")
@@ -1340,7 +1340,7 @@ frame_circuit = generate_frame(font_family="Times New Roman")
 ### Markdown to Typst Conversion
 
 ```python
-from pyschemaelectrical.rendering.typst.markdown_converter import markdown_to_typst
+from schematika.rendering.typst.markdown_converter import markdown_to_typst
 
 typst_content = markdown_to_typst("docs/intro.md", width="50%", notice="DRAFT")
 ```
@@ -1453,8 +1453,8 @@ state, circuit, _ = std_circuits.dol_starter(
 Start/stop latching circuit with parallel contact.
 
 ```python
-from pyschemaelectrical import CircuitBuilder, create_autonumberer, render_system
-from pyschemaelectrical.symbols import normally_open_symbol, normally_closed_symbol, coil_symbol
+from schematika import CircuitBuilder, create_autonumberer, render_system
+from schematika.symbols import normally_open_symbol, normally_closed_symbol, coil_symbol
 
 state = create_autonumberer()
 builder = CircuitBuilder(state)
@@ -1494,8 +1494,8 @@ render_system(result.circuit, "latching.svg")
 Full multi-page drawing set with PDF output.
 
 ```python
-from pyschemaelectrical import Project, Terminal, ref, comp, term
-from pyschemaelectrical.symbols import coil_symbol
+from schematika import Project, Terminal, ref, comp, term
+from schematika.symbols import coil_symbol
 
 project = Project(
     title="Pump Station",

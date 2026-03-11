@@ -7,7 +7,7 @@ description: Use when the user asks to check library quality, run a health check
 
 ## Overview
 
-Comprehensive on-demand quality audit for PySchemaElectrical. Collects metrics, audits structure, validates rendering, auto-fixes simple issues, and writes a timestamped report.
+Comprehensive on-demand quality audit for Schematika. Collects metrics, audits structure, validates rendering, auto-fixes simple issues, and writes a timestamped report.
 
 **Core principle:** Detect regressions and inconsistencies before they compound. Fix what's safe, report what needs human judgment.
 
@@ -42,7 +42,7 @@ Read baselines from `.claude/qc-baselines.json` in the project root. Then run th
 Run these checks **in parallel** using Explore subagents:
 
 #### 2a. API Signature Consistency
-Check if `src/pyschemaelectrical/std_circuits/` exists. If it does, verify all public functions:
+Check if `src/schematika/std_circuits/` exists. If it does, verify all public functions:
 - Accept `state: dict[str, Any]` as first parameter
 - Accept `x: float, y: float` for positioning
 - Return `BuildResult`
@@ -55,12 +55,12 @@ Also check `builder.py` for the `CircuitBuilder` class — verify `build()` retu
 Flag deviations with file:line and the actual signature.
 
 #### 2b. Symbol Port Validation
-Search `src/pyschemaelectrical/symbols/` for all `*_symbol()` factory functions. For each:
+Search `src/schematika/symbols/` for all `*_symbol()` factory functions. For each:
 - Check that `pins` parameter uses `tuple[str, ...] = ()` (not `None`)
 - Flag inconsistencies (e.g., `pins: tuple[str, ...] | None = None`)
 
 #### 2c. Public API Completeness
-Compare exports in `src/pyschemaelectrical/__init__.py` against actual public symbols in each submodule. Flag:
+Compare exports in `src/schematika/__init__.py` against actual public symbols in each submodule. Flag:
 - Symbols defined in modules but not exported
 - Exports that no longer exist in source
 

@@ -8,7 +8,7 @@ __pycache__/
 *.csv
 !examples/output/*.svg
 !examples/output/*.csv
-/pyschemaelectrical.egg-info
+/schematika.egg-info
 *.egg-info/
 .coverage
 .coverage.*

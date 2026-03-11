@@ -1,5 +1,5 @@
 """
-Project class -- Layer 0 declarative API for PySchemaElectrical.
+Project class -- Layer 0 declarative API for Schematika.
 
 The Project is the top-level object that owns state, terminal registry,
 circuit definitions, page layout, and output configuration. Users interact

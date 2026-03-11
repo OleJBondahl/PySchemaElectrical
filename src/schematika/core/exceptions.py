@@ -1,4 +1,4 @@
-"""Custom exceptions for PySchemaElectrical."""
+"""Custom exceptions for Schematika."""
 
 
 class CircuitValidationError(Exception):

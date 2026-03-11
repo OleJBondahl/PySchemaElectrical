@@ -1,10 +1,10 @@
 # Tools
 
-Standalone utilities that complement PySchemaElectrical but live outside the main library (which has zero runtime dependencies).
+Standalone utilities that complement Schematika but live outside the main library (which has zero runtime dependencies).
 
 ## cad_parser
 
-Parses existing CAD electrical drawings into a structured JSON format that an AI agent (or script) can use to recreate the schematic with PySchemaElectrical.
+Parses existing CAD electrical drawings into a structured JSON format that an AI agent (or script) can use to recreate the schematic with Schematika.
 
 ### Supported Formats
 
@@ -135,11 +135,11 @@ All parsers produce a unified `SchematicData` structure:
 
 **PDF** (best-effort) — Converts each page to SVG via PyMuPDF, then delegates to the SVG parser. Falls back to direct vector extraction (`page.get_drawings()`) on older PyMuPDF versions.
 
-### Mapping to PySchemaElectrical
+### Mapping to Schematika
 
 The extracted data maps to the library's API:
 
-| Extracted Field | PySchemaElectrical Concept |
+| Extracted Field | Schematika Concept |
 |----------------|---------------------------|
 | `component.tag` (K1, Q3) | Component tag in `CircuitBuilder.add()` |
 | `component.type` (contactor, motor) | Symbol factory selection |
@@ -153,9 +153,9 @@ The extracted data maps to the library's API:
 1. Engineer provides a CAD drawing (.dxf, .kicad_sch, .pdf, .svg)
 2. cad_parser extracts structured JSON
 3. AI agent reads the JSON output
-4. Agent maps components → PySchemaElectrical symbol factories
+4. Agent maps components → Schematika symbol factories
 5. Agent generates CircuitBuilder / build_from_descriptors() code
-6. PySchemaElectrical renders the new SVG schematic
+6. Schematika renders the new SVG schematic
 ```
 
 ### Limitations

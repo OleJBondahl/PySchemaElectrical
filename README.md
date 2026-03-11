@@ -1,6 +1,6 @@
-# PySchemaElectrical
+# Schematika
 
-**PySchemaElectrical** is a Python library for programmatically generating IEC 60617 compliant electrical schematics. It emphasizes specific architectural principles (functional, data-oriented) to create deterministic, reproducible, and beautiful SVG drawings.
+**Schematika** is a Python library for programmatically generating IEC 60617 compliant electrical schematics. It emphasizes specific architectural principles (functional, data-oriented) to create deterministic, reproducible, and beautiful SVG drawings.
 
 > [!NOTE]
 > **Status:** Alpha. The API and functionality are subject to change.
@@ -31,8 +31,8 @@ This project is managed using [`uv`](https://github.com/astral-sh/uv), a fast Py
 
 ```bash
 # Clone the repository
-git clone https://github.com/OleJBondahl/PySchemaElectrical.git
-cd PySchemaElectrical
+git clone https://github.com/OleJBondahl/Schematika.git
+cd Schematika
 
 # Create a virtual environment and sync dependencies
 uv sync
@@ -52,9 +52,9 @@ pip install -e .
 The fastest way to generate a schematic is using the **Standard Circuits** library.
 
 ```python
-from pyschemaelectrical.utils.autonumbering import create_autonumberer
-from pyschemaelectrical.std_circuits import dol_starter
-from pyschemaelectrical.system import render_system
+from schematika.utils.autonumbering import create_autonumberer
+from schematika.std_circuits import dol_starter
+from schematika.system import render_system
 
 # 1. Initialize State (for autonumbering)
 state = create_autonumberer()
@@ -92,7 +92,7 @@ The library is split into two primary layers:
 The `Terminal` class is an immutable `str` subclass that carries metadata about physical terminal blocks. Terminals are the primary way to declare connection points in your project.
 
 ```python
-from pyschemaelectrical import Terminal
+from schematika import Terminal
 
 # Basic terminal
 X1 = Terminal("X1", description="Main 400V AC")
@@ -114,7 +114,7 @@ Since `Terminal` inherits from `str`, it works anywhere a plain string terminal 
 
 ### Standard Circuits
 
-Located in `pyschemaelectrical.std_circuits`, these generic factories produce complete, ready-to-use sub-circuits. Standard circuits handle state management, autonumbering, and connections automatically.
+Located in `schematika.std_circuits`, these generic factories produce complete, ready-to-use sub-circuits. Standard circuits handle state management, autonumbering, and connections automatically.
 
 | Circuit Type | Function Name | Description | Example File |
 | :--- | :--- | :--- | :--- |
@@ -129,7 +129,7 @@ Located in `pyschemaelectrical.std_circuits`, these generic factories produce co
 
 **Usage Pattern:**
 ```python
-from pyschemaelectrical.std_circuits import dol_starter
+from schematika.std_circuits import dol_starter
 
 (next_state, circuit, used_terminals) = dol_starter(
     state=current_state, 
@@ -181,7 +181,7 @@ result_ctrl = builder.build(reuse_terminals={"X1": result_power})
 
 ### Symbols
 
-Located in `pyschemaelectrical.symbols`, these are the fundamental graphical building blocks. They return `Symbol` objects (immutable dataclasses) and are used by `CircuitBuilder` or `std_circuits`.
+Located in `schematika.symbols`, these are the fundamental graphical building blocks. They return `Symbol` objects (immutable dataclasses) and are used by `CircuitBuilder` or `std_circuits`.
 
 | Category | Symbol Function | Description |
 | :--- | :--- | :--- |
@@ -209,11 +209,11 @@ Located in `pyschemaelectrical.symbols`, these are the fundamental graphical bui
 
 ### CircuitBuilder
 
-Located in `pyschemaelectrical.builder`, `CircuitBuilder` provides a fluent interface for constructing custom linear circuits. It handles layout, auto-numbering, connections, and multi-instance generation.
+Located in `schematika.builder`, `CircuitBuilder` provides a fluent interface for constructing custom linear circuits. It handles layout, auto-numbering, connections, and multi-instance generation.
 
 ```python
-from pyschemaelectrical import CircuitBuilder
-from pyschemaelectrical.symbols import coil_symbol, normally_open_symbol
+from schematika import CircuitBuilder
+from schematika.symbols import coil_symbol, normally_open_symbol
 
 state = create_autonumberer()
 builder = CircuitBuilder(state)
@@ -249,8 +249,8 @@ Key methods:
 For simple linear circuits, the descriptor API provides a more compact alternative to `CircuitBuilder`:
 
 ```python
-from pyschemaelectrical import ref, comp, term, build_from_descriptors
-from pyschemaelectrical.symbols import coil_symbol
+from schematika import ref, comp, term, build_from_descriptors
+from schematika.symbols import coil_symbol
 
 result = build_from_descriptors(
     state,
@@ -276,7 +276,7 @@ Each descriptor maps to a builder method:
 The `wire()` helper creates wire specification label strings:
 
 ```python
-from pyschemaelectrical import wire
+from schematika import wire
 
 labels = [
     wire("RD", "2.5mm2"),   # "RD 2.5mm2"
@@ -293,7 +293,7 @@ result = dol_starter(state, x=0, y=0, tm_top="X1", tm_bot="X2",
 The `Project` class orchestrates multi-page schematic drawing sets with automatic PDF compilation via Typst.
 
 ```python
-from pyschemaelectrical import Project, Terminal
+from schematika import Project, Terminal
 
 project = Project(
     title="Auxiliary Cabinet",
@@ -337,7 +337,7 @@ Available circuit registration methods: `dol_starter`, `psu`, `changeover`, `spd
 `PlcMapper` handles PLC I/O allocation — mapping field sensors to PLC module channels and generating connection tables.
 
 ```python
-from pyschemaelectrical import PlcMapper
+from schematika import PlcMapper
 
 plc = PlcMapper()
 
@@ -385,8 +385,8 @@ The library works on a **functional state-threading** model.
 For precise control, you manipulate the `Circuit` object directly.
 
 ```python
-from pyschemaelectrical.system.system import Circuit, add_symbol, auto_connect_circuit
-from pyschemaelectrical.symbols.contacts import normally_open_symbol
+from schematika.system.system import Circuit, add_symbol, auto_connect_circuit
+from schematika.symbols.contacts import normally_open_symbol
 
 c = Circuit()
 
@@ -410,7 +410,7 @@ auto_connect_circuit(c)
 You can combine multiple circuit objects into one.
 
 ```python
-from pyschemaelectrical.system.system import merge_circuits
+from schematika.system.system import merge_circuits
 
 # Merges sub_circuit contents into main_circuit
 merge_circuits(main_circuit, sub_circuit) 
@@ -421,7 +421,7 @@ merge_circuits(main_circuit, sub_circuit)
 Utilities exist to find vertical wires and add text labels (e.g., color/size).
 
 ```python
-from pyschemaelectrical.layout.wire_labels import add_wire_labels_to_circuit
+from schematika.layout.wire_labels import add_wire_labels_to_circuit
 
 # Adds labels to all vertical wires found in the circuit
 add_wire_labels_to_circuit(my_circuit, ["RD 2.5mm²", "BK 1.5mm²"])
@@ -432,7 +432,7 @@ add_wire_labels_to_circuit(my_circuit, ["RD 2.5mm²", "BK 1.5mm²"])
 Utilities for managing internal terminal connections (bridges). Bridges represent physical jumpers between pins on terminal strips.
 
 ```python
-from pyschemaelectrical import update_csv_with_internal_connections
+from schematika import update_csv_with_internal_connections
 
 # Define project-specific internal connections
 # "all" = all pins bridged, or list of (start, end) ranges
@@ -478,7 +478,7 @@ The four layers compose: `Project` calls `std_circuits` factories; `CircuitBuild
 
 ## Further Reading
 
-- **[API Guide](pyschemaelectrical_API_guide.md)** — Comprehensive reference covering every module, class, and function with examples.
+- **[API Guide](schematika_API_guide.md)** — Comprehensive reference covering every module, class, and function with examples.
 - **[Examples](examples/README.md)** — Runnable example scripts demonstrating each API layer.
 - **[CLAUDE.md](CLAUDE.md)** — Architecture notes and development guidelines for contributors.
 

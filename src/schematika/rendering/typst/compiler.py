@@ -1,5 +1,5 @@
 """
-Typst PDF compiler for PySchemaElectrical.
+Typst PDF compiler for Schematika.
 
 Assembles a Typst document from schematic pages, reports, and templates,
 then compiles it to PDF using the optional ``typst`` Python package.

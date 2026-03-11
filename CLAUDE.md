@@ -8,11 +8,11 @@ The memory server contains full API signatures for this library (`CircuitBuilder
 
 ## Project Overview
 
-PySchemaElectrical is a Python library for programmatically generating IEC 60617-compliant electrical schematic diagrams as SVG files. It has **zero runtime dependencies** and targets **Python 3.12+** (`requires-python = ">=3.12"` in `pyproject.toml`). Current version: 0.1.7 (Alpha).
+Schematika is a Python library for programmatically generating IEC 60617-compliant electrical schematic diagrams as SVG files. It has **zero runtime dependencies** and targets **Python 3.12+** (`requires-python = ">=3.12"` in `pyproject.toml`). Current version: 0.1.7 (Alpha).
 
 ## Library Philosophy
 
-PySchemaElectrical takes a **data-first, code-as-schematic** approach to electrical documentation. Instead of drawing schematics in a GUI, engineers describe circuits as Python data structures and the library renders standards-compliant output.
+Schematika takes a **data-first, code-as-schematic** approach to electrical documentation. Instead of drawing schematics in a GUI, engineers describe circuits as Python data structures and the library renders standards-compliant output.
 
 The core insight: electrical schematics are **structured data** — components, connections, and layout rules — not freeform drawings. By treating them as data, we gain version control, parameterization, automation, and reproducibility for free.
 
@@ -129,8 +129,8 @@ def factory(
 
 **WARNING**: The `__init__.py` files in this project have **deliberate import ordering** to avoid circular imports. Do NOT let auto-formatters (like `ruff` with I001) reorder these imports. Key files:
 
-- `src/pyschemaelectrical/model/__init__.py` — `core` must be imported before `parts`
-- `src/pyschemaelectrical/utils/__init__.py` — `utils` must be imported before `autonumbering`
+- `src/schematika/electrical/model/__init__.py` — `core` must be imported before `parts`
+- `src/schematika/electrical/utils/__init__.py` — `utils` must be imported before `autonumbering`
 
 These files use `# noqa: E402` and `# noqa: I001` comments to suppress linter warnings about import order.
 
@@ -228,7 +228,7 @@ Current baseline with default rules: ~85 issues (61 E501 line-too-long in test/s
 
 ### Source Layout
 
-Source code lives under `src/pyschemaelectrical/` (src layout). The package dir mapping is `{"" = "src"}` in pyproject.toml. Public API is exported from `src/pyschemaelectrical/__init__.py`.
+Source code lives under `src/schematika/` (src layout). The package dir mapping is `{"" = "src"}` in pyproject.toml. Public API is exported from `src/schematika/__init__.py`.
 
 ### Consumer Project Reference
 
@@ -299,7 +299,7 @@ When using the Task tool to launch subagents for research or code work:
 - **To retrieve completed results**, use `TaskOutput` with `block=true` to wait for completion. The result text is returned directly.
 - **To resume an agent** for follow-up questions, use the `resume` parameter with the agent's ID. The agent retains full context from its previous run.
 - **Launch independent agents in parallel** by putting multiple Task tool calls in a single message. This is much faster than sequential launches.
-- **Keep prompts self-contained** — each new agent starts with zero context about the codebase. Include file paths, module names, and what specifically to investigate. Reference the project root as `c:\Users\OleJohanBondahl\Documents\GitHub_ZEN\PySchemaElectrical\`.
+- **Keep prompts self-contained** — each new agent starts with zero context about the codebase. Include file paths, module names, and what specifically to investigate. Reference the project root as `c:\Users\OleJohanBondahl\Documents\GitHub_ZEN\Schematika\`.
 - **Use the right agent type** for the job:
   - `Explore` — fast read-only codebase searches (Glob, Grep, Read). Best for audits and investigations.
   - `general-purpose` — can run Bash commands (pytest, ruff, etc.) in addition to reading files. Use for tasks that need command output.

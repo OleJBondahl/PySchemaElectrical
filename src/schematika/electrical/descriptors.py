@@ -1,5 +1,5 @@
 """
-Inline circuit descriptors for PySchemaElectrical.
+Inline circuit descriptors for Schematika.
 
 Provides lightweight descriptor types for defining linear circuits
 declaratively without needing a builder function.

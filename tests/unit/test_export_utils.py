@@ -1,5 +1,5 @@
 """
-Tests for pyschemaelectrical.utils.export_utils.
+Tests for schematika.utils.export_utils.
 
 Covers the terminal CSV merge/sort utilities:
 - _terminal_pin_sort_key  (natural sort ordering)
