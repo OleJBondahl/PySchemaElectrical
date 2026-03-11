@@ -28,3 +28,6 @@ examples/output/project_svgs/*.csv
 # Claude Code
 .claude/settings.local.json
 .claude/worktrees/
+
+# Superpowers agent working documents
+docs/superpowers/
