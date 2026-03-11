@@ -249,6 +249,41 @@ See `todo.md` for the complete audit-driven task list. It contains:
 - **Section 17**: Archived completed items
 - **Summary table**: Tasks prioritized into Tiers 1–5
 
+### P&ID Module
+
+The `pid/` module generates ISO 14617 / ISA 5.1 compliant P&ID diagrams. Key files:
+
+- **`pid/constants.py`** — All P&ID constants derived from `core/constants.py` grid system. `PID_EQUIPMENT_STROKE` (0.5mm body), `PID_LINE_WEIGHT` (0.7mm pipe), `PID_SIGNAL_LINE_WEIGHT` (0.25mm signal), spacing constants (`PID_MIN_EQUIPMENT_GAP` 20mm, `PID_MIN_LEG_SPACING` 50mm).
+- **`pid/builder.py`** — `PIDBuilder` fluent builder. Equipment placed via port-to-port alignment. Instruments attached to equipment ports. Signal line route deduplication built-in.
+- **`pid/validation.py`** — `validate_pid(diagram)` returns `ValidationResult` with `errors` and `warnings`. Checks: equipment overlap, text overlap, page boundary, duplicate lines, stroke weight consistency.
+- **`pid/symbols/`** — ISA/ISO symbol factories (valves, instruments, pumps, vessels, piping).
+- **`pid/diagram.py`** — `PIDDiagram` mutable container.
+- **`pid/connections.py`** — Pipe routing with `manhattan_route()` and `render_pipe()`.
+- **`pid/layout.py`** — BFS placement resolution via `resolve_placements()`.
+
+#### P&ID Visual Iteration Workflow
+
+Agents can autonomously iterate on P&ID drawing quality using this loop:
+
+```
+1. Edit symbol/layout/spacing code
+2. Build consumer project: cd ../auxillary_cabinet_v3 && uv run python src/pid.py
+3. Convert SVG to PNG: uv run python scripts/pid_review.py <path/to/svg>
+4. Read the PNG with Read tool (multimodal vision)
+5. Identify layout issues (overlaps, clipping, spacing)
+6. Fix and go to step 1
+```
+
+**Prerequisites:** `uv sync --extra dev` then `uv run playwright install chromium` (one-time setup). The `scripts/pid_review.py` tool uses Playwright (Chromium) on Windows since native Cairo is unavailable.
+
+**Programmatic validation:** Run `validate_pid(diagram)` after `builder.build()` to check for overlaps, boundary violations, and stroke weight inconsistencies. The `ValidationResult` has `.errors` (blocking) and `.warnings` (non-blocking).
+
+**Key layout constants** for consumer projects:
+- `PID_MIN_EQUIPMENT_GAP` (20mm) — minimum between adjacent equipment
+- `PID_MIN_LEG_SPACING` (50mm) — minimum between parallel pipe legs
+- `INSTRUMENT_BUBBLE_RADIUS` (10mm) — use for staggering instruments: horizontal offset = `radius * 3`
+- Default instrument offset from port: `(0, -25)` (bubble diameter + label gap)
+
 ### Agent Git Workflow
 
 - **Before committing**, update the MCP memory server for any changed/added/removed functions, classes, config, types, or device definitions. Search first (`mcp__memory__search_nodes`) to avoid duplicates, then create/update/delete entities to match the current code. This is mandatory, not optional.
