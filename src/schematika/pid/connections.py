@@ -12,6 +12,15 @@ from dataclasses import dataclass
 
 from schematika.core.geometry import Element, Point, Style
 from schematika.core.primitives import Line, Polygon, Text
+from schematika.pid.constants import (
+    PID_FLOW_ARROW_SIZE,
+    PID_LABEL_PIPE_OFFSET,
+    PID_LINE_WEIGHT,
+    PID_PNEUMATIC_DASH,
+    PID_SIGNAL_DASH,
+    PID_SIGNAL_LINE_WEIGHT,
+    PID_TEXT_SIZE_PIPE,
+)
 
 
 @dataclass(frozen=True)
@@ -35,9 +44,13 @@ class PipeStyle:
 # Predefined styles
 # ---------------------------------------------------------------------------
 
-PROCESS_PIPE = PipeStyle(stroke_width=0.7)
-SIGNAL_LINE = PipeStyle(stroke_width=0.35, dash_pattern="2,2")
-PNEUMATIC_LINE = PipeStyle(stroke_width=0.35, dash_pattern="1,3,5,3")
+PROCESS_PIPE = PipeStyle(stroke_width=PID_LINE_WEIGHT)
+SIGNAL_LINE = PipeStyle(
+    stroke_width=PID_SIGNAL_LINE_WEIGHT, dash_pattern=PID_SIGNAL_DASH
+)
+PNEUMATIC_LINE = PipeStyle(
+    stroke_width=PID_SIGNAL_LINE_WEIGHT, dash_pattern=PID_PNEUMATIC_DASH
+)
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +109,7 @@ def _make_style(pipe_style: PipeStyle) -> Style:
 
 
 def create_flow_arrow(
-    point: Point, direction: str = "right", size: float = 3.0
+    point: Point, direction: str = "right", size: float = PID_FLOW_ARROW_SIZE
 ) -> Element:
     """Create a small filled triangular flow-direction arrow.
 
@@ -229,12 +242,12 @@ def render_pipe(
             idx, _ = h_seg
             p1, p2 = waypoints[idx], waypoints[idx + 1]
             lx = (p1.x + p2.x) / 2
-            ly = p1.y - 2.0
+            ly = p1.y - PID_LABEL_PIPE_OFFSET
         else:
             # Fall back to midpoint of the first segment.
             p1, p2 = waypoints[0], waypoints[1]
             lx = (p1.x + p2.x) / 2
-            ly = (p1.y + p2.y) / 2 - 2.0
+            ly = (p1.y + p2.y) / 2 - PID_LABEL_PIPE_OFFSET
 
         label_style = Style(stroke="none", fill="black")
         elements.append(
@@ -243,7 +256,7 @@ def render_pipe(
                 position=Point(lx, ly),
                 style=label_style,
                 anchor="middle",
-                font_size=3.5,
+                font_size=PID_TEXT_SIZE_PIPE,
             )
         )
 

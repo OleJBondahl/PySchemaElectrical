@@ -3,15 +3,28 @@ ISO 14617 piping primitive symbol factories.
 """
 
 from schematika.core import Line, Point, Port, Style, Symbol, Text, Vector
-from schematika.core.constants import TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
-from schematika.pid.constants import PID_EQUIPMENT_STROKE, PID_LINE_WEIGHT
+from schematika.core.constants import TEXT_FONT_FAMILY
+from schematika.pid.constants import (
+    PID_CAP_HALF_HEIGHT,
+    PID_DEFAULT_PIPE_LENGTH,
+    PID_EQUIPMENT_STROKE,
+    PID_LINE_WEIGHT,
+    PID_REDUCER_INLET_HALF_H,
+    PID_REDUCER_LENGTH,
+    PID_REDUCER_OUTLET_HALF_H,
+    PID_STUB_LENGTH,
+    PID_TAG_OFFSET,
+    PID_TEE_BRANCH_LENGTH,
+    PID_TEE_HALF_LENGTH,
+    PID_TEXT_SIZE_TAG,
+)
 
 _PIPE_STYLE = Style(stroke="black", stroke_width=PID_LINE_WEIGHT, fill="none")
 _BODY_STYLE = Style(stroke="black", stroke_width=PID_EQUIPMENT_STROKE, fill="none")
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 
 
-def pipe_segment(length: float = 50.0, label: str = "") -> Symbol:
+def pipe_segment(length: float = PID_DEFAULT_PIPE_LENGTH, label: str = "") -> Symbol:
     """Horizontal pipe segment.
 
     Args:
@@ -30,11 +43,11 @@ def pipe_segment(length: float = 50.0, label: str = "") -> Symbol:
         elements.append(
             Text(
                 content=label,
-                position=Point(0.0, -4.0),
+                position=Point(0.0, -PID_TAG_OFFSET),
                 style=_TEXT_STYLE,
                 anchor="middle",
                 dominant_baseline="auto",
-                font_size=TEXT_SIZE_MAIN,
+                font_size=PID_TEXT_SIZE_TAG,
             )
         )
 
@@ -54,8 +67,8 @@ def pipe_tee() -> Symbol:
     Returns:
         Symbol with ports 'in' (left), 'out' (right), 'branch' (bottom).
     """
-    half = 10.0
-    branch_len = 10.0
+    half = PID_TEE_HALF_LENGTH
+    branch_len = PID_TEE_BRANCH_LENGTH
 
     horizontal = Line(Point(-half, 0.0), Point(half, 0.0), _PIPE_STYLE)
     branch = Line(Point(0.0, 0.0), Point(0.0, branch_len), _PIPE_STYLE)
@@ -83,9 +96,9 @@ def pipe_reducer(label: str = "") -> Symbol:
     Returns:
         Symbol with ports 'in' (left, wider) and 'out' (right, narrower).
     """
-    length = 10.0  # horizontal span
-    h_in = 5.0  # half-height at inlet side
-    h_out = 2.5  # half-height at outlet side
+    length = PID_REDUCER_LENGTH
+    h_in = PID_REDUCER_INLET_HALF_H
+    h_out = PID_REDUCER_OUTLET_HALF_H
 
     # Trapezoid outline
     top_line = Line(Point(-length, -h_in), Point(length, -h_out), _BODY_STYLE)
@@ -94,8 +107,12 @@ def pipe_reducer(label: str = "") -> Symbol:
     right_cap = Line(Point(length, -h_out), Point(length, h_out), _BODY_STYLE)
 
     # Pipe stubs
-    in_stub = Line(Point(-length - 5.0, 0.0), Point(-length, 0.0), _PIPE_STYLE)
-    out_stub = Line(Point(length, 0.0), Point(length + 5.0, 0.0), _PIPE_STYLE)
+    in_stub = Line(
+        Point(-length - PID_STUB_LENGTH, 0.0), Point(-length, 0.0), _PIPE_STYLE
+    )
+    out_stub = Line(
+        Point(length, 0.0), Point(length + PID_STUB_LENGTH, 0.0), _PIPE_STYLE
+    )
 
     elements = [top_line, bot_line, left_cap, right_cap, in_stub, out_stub]
 
@@ -103,17 +120,17 @@ def pipe_reducer(label: str = "") -> Symbol:
         elements.append(
             Text(
                 content=label,
-                position=Point(0.0, h_in + 4.0),
+                position=Point(0.0, h_in + PID_TAG_OFFSET),
                 style=_TEXT_STYLE,
                 anchor="middle",
                 dominant_baseline="auto",
-                font_size=TEXT_SIZE_MAIN,
+                font_size=PID_TEXT_SIZE_TAG,
             )
         )
 
     ports = {
-        "in": Port("in", Point(-length - 5.0, 0.0), Vector(-1, 0)),
-        "out": Port("out", Point(length + 5.0, 0.0), Vector(1, 0)),
+        "in": Port("in", Point(-length - PID_STUB_LENGTH, 0.0), Vector(-1, 0)),
+        "out": Port("out", Point(length + PID_STUB_LENGTH, 0.0), Vector(1, 0)),
     }
 
     return Symbol(elements, ports, label=label)
@@ -127,8 +144,8 @@ def pipe_cap() -> Symbol:
     Returns:
         Symbol with port 'in' (left).
     """
-    stub_len = 5.0
-    cap_h = 3.0  # half-height of the cap bar
+    stub_len = PID_STUB_LENGTH
+    cap_h = PID_CAP_HALF_HEIGHT
 
     stub = Line(Point(-stub_len, 0.0), Point(0.0, 0.0), _PIPE_STYLE)
     cap = Line(Point(0.0, -cap_h), Point(0.0, cap_h), _BODY_STYLE)

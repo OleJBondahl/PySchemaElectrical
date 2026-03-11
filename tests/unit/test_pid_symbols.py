@@ -607,14 +607,14 @@ def test_constants_importable():
         VALVE_SIZE,
     )
 
-    assert INSTRUMENT_BUBBLE_RADIUS == 10.0
-    assert VALVE_SIZE == 15.0
+    assert INSTRUMENT_BUBBLE_RADIUS == 6.0
+    assert VALVE_SIZE == 10.0
     assert PID_LINE_WEIGHT == 0.7
     assert PID_SIGNAL_LINE_WEIGHT == 0.25
-    assert PID_SIGNAL_DASH == "2,2"
+    assert PID_SIGNAL_DASH == "2.0,2.0"
     assert PID_EQUIPMENT_STROKE == 0.5
-    assert PID_MIN_EQUIPMENT_GAP == 20.0
-    assert PID_MIN_LEG_SPACING == 50.0
+    assert PID_MIN_EQUIPMENT_GAP == 30.0
+    assert PID_MIN_LEG_SPACING == 40.0
     assert PID_LABEL_OFFSET == 5.0
     assert isinstance(ISA_FIRST_LETTER, dict)
     assert isinstance(ISA_SUCCEEDING_LETTERS, dict)

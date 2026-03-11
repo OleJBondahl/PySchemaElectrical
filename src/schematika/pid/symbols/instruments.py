@@ -3,12 +3,16 @@ ISA 5.1 instrument bubble symbol factories.
 """
 
 from schematika.core import Circle, Line, Point, Port, Style, Symbol, Text, Vector
-from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
+from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY
 from schematika.pid.constants import (
     INSTRUMENT_BUBBLE_RADIUS,
     PID_EQUIPMENT_STROKE,
     PID_SIGNAL_DASH,
     PID_SIGNAL_LINE_WEIGHT,
+    PID_STUB_LENGTH,
+    PID_TAG_OFFSET,
+    PID_TEXT_SIZE_BUBBLE,
+    PID_TEXT_SIZE_TAG,
 )
 
 _SIGNAL_STYLE = Style(stroke="black", stroke_width=PID_SIGNAL_LINE_WEIGHT, fill="none")
@@ -16,7 +20,7 @@ _BUBBLE_STYLE = Style(stroke="black", stroke_width=PID_EQUIPMENT_STROKE, fill="w
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 _LABEL_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 
-_R = INSTRUMENT_BUBBLE_RADIUS  # 10mm
+_R = INSTRUMENT_BUBBLE_RADIUS  # 6mm
 
 
 def instrument_bubble(
@@ -72,7 +76,7 @@ def instrument_bubble(
             style=_TEXT_STYLE,
             anchor="middle",
             dominant_baseline="middle",
-            font_size=_R * 0.8,
+            font_size=PID_TEXT_SIZE_BUBBLE,
         )
         elements.append(letter_text)
 
@@ -81,22 +85,26 @@ def instrument_bubble(
     if display_tag:
         tag_text = Text(
             content=display_tag,
-            position=Point(0.0, _R + 4.0),
+            position=Point(0.0, _R + PID_TAG_OFFSET),
             style=_LABEL_STYLE,
             anchor="middle",
             dominant_baseline="auto",
-            font_size=TEXT_SIZE_MAIN,
+            font_size=PID_TEXT_SIZE_TAG,
         )
         elements.append(tag_text)
 
     # Signal line stubs
-    process_stub = Line(Point(0.0, _R), Point(0.0, _R + 5.0), _SIGNAL_STYLE)
-    signal_stub = Line(Point(0.0, -_R), Point(0.0, -_R - 5.0), _SIGNAL_STYLE)
+    process_stub = Line(Point(0.0, _R), Point(0.0, _R + PID_STUB_LENGTH), _SIGNAL_STYLE)
+    signal_stub = Line(
+        Point(0.0, -_R), Point(0.0, -_R - PID_STUB_LENGTH), _SIGNAL_STYLE
+    )
     elements.extend([process_stub, signal_stub])
 
     ports = {
-        "process": Port("process", Point(0.0, _R + 5.0), Vector(0, 1)),
-        "signal_out": Port("signal_out", Point(0.0, -_R - 5.0), Vector(0, -1)),
+        "process": Port("process", Point(0.0, _R + PID_STUB_LENGTH), Vector(0, 1)),
+        "signal_out": Port(
+            "signal_out", Point(0.0, -_R - PID_STUB_LENGTH), Vector(0, -1)
+        ),
     }
 
     effective_label = label or (f"{letters}-{tag_number}" if tag_number else letters)
