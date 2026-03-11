@@ -27,6 +27,7 @@ dependencies = []
 
 [project.optional-dependencies]
 pdf = ["typst"]
+dev = ["cairosvg"]
 
 [project.urls]
 Homepage = "https://github.com/OleJBondahl/PySchemaElectrical"
