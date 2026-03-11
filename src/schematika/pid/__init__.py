@@ -30,7 +30,6 @@ from schematika.pid.diagram import (  # noqa: F401
 )
 from schematika.pid.builder import (  # noqa: F401
     EquipmentSpec,
-    InstrumentSpec,
     PIDBuildResult,
     PIDBuilder,
     PipeSpec,

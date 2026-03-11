@@ -151,7 +151,7 @@ class Project:
         self._results: dict[str, BuildResult] = {}
         self._plc_rack: "PlcRack | None" = None
         self._external_connections: "list[ConnectionRow]" = []
-        self._field_device_defs: list[tuple[list, dict | None]] = []
+        self._field_device_defs: list[tuple[list, dict | None, dict | None]] = []
         self._wire_label_export: tuple[str, dict[str, str] | None] | None = None
         self._taglist_export: str | None = None
         self._bom_excel_export: str | None = None
@@ -701,7 +701,7 @@ class Project:
         from schematika.electrical.cable_export import generate_cable_csv
 
         all_devices = []
-        for devices, _reuse in self._field_device_defs:
+        for devices, _reuse, _template_reuse in self._field_device_defs:
             all_devices.extend(devices)
 
         return generate_cable_csv(self._external_connections, all_devices, output_path)
@@ -885,6 +885,9 @@ class Project:
                 export_terminal_list(
                     csv_path, result.used_terminals, self._terminal_descriptions
                 )
+
+        if self._pid_defs:
+            self._render_pid_svgs(output_dir)
 
     def export_csvs(self, output_dir: str) -> None:
         """Export system terminal CSV with bridge info to *output_dir*.

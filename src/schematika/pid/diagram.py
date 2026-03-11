@@ -103,4 +103,4 @@ def render_pid(
     for d in diagram_list:
         all_elements.extend(d.elements)
 
-    render_to_svg(all_elements, filename, width=width, height=height)
+    render_to_svg(all_elements, filename, width=int(width), height=int(height))

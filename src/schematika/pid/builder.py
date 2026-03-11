@@ -49,8 +49,8 @@ class EquipmentSpec:
 
 
 @dataclass(frozen=True)
-class InstrumentSpec:
-    """Specification for an ISA 5.1 instrument bubble.
+class _InstrumentEntry:
+    """Internal specification for an ISA 5.1 instrument bubble.
 
     Attributes:
         letters: ISA letter codes (e.g. ``"TT"``, ``"FIC"``).
@@ -155,7 +155,7 @@ class PIDBuilder:
     def __init__(self, state: GenerationState | None = None) -> None:
         self._state: GenerationState = state or create_initial_state()
         self._entries: dict[str, _EquipmentEntry] = {}
-        self._instruments: dict[str, InstrumentSpec] = {}
+        self._instruments: dict[str, _InstrumentEntry] = {}
         self._pipes: list[PipeSpec] = []
         # Insertion-order tracking (Python 3.7+ dict preserves order, but
         # we keep a separate list for equipment and instrument ordering).
@@ -280,7 +280,7 @@ class PIDBuilder:
                 f"Instrument '{name}' references unknown equipment '{on_equipment}'"
             )
 
-        self._instruments[name] = InstrumentSpec(
+        self._instruments[name] = _InstrumentEntry(
             letters=letters,
             tag_prefix=tag_prefix or letters,
             on_equipment=on_equipment,
