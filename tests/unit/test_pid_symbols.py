@@ -597,7 +597,11 @@ def test_constants_importable():
         INSTRUMENT_BUBBLE_RADIUS,
         ISA_FIRST_LETTER,
         ISA_SUCCEEDING_LETTERS,
+        PID_EQUIPMENT_STROKE,
+        PID_LABEL_OFFSET,
         PID_LINE_WEIGHT,
+        PID_MIN_EQUIPMENT_GAP,
+        PID_MIN_LEG_SPACING,
         PID_SIGNAL_DASH,
         PID_SIGNAL_LINE_WEIGHT,
         VALVE_SIZE,
@@ -606,8 +610,12 @@ def test_constants_importable():
     assert INSTRUMENT_BUBBLE_RADIUS == 10.0
     assert VALVE_SIZE == 15.0
     assert PID_LINE_WEIGHT == 0.7
-    assert PID_SIGNAL_LINE_WEIGHT == 0.35
+    assert PID_SIGNAL_LINE_WEIGHT == 0.25
     assert PID_SIGNAL_DASH == "2,2"
+    assert PID_EQUIPMENT_STROKE == 0.5
+    assert PID_MIN_EQUIPMENT_GAP == 20.0
+    assert PID_MIN_LEG_SPACING == 50.0
+    assert PID_LABEL_OFFSET == 5.0
     assert isinstance(ISA_FIRST_LETTER, dict)
     assert isinstance(ISA_SUCCEEDING_LETTERS, dict)
     assert "T" in ISA_FIRST_LETTER
