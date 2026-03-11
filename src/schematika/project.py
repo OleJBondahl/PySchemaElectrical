@@ -951,6 +951,12 @@ class Project:
                 )
                 csv_paths[key] = csv_path
 
+        # Build any P&ID diagrams not yet built (e.g. added after build_circuits())
+        for pdef in self._pid_defs:
+            if pdef.key not in self._pid_results:
+                self._build_all_pids()
+                break
+
         # Render P&ID SVGs
         pid_svg_paths = self._render_pid_svgs(temp_dir)
 
