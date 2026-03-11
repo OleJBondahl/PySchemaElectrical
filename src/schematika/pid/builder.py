@@ -26,9 +26,15 @@ from schematika.pid.connections import (
     manhattan_route,
     render_pipe,
 )
+from schematika.pid.constants import INSTRUMENT_BUBBLE_RADIUS, PID_LABEL_OFFSET
 from schematika.pid.diagram import PIDDiagram
 from schematika.pid.layout import Placement, resolve_placements
 from schematika.pid.symbols.instruments import instrument_bubble
+
+_DEFAULT_INSTRUMENT_OFFSET: tuple[float, float] = (
+    0.0,
+    -(INSTRUMENT_BUBBLE_RADIUS * 2 + PID_LABEL_OFFSET),
+)
 
 
 @dataclass(frozen=True)
@@ -247,7 +253,7 @@ class PIDBuilder:
         on_equipment: str,
         on_port: str = "outlet",
         location: str = "field",
-        offset: tuple[float, float] = (0.0, -30.0),
+        offset: tuple[float, float] = _DEFAULT_INSTRUMENT_OFFSET,
         tag_prefix: str | None = None,
         **kwargs: Any,
     ) -> "PIDBuilder":
@@ -301,7 +307,7 @@ class PIDBuilder:
         *,
         on_equipment: str,
         on_port: str = "outlet",
-        offset: tuple[float, float] = (0, -30),
+        offset: tuple[float, float] = _DEFAULT_INSTRUMENT_OFFSET,
     ) -> "PIDBuilder":
         """Add instrument from device catalog. Uses the catalog device's process spec.
 
@@ -657,6 +663,7 @@ def _route_pipes(
         ValueError: If a pipe references an unknown name or a non-existent port.
     """
     elements: list[Element] = []
+    seen_routes: set[tuple[float, float, float, float]] = set()
 
     for pipe_spec in pipe_specs:
         from_sym = placed.get(pipe_spec.from_equipment)
@@ -689,7 +696,18 @@ def _route_pipes(
                 f"'{pipe_spec.to_equipment}'. Available: {available}"
             )
 
-        waypoints = manhattan_route(from_port.position, to_port.position)
+        from_pos = from_port.position
+        to_pos = to_port.position
+        route_key = (
+            round(from_pos.x, 1),
+            round(from_pos.y, 1),
+            round(to_pos.x, 1),
+            round(to_pos.y, 1),
+        )
+        if route_key in seen_routes:
+            continue
+        seen_routes.add(route_key)
+        waypoints = manhattan_route(from_pos, to_pos)
         elements.extend(
             render_pipe(waypoints, pipe_spec.style, label=pipe_spec.line_spec)
         )
