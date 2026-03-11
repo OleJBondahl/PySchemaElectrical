@@ -68,6 +68,7 @@ class _InstrumentEntry:
     on_port: str
     location: str
     offset: tuple[float, float]
+    fixed_tag: str | None = None
     kwargs: dict[str, Any] = field(default_factory=dict)
 
 
@@ -325,14 +326,25 @@ class PIDBuilder:
         if device.process is None:
             raise ValueError(f"Device '{device_tag}' has no ProcessSpec")
         spec = device.process.instrument
-        return self.add_instrument(
-            name,
-            spec.letters,
+
+        if name in self._entries or name in self._instruments:
+            raise ValueError(f"Instrument '{name}' already registered")
+        if on_equipment not in self._entries:
+            raise ValueError(
+                f"Instrument '{name}' references unknown equipment '{on_equipment}'"
+            )
+
+        self._instruments[name] = _InstrumentEntry(
+            letters=spec.letters,
+            tag_prefix=spec.letters,
             on_equipment=on_equipment,
             on_port=on_port,
             location=spec.location,
             offset=offset,
+            fixed_tag=device_tag,
         )
+        self._instrument_order.append(name)
+        return self
 
     def pipe(
         self,
@@ -563,7 +575,11 @@ class PIDBuilder:
                 )
 
             port = equip_sym.ports[port_id]
-            state, tag = next_tag(state, inst_spec.tag_prefix)
+
+            if inst_spec.fixed_tag is not None:
+                tag = inst_spec.fixed_tag
+            else:
+                state, tag = next_tag(state, inst_spec.tag_prefix)
 
             tag_number = _numeric_suffix(tag)
             inst_sym = instrument_bubble(
