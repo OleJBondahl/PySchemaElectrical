@@ -51,25 +51,25 @@ def instrument_bubble(
 
     elements = [bubble]
 
-    if location in ("panel", "dcs"):
-        # Horizontal dividing line through center
-        line_style = (
-            Style(
+    # Horizontal dividing line through center (always shown per ISA 5.1
+    # when tag_number is present; also for panel/dcs location variants)
+    has_tag = bool(tag_number)
+    if has_tag or location in ("panel", "dcs"):
+        if location == "dcs":
+            line_style = Style(
                 stroke="black",
                 stroke_width=LINE_WIDTH_THIN,
                 fill="none",
                 stroke_dasharray=PID_SIGNAL_DASH,
             )
-            if location == "dcs"
-            else _SIGNAL_STYLE
-        )
+        else:
+            line_style = _SIGNAL_STYLE
         divider = Line(Point(-_R, 0.0), Point(_R, 0.0), line_style)
         elements.append(divider)
 
-    # Letters inside bubble
+    # Letters inside bubble (upper half if divided, centered if not)
     if letters:
-        # If panel/dcs, letters go above the line; field they're centered
-        letter_y = -_R * 0.25 if location in ("panel", "dcs") else 0.0
+        letter_y = -_R * 0.3 if has_tag or location in ("panel", "dcs") else 0.0
         letter_text = Text(
             content=letters,
             position=Point(0.0, letter_y),
@@ -80,16 +80,15 @@ def instrument_bubble(
         )
         elements.append(letter_text)
 
-    # Tag number below the bubble
-    display_tag = f"{letters}-{tag_number}" if letters and tag_number else tag_number
-    if display_tag:
+    # Tag number inside bubble (lower half)
+    if has_tag:
         tag_text = Text(
-            content=display_tag,
-            position=Point(0.0, _R + PID_TAG_OFFSET),
-            style=_LABEL_STYLE,
+            content=tag_number,
+            position=Point(0.0, _R * 0.35),
+            style=_TEXT_STYLE,
             anchor="middle",
-            dominant_baseline="auto",
-            font_size=PID_TEXT_SIZE_TAG,
+            dominant_baseline="middle",
+            font_size=PID_TEXT_SIZE_BUBBLE,
         )
         elements.append(tag_text)
 

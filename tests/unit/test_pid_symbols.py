@@ -57,7 +57,7 @@ def test_centrifugal_pump_inlet_direction():
 
 def test_centrifugal_pump_outlet_direction():
     sym = centrifugal_pump()
-    assert sym.ports["outlet"].direction == Vector(0, -1)
+    assert sym.ports["outlet"].direction == Vector(1, 0)
 
 
 def test_centrifugal_pump_has_elements():
@@ -79,8 +79,8 @@ def test_centrifugal_pump_inlet_port_position():
 
 def test_centrifugal_pump_outlet_port_position():
     sym = centrifugal_pump()
-    # Outlet port should be above (negative y) the circle
-    assert sym.ports["outlet"].position.y < 0
+    # Outlet port should be to the right (positive x)
+    assert sym.ports["outlet"].position.x > 0
 
 
 # ---------------------------------------------------------------------------

@@ -31,21 +31,19 @@ _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 def centrifugal_pump(label: str = "") -> Symbol:
     """ISO 14617 centrifugal pump symbol.
 
-    A circle (~20mm diameter) with a tangential discharge.
-    Inlet on the left (port 'inlet'), outlet exits from the top (port 'outlet').
+    A circle with an internal filled triangle (flow direction indicator).
+    Horizontal flow-through: inlet on the left, outlet on the right.
 
     Args:
         label: Component label/tag (e.g., "P-001").
 
     Returns:
-        Symbol with ports 'inlet' (left) and 'outlet' (top-right).
+        Symbol with ports 'inlet' (left) and 'outlet' (right).
     """
     radius = PID_PUMP_RADIUS
 
-    # Circle body centered at origin
     body = Circle(center=Point(0.0, 0.0), radius=radius, style=_BODY_STYLE)
 
-    # Inlet stub: horizontal line from left edge toward the circle (port attachment)
     inlet_x = -radius - PID_STUB_LENGTH
     inlet_line = Line(
         start=Point(inlet_x, 0.0),
@@ -53,22 +51,25 @@ def centrifugal_pump(label: str = "") -> Symbol:
         style=_PIPE_STYLE,
     )
 
-    # Outlet stub: vertical line from top edge upward (tangential discharge)
-    outlet_y = -radius - PID_STUB_LENGTH
+    outlet_x = radius + PID_STUB_LENGTH
     outlet_line = Line(
-        start=Point(radius * 0.5, -radius),
-        end=Point(radius * 0.5, outlet_y),
+        start=Point(radius, 0.0),
+        end=Point(outlet_x, 0.0),
         style=_PIPE_STYLE,
     )
 
-    # Small internal arrow/impeller indicator (diagonal line through center)
-    impeller = Line(
-        start=Point(-radius * 0.5, radius * 0.3),
-        end=Point(radius * 0.3, -radius * 0.5),
-        style=_BODY_STYLE,
+    # Internal filled triangle pointing right (flow direction indicator)
+    tri_size = PID_STUB_LENGTH
+    triangle = Polygon(
+        points=[
+            Point(-tri_size * 0.5, -tri_size * 0.5),
+            Point(-tri_size * 0.5, tri_size * 0.5),
+            Point(tri_size * 0.5, 0.0),
+        ],
+        style=_FILL_STYLE,
     )
 
-    elements = [body, inlet_line, outlet_line, impeller]
+    elements = [body, inlet_line, outlet_line, triangle]
 
     if label:
         elements.append(
@@ -84,7 +85,7 @@ def centrifugal_pump(label: str = "") -> Symbol:
 
     ports = {
         "inlet": Port("inlet", Point(inlet_x, 0.0), Vector(-1, 0)),
-        "outlet": Port("outlet", Point(radius * 0.5, outlet_y), Vector(0, -1)),
+        "outlet": Port("outlet", Point(outlet_x, 0.0), Vector(1, 0)),
     }
 
     return Symbol(elements, ports, label=label)

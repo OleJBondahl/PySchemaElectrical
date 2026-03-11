@@ -707,7 +707,17 @@ def _route_pipes(
         if route_key in seen_routes:
             continue
         seen_routes.add(route_key)
-        waypoints = manhattan_route(from_pos, to_pos)
+
+        # Infer routing preference from port directions:
+        # If the from_port direction is primarily vertical, route
+        # vertically first; otherwise route horizontally first.
+        from_dir = from_port.direction
+        prefer = (
+            "vertical"
+            if abs(from_dir.dy) > abs(from_dir.dx)
+            else "horizontal"
+        )
+        waypoints = manhattan_route(from_pos, to_pos, prefer=prefer)
         elements.extend(
             render_pipe(waypoints, pipe_spec.style, label=pipe_spec.line_spec)
         )
