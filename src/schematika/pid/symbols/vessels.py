@@ -3,13 +3,16 @@ ISO 14617 vessel and heat exchanger symbol factories.
 """
 
 from schematika.core import Circle, Line, Point, Port, Style, Symbol, Text, Vector
-from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
-from schematika.pid.constants import PID_LINE_WEIGHT
+from schematika.core.constants import TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
+from schematika.pid.constants import PID_EQUIPMENT_STROKE, PID_LINE_WEIGHT
 
 _PIPE_STYLE = Style(stroke="black", stroke_width=PID_LINE_WEIGHT, fill="none")
-_BODY_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none")
+_BODY_STYLE = Style(stroke="black", stroke_width=PID_EQUIPMENT_STROKE, fill="none")
 _DASH_STYLE = Style(
-    stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none", stroke_dasharray="3,2"
+    stroke="black",
+    stroke_width=PID_EQUIPMENT_STROKE,
+    fill="none",
+    stroke_dasharray="3,2",
 )
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 

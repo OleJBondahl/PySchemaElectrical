@@ -13,12 +13,12 @@ from schematika.core import (
     Text,
     Vector,
 )
-from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
-from schematika.pid.constants import PID_LINE_WEIGHT
+from schematika.core.constants import TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
+from schematika.pid.constants import PID_EQUIPMENT_STROKE, PID_LINE_WEIGHT
 
 _PIPE_STYLE = Style(stroke="black", stroke_width=PID_LINE_WEIGHT, fill="none")
-_BODY_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="none")
-_FILL_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="black")
+_BODY_STYLE = Style(stroke="black", stroke_width=PID_EQUIPMENT_STROKE, fill="none")
+_FILL_STYLE = Style(stroke="black", stroke_width=PID_EQUIPMENT_STROKE, fill="black")
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 
 

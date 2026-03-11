@@ -6,12 +6,13 @@ from schematika.core import Circle, Line, Point, Port, Style, Symbol, Text, Vect
 from schematika.core.constants import LINE_WIDTH_THIN, TEXT_FONT_FAMILY, TEXT_SIZE_MAIN
 from schematika.pid.constants import (
     INSTRUMENT_BUBBLE_RADIUS,
+    PID_EQUIPMENT_STROKE,
     PID_SIGNAL_DASH,
     PID_SIGNAL_LINE_WEIGHT,
 )
 
 _SIGNAL_STYLE = Style(stroke="black", stroke_width=PID_SIGNAL_LINE_WEIGHT, fill="none")
-_BUBBLE_STYLE = Style(stroke="black", stroke_width=LINE_WIDTH_THIN, fill="white")
+_BUBBLE_STYLE = Style(stroke="black", stroke_width=PID_EQUIPMENT_STROKE, fill="white")
 _TEXT_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 _LABEL_STYLE = Style(stroke="none", fill="black", font_family=TEXT_FONT_FAMILY)
 
@@ -71,7 +72,7 @@ def instrument_bubble(
             style=_TEXT_STYLE,
             anchor="middle",
             dominant_baseline="middle",
-            font_size=_R * 0.7,
+            font_size=_R * 0.8,
         )
         elements.append(letter_text)
 
